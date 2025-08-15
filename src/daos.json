@@ -1,0 +1,62 @@
+{
+  "DAOs": {
+    "stargaze-1": {
+      "Onchain OMies DAO": {
+        "DAO": "stars10e46g2vute3xk73uqxsaaaqx7md02xthf0vf49lxw379mh6ldzqqh2y89d",
+        "collection": "stars1j5fhf04q6sycz72mz5uzrwvv2e05jy3npsdzppxyl2eww0x5hy4s0wuftp",
+        "contract": "stars1dq6tafrsajfdk8w9plut4nmkhuxlkj68rnngydhf73v85m36lhqqtjuwyw"
+      },
+      "Wizard DAO": {
+        "DAO": "stars1dyg3rf3d82kw62d54sm2xrrqar6pctk5xztpkn7huuv2kdpdtddsmm7vuv",
+        "collection": "stars18d7ver7mmjdt06mz6x0pz09862060kupju75kpka5j0r7huearcsq0gyg0",
+        "contract": "stars19xkrcned5fajh0tln48t9nlu4k06q8qugse907fhqjtes94t6tmsm0qndw"
+      },
+      "Rekt Bulls DAO": {
+        "DAO": "stars1y97q3m9umsxgj8hu0de786mdvvjtecd3x9kkcuucqfpqgdmk5x3qya7u93",
+        "collection": "stars1ts5ymnra9wv27eqty8x88lhty4svea2j6jkw20t3mnnne6jwk5fqplsrdg",
+        "contract": "stars1uxp77jm2xrvn0xtrx0t762zhnkup6x285n0z6twyn80g4mhhpdfqjk0x80"
+      },
+      "GATAc DAO": {
+        "DAO": "stars19fz2t65uqlhrrznpllmmu7nzsvv3v2p4wruypthy7yjpsz5rltvqp6gjsk",
+        "collection": "stars1yw4xvtc43me9scqfr2jr2gzvcxd3a9y4eq7gaukreugw2yd2f8tssqyvcm",
+        "contract": "stars13pe9r0tp83fzs753xujcraydr7pts9jxrr6hzw0je7rv8hrk75zqm4afmm"
+      },
+      "GATAv DAO": {
+        "DAO": "stars1t5kx0emmfep57u8g6dupd6zs6z58v39zky852gm58lj3nwpuexuq0krw0c",
+        "collection": "stars19tedq0x8csy6v35cqcjy8f76j2f0fsljjytuxcvl3x4sj82tmxnqgxuu85",
+        "contract": "stars1nw8y8y872eygdfe5tkzwfr9hrsexla8thtut7dj4mt90mwap5pcq7539wy"
+      },
+      "Pixel Botz DAO": {
+        "DAO": "stars14ra94sxqat45vhhc7pnjn8qxxgu4y00zen2xyx4qhq67cq7h3cnqqrmrng",
+        "collection": "stars1fmr3kvjp0usfr9h7n38h0guutp4mw36lzqr0u9qj64ljwhcjg5yqad9nd4",
+        "contract": "stars1a3hyaftd9fs5sclst2ecne86c5w9ysfp7a2tfc23wg7w8xggt93s7ggfqz"
+      }
+    },
+    "osmosis-1": {
+      "Mad Scientists DAO": {
+        "DAO": "osmo1gtx8ka0d4jxcf5yyypll8824tz33ykmr27v04ff0r6dn9ucykr0shev4h7",
+        "collection": "osmo16pwjh09s662a0j2ssmzauyvkvagjwd9kpwc0mtamlwr8dtznlhfqcweap6",
+        "contract": "osmo1hcmh6vr2etuqr0js0fzfmsdqgn829r8gu96l9puh3465628n036qqg8xk6"
+      },
+      "Galactic Mining Club DAO": {
+        "DAO": "osmo1s8ulqxted9un22elzff6ja9tyhmhfge9ld4h633fa7vhuy2sy0yq0hx9a8",
+        "collection": "osmo1zr3ngejx502dn7jeqeqk4aaegtra2wdhsxjc6a6zts7cawp2q0esjp29mc",
+        "contract": "osmo1tugzf637jz4tdkvs35ma8pk0ed6mt3yw0ja6wdydky7ndq4tvzhqejpxv8"
+      }
+    },
+    "cosmoshub-4": {
+      "HUBbits DAO": {
+        "DAO": "cosmos19cvuwsya0ns6wev5u0kfmltsz8gp3wxdvr3r7pywfzqh5e5p73ssp4vf8q",
+        "collection": "cosmos18m56zl5rzw2fs6fv97zu0yg8zek30fytj0lp083rzmnm7ftead3qgzsgyt",
+        "contract": "cosmos15r67xu9p4x3km36ddmck3ctsgq8jaevc4mu7jxpwag3t5xpneldsj7l2p0"
+      }
+    },
+    "neutron-1": {
+      "The CEWT Cult Cabal DAO": {
+        "DAO": "neutron16v4gk9xpkdnpl7v4lemx76ucuup9nvlvfa3zfgzsrvykhyvzkktq9kd3uv",
+        "collection": "neutron1ctvuvplkju7q7lxjmmea6afrpyhc8wns6mp0v7rj2tw5255heksq0kaw4n",
+        "contract": "neutron1p52k9ym90944mtuu7d00v9hxakljh2jwkanqyk0tglmue2c0820sgnlrp4"
+      }
+    }
+  }
+}
