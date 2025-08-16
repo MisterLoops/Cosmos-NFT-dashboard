@@ -2959,16 +2959,26 @@ const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
                   : 0;
 
               // Get collection name
-              const getCollectionName = (contractAddress) => {
+              const getCollectionInfo = (contractAddress) => {
                 for (const [daoName, daoConfig] of Object.entries(
                   osmosisDAOs || {},
                 )) {
                   if (daoConfig.collection === contractAddress) {
-                    return daoName.replace(" DAO", "");
+                      return {
+                      name: daoName.replace(" DAO", ""),
+                      daoName: daoName,
+                      daoAddress: daoConfig.DAO,
+                    };
                   }
                 }
-                return nft.collection.name || "Unknown Collection";
+                return {
+                  name: nft.collection.name || "Unknown Collection",
+                  daoName: null,
+                  daoAddress: null,
+                };
               };
+
+              const collectionInfo = getCollectionInfo(nft.collection.contract);
 
               // Process traits
               const rawTraits = metadata?.attributes || metadata?.traits || [];
@@ -2984,7 +2994,7 @@ const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
                 tokenId: nft.nft_token_id.toString(),
                 chain: "osmosis",
                 contract: nft.collection.contract,
-                collection: getCollectionName(nft.collection.contract),
+                collection: collectionInfo.name,
                 image: processedImageUrl,
                 listed: false,
                 listPrice: null,
@@ -3000,6 +3010,8 @@ const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
                 sortUsd: floorPriceUsd,
                 staked: true, // Mark as staked
                 daoStaked: true, // Keep for compatibility
+                daoName: collectionInfo.daoName,
+                daoAddress: collectionInfo.daoAddress,
                 sourceAddress: address,
               };
 
