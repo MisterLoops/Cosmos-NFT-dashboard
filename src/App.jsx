@@ -58,7 +58,7 @@ export default function App() {
       bosmoFetchedRef.current = true;
 
       try {
-        console.log("[DEBUG] Fetching bOSMO price...");
+        // console.log("[DEBUG] Fetching bOSMO price...");
         const bosmoApiUrl = API_ENDPOINTS.BOSMO_API;
 
         let proxiedUrl;
@@ -80,7 +80,7 @@ export default function App() {
         if (response.ok) {
           const data = await response.json();
           const extractedPrice = data?.data?.price || data?.price || 1.0;
-          console.log("[DEBUG] bOSMO price extracted:", extractedPrice);
+          // console.log("[DEBUG] bOSMO price extracted:", extractedPrice);
           setBosmoPrice(extractedPrice);
         } else {
           console.warn(
@@ -109,7 +109,7 @@ export default function App() {
       initFetchedRef.current = true;
 
       try {
-        console.log("[DEBUG] Fetching INIT price...");
+        // console.log("[DEBUG] Fetching INIT price...");
 
         // Try first API
         try {
@@ -118,13 +118,13 @@ export default function App() {
             const data = await response.json();
             const extractedPrice = data?.coins?.["coingecko:initia"]?.price;
             if (extractedPrice && extractedPrice > 0) {
-              console.log("[DEBUG] INIT price from llama.fi:", extractedPrice);
+              // console.log("[DEBUG] INIT price from llama.fi:", extractedPrice);
               setInitPrice(extractedPrice);
               return;
             }
           }
         } catch (error) {
-          console.log("[DEBUG] First INIT API failed, trying second...");
+          // console.log("[DEBUG] First INIT API failed, trying second...");
         }
 
         // Try second API if first fails
@@ -134,7 +134,7 @@ export default function App() {
             const data = await response.json();
             const extractedPrice = data?.initia?.usd;
             if (extractedPrice && extractedPrice > 0) {
-              console.log("[DEBUG] INIT price from coingecko:", extractedPrice);
+              // console.log("[DEBUG] INIT price from coingecko:", extractedPrice);
               setInitPrice(extractedPrice);
               return;
             }
@@ -165,7 +165,7 @@ export default function App() {
       binjFetchedRef.current = true;
 
       try {
-        console.log("[DEBUG] Fetching bINJ price...");
+        // console.log("[DEBUG] Fetching bINJ price...");
         const binjApiUrl = API_ENDPOINTS.BINJ_API; // Assuming you have this defined
 
         let proxiedUrl;
@@ -188,7 +188,7 @@ export default function App() {
           const data = await response.json();
           // Adjust the data extraction based on the actual API response for bINJ
           const extractedPrice = data?.data?.price || data?.price || 1.0;
-          console.log("[DEBUG] bINJ price extracted:", extractedPrice);
+          // console.log("[DEBUG] bINJ price extracted:", extractedPrice);
           setBinjPrice(extractedPrice);
         } else {
           console.warn(
@@ -210,7 +210,7 @@ export default function App() {
 
   // Function to fetch prices for multiple tokens
   const fetchTokenPrices = async (balances) => {
-    console.log("[DEBUG] Fetching token prices for balances:", balances);
+    // console.log("[DEBUG] Fetching token prices for balances:", balances);
     const prices = {};
     const tokensToFetch = [];
 
@@ -272,7 +272,7 @@ export default function App() {
       });
     }
 
-    console.log("[DEBUG] Tokens to fetch:", tokensToFetch);
+    // console.log("[DEBUG] Tokens to fetch:", tokensToFetch);
 
     // Fetch prices from CoinGecko first
     if (tokensToFetch.length > 0) {
@@ -280,19 +280,19 @@ export default function App() {
         .map((token) => token.coingeckoId)
         .join(",");
       try {
-        console.log("[DEBUG] Fetching from CoinGecko:", coingeckoIds);
+        // console.log("[DEBUG] Fetching from CoinGecko:", coingeckoIds);
         const coingeckoResponse = await fetch(
           `${API_ENDPOINTS.COINGECKO_SIMPLE_PRICE}?ids=${coingeckoIds}&vs_currencies=usd`,
         );
         if (coingeckoResponse.ok) {
           const coingeckoData = await coingeckoResponse.json();
-          console.log("[DEBUG] CoinGecko response:", coingeckoData);
+          // console.log("[DEBUG] CoinGecko response:", coingeckoData);
           tokensToFetch.forEach((token) => {
             if (coingeckoData[token.coingeckoId]?.usd) {
               prices[token.id] = coingeckoData[token.coingeckoId].usd;
-              console.log(
-                `[DEBUG] Set price for ${token.symbol}: $${prices[token.id]}`,
-              );
+              // console.log(
+              //   `[DEBUG] Set price for ${token.symbol}: $${prices[token.id]}`,
+              // );
             }
           });
         } else {
@@ -311,10 +311,10 @@ export default function App() {
       (token) => !prices[token.id],
     );
     if (tokensWithoutPrice.length > 0) {
-      console.log(
-        "[DEBUG] Fetching missing prices from Llama.fi:",
-        tokensWithoutPrice.map((t) => t.symbol),
-      );
+      // console.log(
+      //   "[DEBUG] Fetching missing prices from Llama.fi:",
+      //   tokensWithoutPrice.map((t) => t.symbol),
+      // );
       for (const token of tokensWithoutPrice) {
         try {
           const llamaResponse = await fetch(
@@ -326,9 +326,9 @@ export default function App() {
               llamaData?.coins?.[`coingecko:${token.coingeckoId}`]?.price;
             if (price && price > 0) {
               prices[token.id] = price;
-              console.log(
-                `[DEBUG] Set price from Llama.fi for ${token.symbol}: $${prices[token.id]}`,
-              );
+              // console.log(
+              //   `[DEBUG] Set price from Llama.fi for ${token.symbol}: $${prices[token.id]}`,
+              // );
             } else {
               console.warn(
                 `[WARNING] Llama.fi price for ${token.symbol} is zero or missing.`,
@@ -348,7 +348,7 @@ export default function App() {
       }
     }
 
-    console.log("[DEBUG] Final token prices:", prices);
+    // console.log("[DEBUG] Final token prices:", prices);
     setTokenPrices(prices);
   };
 
@@ -382,9 +382,9 @@ export default function App() {
       for (const [chainName, config] of Object.entries(CHAIN_CONFIGS)) {
         const key = await walletInstance.getKey(config.chainId);
         addresses[chainName] = key.bech32Address;
-        console.log(
-          `${chainName} address (${walletType}): ${key.bech32Address}`,
-        );
+        // console.log(
+        //   `${chainName} address (${walletType}): ${key.bech32Address}`,
+        // );
       }
     } catch (error) {
       console.error("Failed to connect to chains:", error);
@@ -421,7 +421,7 @@ export default function App() {
 
             if (response.ok) {
               const data = await response.json();
-              console.log(`Balance data for ${chainName}:`, data);
+              // console.log(`Balance data for ${chainName}:`, data);
 
               let balance;
               if (data.balances && Array.isArray(data.balances)) {
@@ -686,9 +686,9 @@ export default function App() {
 
   // Function to handle removal of NFTs for a manual address
   const handleManualAddressRemoved = (addressToRemove) => {
-    console.log(
-      `NFTs for manual address ${addressToRemove} have been cleared.`,
-    );
+    // console.log(
+    //   `NFTs for manual address ${addressToRemove} have been cleared.`,
+    // );
   };
 
   // Combine connected and manual addresses for NFT fetching

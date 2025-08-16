@@ -28,26 +28,26 @@ const cachedRequest = async (functionName, fetchFunction, ...args) => {
 
   // 1. Check cache
   if (cache.has(cacheKey)) {
-    console.log(`[CACHE HIT] ${functionName} for key: ${cacheKey}`);
+    // console.log(`[CACHE HIT] ${functionName} for key: ${cacheKey}`);
     return cache.get(cacheKey);
   }
 
   // 2. Check if request is already active
   if (activeRequests.has(cacheKey)) {
-    console.log(
-      `[REQUEST ACTIVE] ${functionName} for key: ${cacheKey}, waiting...`,
-    );
+    // console.log(
+    //   `[REQUEST ACTIVE] ${functionName} for key: ${cacheKey}, waiting...`,
+    // );
     return activeRequests.get(cacheKey); // Return the promise of the ongoing request
   }
 
   // 3. If not in cache and not active, initiate the request
-  console.log(
-    `[CACHE MISS] ${functionName} for key: ${cacheKey}, initiating fetch...`,
-  );
+  // console.log(
+  //   `[CACHE MISS] ${functionName} for key: ${cacheKey}, initiating fetch...`,
+  // );
   const requestPromise = fetchFunction(...args)
     .then((result) => {
       // Cache the result on success
-      console.log(`[CACHE SET] ${functionName} for key: ${cacheKey}`);
+      // console.log(`[CACHE SET] ${functionName} for key: ${cacheKey}`);
       cache.set(cacheKey, result);
       // Remove from active requests
       activeRequests.delete(cacheKey);
@@ -88,9 +88,9 @@ const getCollectionNameFromContract = (contractAddress) => {
 // Fetch metadata for listed NFTs from BackboneLabs API (Original function)
 const _fetchListedNFTMetadata = async (collectionAddress, tokenId, chain) => {
   try {
-    console.log(
-      `[DEBUG] Fetching listed NFT metadata from BackboneLabs API: ${collectionAddress}/${tokenId} on ${chain}`,
-    );
+    // console.log(
+    //   `[DEBUG] Fetching listed NFT metadata from BackboneLabs API: ${collectionAddress}/${tokenId} on ${chain}`,
+    // );
 
     const url = `${API_ENDPOINTS.BACKBONE_LABS_API}/dapps/necropolis/collections/${collectionAddress}/${tokenId}`;
 
@@ -131,10 +131,10 @@ const _fetchListedNFTMetadata = async (collectionAddress, tokenId, chain) => {
 
         if (response.ok) {
           const metadata = await response.json();
-          console.log(
-            `[DEBUG] ✓ Fetched listed NFT metadata from BackboneLabs API for ${tokenId}:`,
-            metadata,
-          );
+          // console.log(
+          //   `[DEBUG] ✓ Fetched listed NFT metadata from BackboneLabs API for ${tokenId}:`,
+          //   metadata,
+          // );
 
           // Transform the metadata to our standard format
           const processedTraits = (
@@ -239,9 +239,9 @@ const _fetchStakedNFTs = async (chain, contract, userAddress) => {
     if (response.ok) {
       const data = await response.json();
       if (data && Array.isArray(data)) {
-        console.log(
-          `[DEBUG] Successfully fetched staked NFTs from indexer for ${chain}/${contract}`,
-        );
+        // console.log(
+        //   `[DEBUG] Successfully fetched staked NFTs from indexer for ${chain}/${contract}`,
+        // );
         return data;
       }
     }
@@ -338,10 +338,10 @@ const fetchStakedNFTsDirectly = async (chain, contract, userAddress) => {
 
         if (response.ok) {
           const responseData = await response.json();
-          console.log(
-            `[DEBUG] Direct contract query response for ${chain}/${contract}:`,
-            responseData,
-          );
+          // console.log(
+          //   `[DEBUG] Direct contract query response for ${chain}/${contract}:`,
+          //   responseData,
+          // );
 
           // Extract staked NFT data from response
           const stakedData = responseData.data || responseData;
@@ -539,9 +539,9 @@ const _fetchOsmosisSingleNFT = async (
   metadataUrl = null,
 ) => {
   try {
-    console.log(
-      `[DEBUG] Fetching Osmosis NFT metadata: ${collection}/${tokenId}`,
-    );
+    // console.log(
+    //   `[DEBUG] Fetching Osmosis NFT metadata: ${collection}/${tokenId}`,
+    // );
 
     if (!metadataUrl) {
       console.warn(`[WARNING] No metadata URL provided for ${tokenId}`);
@@ -558,7 +558,7 @@ const _fetchOsmosisSingleNFT = async (
       url = url.replace("ipfs://", API_ENDPOINTS.IPFS_GATEWAY_PRIMARY);
     }
 
-    console.log(`[DEBUG] Using metadata URL: ${url}`);
+    // console.log(`[DEBUG] Using metadata URL: ${url}`);
 
     // No rate limiting delays - fetch immediately
 
@@ -658,7 +658,7 @@ const _fetchOsmosisSingleNFT = async (
       return null;
     }
 
-    console.log(`[DEBUG] Processing metadata for ${tokenId}:`, nftMetadata);
+    // console.log(`[DEBUG] Processing metadata for ${tokenId}:`, nftMetadata);
 
     // Process image URL with better handling for different formats
     let imageUrl =
@@ -730,10 +730,10 @@ const _fetchOsmosisSingleNFT = async (
       description: safeDescription,
     };
 
-    console.log(
-      `[DEBUG] Transformed Osmosis NFT data for ${tokenId}:`,
-      transformedData,
-    );
+    // console.log(
+    //   `[DEBUG] Transformed Osmosis NFT data for ${tokenId}:`,
+    //   transformedData,
+    // );
     return transformedData;
   } catch (error) {
     console.error(`Error fetching Osmosis NFT ${collection}/${tokenId}:`, {
@@ -765,7 +765,7 @@ export const fetchOsmosisSingleNFT = async (
 const _fetchOsmosisCollectionFloor = async (collection) => {
   try {
     const url = `${API_ENDPOINTS.BACKBONE_LABS_API}/dapps/necropolis/collections/${collection}`;
-    console.log(`[DEBUG] Fetching Osmosis collection floor from: ${url}`);
+    // console.log(`[DEBUG] Fetching Osmosis collection floor from: ${url}`);
 
     // No rate limiting delays - fetch immediately
 
@@ -806,10 +806,10 @@ const _fetchOsmosisCollectionFloor = async (collection) => {
 
         if (response.ok) {
           const data = await response.json();
-          console.log(
-            `[DEBUG] Osmosis collection floor data for ${collection}:`,
-            data,
-          );
+          // console.log(
+          //   `[DEBUG] Osmosis collection floor data for ${collection}:`,
+          //   data,
+          // );
 
           // Handle different response formats
           let floorPrice = 0;
@@ -828,9 +828,9 @@ const _fetchOsmosisCollectionFloor = async (collection) => {
               data.floorPrice;
           }
 
-          console.log(
-            `[DEBUG] Extracted floor price for ${collection}: ${floorPrice} bOSMO`,
-          );
+          // console.log(
+          //   `[DEBUG] Extracted floor price for ${collection}: ${floorPrice} bOSMO`,
+          // );
 
           if (floorPrice > 0) {
             return {
@@ -920,9 +920,9 @@ export const fetchOsmosisCollectionFloor = async (collection) => {
 // Fetch single NFT data from Cosmos Hub contract (Original function)
 const _fetchCosmosHubSingleNFT = async (contractAddress, tokenId) => {
   try {
-    console.log(
-      `[DEBUG] Fetching Cosmos Hub NFT metadata: ${contractAddress}/${tokenId}`,
-    );
+    // console.log(
+    //   `[DEBUG] Fetching Cosmos Hub NFT metadata: ${contractAddress}/${tokenId}`,
+    // );
 
     // Validate inputs
     if (!contractAddress || !tokenId) {
@@ -934,7 +934,7 @@ const _fetchCosmosHubSingleNFT = async (contractAddress, tokenId) => {
 
     const query = { nft_info: { token_id: tokenId.toString() } };
     const queryString = JSON.stringify(query);
-    console.log(`[DEBUG] Query for ${tokenId}:`, queryString);
+    // console.log(`[DEBUG] Query for ${tokenId}:`, queryString);
     const encodedQuery = btoa(queryString);
 
     // Use only Keplr LCD endpoint
@@ -946,7 +946,7 @@ const _fetchCosmosHubSingleNFT = async (contractAddress, tokenId) => {
 
     while (retries <= maxRetries) {
       try {
-        console.log(`[DEBUG] Attempting to fetch from: ${url}`);
+        // console.log(`[DEBUG] Attempting to fetch from: ${url}`);
 
         const response = await fetch(url, {
           method: "GET",
@@ -957,10 +957,10 @@ const _fetchCosmosHubSingleNFT = async (contractAddress, tokenId) => {
 
         if (response.ok) {
           const responseData = await response.json();
-          console.log(
-            `[DEBUG] NFT data response for ${tokenId}:`,
-            responseData,
-          );
+          // console.log(
+          //   `[DEBUG] NFT data response for ${tokenId}:`,
+          //   responseData,
+          // );
 
           // Handle response format - extract from data field
           nftData = responseData.data;
@@ -1304,9 +1304,9 @@ const _fetchNeutronSingleNFT = async (collectionAddr, tokenId) => {
           REQUEST_CONFIG.TIMEOUT,
         );
 
-        console.log(
-          `[DEBUG] Making individual Neutron NFT API call for ${collectionAddr}/${tokenId}`,
-        );
+        // console.log(
+        //   `[DEBUG] Making individual Neutron NFT API call for ${collectionAddr}/${tokenId}`,
+        // );
 
         // Use CORS proxy directly since Superbolt API doesn't allow direct requests from this origin
         const corsProxies = CORS_PROXIES;
@@ -1336,18 +1336,18 @@ const _fetchNeutronSingleNFT = async (collectionAddr, tokenId) => {
           signal: controller.signal,
         });
 
-        console.log(
-          `[DEBUG] Individual Neutron NFT API response status: ${response.status} for ${collectionAddr}/${tokenId}`,
-        );
+        // console.log(
+        //   `[DEBUG] Individual Neutron NFT API response status: ${response.status} for ${collectionAddr}/${tokenId}`,
+        // );
 
         clearTimeout(timeoutId);
 
         if (response.ok) {
           const data = await response.json();
-          console.log(
-            `[DEBUG] Individual Neutron NFT GraphQL response for ${collectionAddr}/${tokenId}:`,
-            data,
-          );
+          // console.log(
+          //   `[DEBUG] Individual Neutron NFT GraphQL response for ${collectionAddr}/${tokenId}:`,
+          //   data,
+          // );
 
           if (data.errors) {
             console.error(
@@ -1421,15 +1421,15 @@ const _fetchNeutronSingleNFT = async (collectionAddr, tokenId) => {
               if (hasImageExtension) {
                 // Use ipfs.io for image files
                 imageUrl = `${API_ENDPOINTS.IPFS_GATEWAY_PRIMARY}${ipfsHash}`;
-                console.log(
-                  `[DEBUG] Converted IPFS image URL: ${nft.image} -> ${imageUrl}`,
-                );
+                // console.log(
+                //   `[DEBUG] Converted IPFS image URL: ${nft.image} -> ${imageUrl}`,
+                // );
               } else {
                 // Use nft-storage CDN for other files
                 imageUrl = `${API_ENDPOINTS.IPFS_GATEWAY_NFT_STORAGE}${ipfsHash}_0`;
-                console.log(
-                  `[DEBUG] Converted IPFS URL: ${nft.image} -> ${imageUrl}`,
-                );
+                // console.log(
+                //   `[DEBUG] Converted IPFS URL: ${nft.image} -> ${imageUrl}`,
+                // );
               }
             } else if (imageUrl.startsWith("https://ipfs.superbolt.wtf/")) {
               // Keep Superbolt IPFS URLs as they are - they should work
@@ -1558,18 +1558,18 @@ const _fetchNeutronNFTs = async (addresses) => {
     const stakedNFTs = [];
     const neutronDAOs = daosConfig.DAOs["neutron-1"];
 
-    console.log(`[DEBUG] === STARTING STAKED NFT FETCH ===`);
+    // console.log(`[DEBUG] === STARTING STAKED NFT FETCH ===`);
     if (neutronDAOs) {
-      console.log(
-        `[DEBUG] Starting staked NFTs fetch for ${Object.keys(neutronDAOs).length} Neutron DAOs`,
-      );
+      // console.log(
+      //   `[DEBUG] Starting staked NFTs fetch for ${Object.keys(neutronDAOs).length} Neutron DAOs`,
+      // );
 
       // Collect staked NFTs from all Neutron addresses and track which address they belong to
       for (const [daoName, daoConfig] of Object.entries(neutronDAOs)) {
         try {
-          console.log(
-            `[DEBUG] Fetching staked NFTs for Neutron DAO: ${daoName}`,
-          );
+          // console.log(
+          //   `[DEBUG] Fetching staked NFTs for Neutron DAO: ${daoName}`,
+          // );
           const stakedTokensByAddress = new Map();
           for (const address of addresses) {
             console.log(
@@ -1585,40 +1585,40 @@ const _fetchNeutronNFTs = async (addresses) => {
             }
           }
 
-          console.log(
-            `[DEBUG] Raw staked response for ${daoName}:`,
-            Object.fromEntries(stakedTokensByAddress),
-          );
+          // console.log(
+          //   `[DEBUG] Raw staked response for ${daoName}:`,
+          //   Object.fromEntries(stakedTokensByAddress),
+          // );
 
           // Process staked NFTs for each address
           if (stakedTokensByAddress.size > 0) {
             for (const [address, stakedTokenIds] of stakedTokensByAddress) {
-              console.log(
-                `[DEBUG] === PROCESSING ${stakedTokenIds.length} STAKED NFTs FOR ${daoName} FROM ADDRESS ${address} ===`,
-              );
+              // console.log(
+              //   `[DEBUG] === PROCESSING ${stakedTokenIds.length} STAKED NFTs FOR ${daoName} FROM ADDRESS ${address} ===`,
+              // );
 
               // Process in batches of 5 for better performance
               const batchSize = 5;
               for (let i = 0; i < stakedTokenIds.length; i += batchSize) {
                 const batch = stakedTokenIds.slice(i, i + batchSize);
-                console.log(
-                  `[DEBUG] Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(stakedTokenIds.length / batchSize)} (${batch.length} NFTs) for ${daoName} from ${address}`,
-                );
+                // console.log(
+                //   `[DEBUG] Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(stakedTokenIds.length / batchSize)} (${batch.length} NFTs) for ${daoName} from ${address}`,
+                // );
 
                 const batchPromises = batch.map(async (tokenId, index) => {
                   try {
-                    console.log(
-                      `[DEBUG] [${i + index + 1}/${stakedTokenIds.length}] Fetching staked NFT ${tokenId} from collection ${daoConfig.collection} for address ${address}`,
-                    );
+                    // console.log(
+                    //   `[DEBUG] [${i + index + 1}/${stakedTokenIds.length}] Fetching staked NFT ${tokenId} from collection ${daoConfig.collection} for address ${address}`,
+                    // );
                     const nftData = await fetchNeutronSingleNFT(
                       daoConfig.collection,
                       tokenId.toString(),
                     );
 
                     if (nftData) {
-                      console.log(
-                        `[DEBUG] ✓ Successfully fetched staked NFT ${tokenId} from ${daoName} for address ${address}`,
-                      );
+                      // console.log(
+                      //   `[DEBUG] ✓ Successfully fetched staked NFT ${tokenId} from ${daoName} for address ${address}`,
+                      // );
                       return {
                         ...nftData,
                         daoStaked: true,
@@ -1641,9 +1641,9 @@ const _fetchNeutronNFTs = async (addresses) => {
                 const validResults = batchResults.filter((nft) => nft !== null);
                 stakedNFTs.push(...validResults);
 
-                console.log(
-                  `[DEBUG] ✓ Batch complete. Added ${validResults.length} NFTs. Total staked so far: ${stakedNFTs.length}`,
-                );
+                // console.log(
+                //   `[DEBUG] ✓ Batch complete. Added ${validResults.length} NFTs. Total staked so far: ${stakedNFTs.length}`,
+                // );
 
                 // Small delay between batches to avoid overwhelming APIs
                 if (i + batchSize < stakedTokenIds.length) {
@@ -1652,7 +1652,7 @@ const _fetchNeutronNFTs = async (addresses) => {
               }
             }
           } else {
-            console.log(`[DEBUG] No staked NFTs found for ${daoName}`);
+            // console.log(`[DEBUG] No staked NFTs found for ${daoName}`);
           }
         } catch (error) {
           console.error(
@@ -1663,8 +1663,8 @@ const _fetchNeutronNFTs = async (addresses) => {
       }
     }
 
-    console.log(`[DEBUG] === STAKED NFT FETCH COMPLETE ===`);
-    console.log(`[DEBUG] Total staked NFTs collected: ${stakedNFTs.length}`);
+    // console.log(`[DEBUG] === STAKED NFT FETCH COMPLETE ===`);
+    // console.log(`[DEBUG] Total staked NFTs collected: ${stakedNFTs.length}`);
 
     // Fetch regular NFTs from Neutron
     const regularNFTs = [];
@@ -1768,10 +1768,10 @@ const _fetchNeutronNFTs = async (addresses) => {
               REQUEST_CONFIG.TIMEOUT,
             );
 
-            console.log(
-              `[DEBUG] Making Neutron API call for ${address} with variables:`,
-              JSON.stringify(variables, null, 2),
-            );
+            // console.log(
+            //   `[DEBUG] Making Neutron API call for ${address} with variables:`,
+            //   JSON.stringify(variables, null, 2),
+            // );
 
             // Use CORS proxy directly since Superbolt API doesn't allow direct requests from this origin
             const corsProxies = CORS_PROXIES;
@@ -1801,18 +1801,18 @@ const _fetchNeutronNFTs = async (addresses) => {
               signal: controller.signal,
             });
 
-            console.log(
-              `[DEBUG] Neutron API response status: ${response.status} ${response.statusText}`,
-            );
+            // console.log(
+            //   `[DEBUG] Neutron API response status: ${response.status} ${response.statusText}`,
+            // );
 
             clearTimeout(timeoutId);
 
             if (response.ok) {
               const data = await response.json();
-              console.log(
-                `[DEBUG] Neutron GraphQL response for ${address}:`,
-                data,
-              );
+              // console.log(
+              //   `[DEBUG] Neutron GraphQL response for ${address}:`,
+              //   data,
+              // );
 
               if (data.errors) {
                 console.error(
@@ -1823,9 +1823,9 @@ const _fetchNeutronNFTs = async (addresses) => {
               }
 
               const nftSearches = data.data?.nft_searches || [];
-              console.log(
-                `[DEBUG] Found ${nftSearches.length} Neutron NFT searches for ${address}`,
-              );
+              // console.log(
+              //   `[DEBUG] Found ${nftSearches.length} Neutron NFT searches for ${address}`,
+              // );
 
               const transformedNFTs = nftSearches.map((search) => {
                 const nft = search.nft;
@@ -1880,15 +1880,15 @@ const _fetchNeutronNFTs = async (addresses) => {
                     if (hasImageExtension) {
                       // Use ipfs.io gateway for image files
                       imageUrl = `${API_ENDPOINTS.IPFS_GATEWAY_PRIMARY}${ipfsHash}`;
-                      console.log(
-                        `[DEBUG] Converted IPFS image URL: ${nft.image} -> ${imageUrl}`,
-                      );
+                      // console.log(
+                      //   `[DEBUG] Converted IPFS image URL: ${nft.image} -> ${imageUrl}`,
+                      // );
                     } else {
                       // Use nft-storage CDN for other files
                       imageUrl = `${API_ENDPOINTS.IPFS_GATEWAY_NFT_STORAGE}${ipfsHash}_0`;
-                      console.log(
-                        `[DEBUG] Converted IPFS URL: ${nft.image} -> ${imageUrl}`,
-                      );
+                      // console.log(
+                      //   `[DEBUG] Converted IPFS URL: ${nft.image} -> ${imageUrl}`,
+                      // );
                     }
                   } else if (
                     imageUrl.startsWith("https://ipfs.superbolt.wtf/")
@@ -1948,9 +1948,9 @@ const _fetchNeutronNFTs = async (addresses) => {
                 };
               });
 
-              console.log(
-                `[DEBUG] Transformed ${transformedNFTs.length} Neutron NFTs for ${address}`,
-              );
+              // console.log(
+              //   `[DEBUG] Transformed ${transformedNFTs.length} Neutron NFTs for ${address}`,
+              // );
               regularNFTs.push(...transformedNFTs);
               break; // Success, exit retry loop
             } else if (
@@ -2069,7 +2069,7 @@ const _fetchInitiaNFTs = async (address, initPrice = 0.428077) => {
     }
 
     const data = await response.json();
-    console.log(`[DEBUG] Initia response for ${address}:`, data);
+    // console.log(`[DEBUG] Initia response for ${address}:`, data);
 
     if (!data || !data.tokens || !Array.isArray(data.tokens)) {
       console.warn(`[WARNING] No valid tokens data for ${address}`);
@@ -2080,10 +2080,10 @@ const _fetchInitiaNFTs = async (address, initPrice = 0.428077) => {
 
     for (const token of data.tokens) {
       try {
-        console.log(
-          `[DEBUG] Initia token details for ${token.tokenId}:`,
-          token,
-        );
+        // console.log(
+        //   `[DEBUG] Initia token details for ${token.tokenId}:`,
+        //   token,
+        // );
 
         const collectionFloor = token.collection?.floorPrice;
         let floorAmountMicroInit = 0;
@@ -2096,13 +2096,13 @@ const _fetchInitiaNFTs = async (address, initPrice = 0.428077) => {
           floorAmountUsd = floorAmountInit * initPrice;
         }
 
-        console.log(`[DEBUG] Floor price data for ${token.tokenId}:`, {
-          collectionFloor,
-          floorAmountMicroInit,
-          floorAmountInit,
-          floorAmountUsd,
-          initPrice,
-        });
+        // console.log(`[DEBUG] Floor price data for ${token.tokenId}:`, {
+        //   collectionFloor,
+        //   floorAmountMicroInit,
+        //   floorAmountInit,
+        //   floorAmountUsd,
+        //   initPrice,
+        // });
 
         let listPrice = null;
         const isListed = token.isEscrowed || false;
@@ -2159,9 +2159,9 @@ const _fetchInitiaNFTs = async (address, initPrice = 0.428077) => {
         };
 
         initiaNFTs.push(transformedNFT);
-        console.log(
-          `[DEBUG] ✓ Added Initia NFT ${token.tokenId} from ${token.collection?.name}`,
-        );
+        // console.log(
+        //   `[DEBUG] ✓ Added Initia NFT ${token.tokenId} from ${token.collection?.name}`,
+        // );
       } catch (tokenError) {
         console.error(
           `[ERROR] Error processing Initia token ${token.tokenId}:`,
@@ -2190,9 +2190,9 @@ const _fetchInitiaSingleNFTTraits = async (
   userAddress,
 ) => {
   try {
-    console.log(
-      `[DEBUG] Fetching Initia traits for ${collection}/${tokenId} with wallet ${userAddress}`,
-    );
+    // console.log(
+    //   `[DEBUG] Fetching Initia traits for ${collection}/${tokenId} with wallet ${userAddress}`,
+    // );
 
     const url = `${API_ENDPOINTS.INTERGAZE_API}/tokens/${collection}/${tokenId}?wallet=${userAddress}`;
 
@@ -2219,7 +2219,7 @@ const _fetchInitiaSingleNFTTraits = async (
 
         if (response.ok) {
           const data = await response.json();
-          console.log(`[DEBUG] Initia traits response for ${tokenId}:`, data);
+          // console.log(`[DEBUG] Initia traits response for ${tokenId}:`, data);
 
           if (data.traits && Array.isArray(data.traits)) {
             // Transform traits array to standard format
@@ -2229,12 +2229,12 @@ const _fetchInitiaSingleNFTTraits = async (
               name: trait.name,
             }));
 
-            console.log(
-              `[DEBUG] Processed ${traitsArray.length} traits for ${tokenId}`,
-            );
+            // console.log(
+            //   `[DEBUG] Processed ${traitsArray.length} traits for ${tokenId}`,
+            // );
             return traitsArray;
           } else {
-            console.log(`[DEBUG] No traits found in response for ${tokenId}`);
+            // console.log(`[DEBUG] No traits found in response for ${tokenId}`);
             return [];
           }
         } else if (
@@ -2316,22 +2316,22 @@ const _fetchStargazeNFTs = async (addresses) => {
     const stakedNFTs = [];
     const stargazeDAOs = daosConfig.DAOs["stargaze-1"];
 
-    console.log(`[DEBUG] === STARTING STAKED NFT FETCH ===`);
-    console.log(
-      `[DEBUG] Starting staked NFTs fetch for ${Object.keys(stargazeDAOs).length} Stargaze DAOs`,
-    );
+    // console.log(`[DEBUG] === STARTING STAKED NFT FETCH ===`);
+    // console.log(
+    //   `[DEBUG] Starting staked NFTs fetch for ${Object.keys(stargazeDAOs).length} Stargaze DAOs`,
+    // );
 
     for (const [daoName, daoConfig] of Object.entries(stargazeDAOs)) {
       try {
-        console.log(
-          `[DEBUG] Fetching staked NFTs for DAO: ${daoName}, contract: ${daoConfig.contract}`,
-        );
+        // console.log(
+        //   `[DEBUG] Fetching staked NFTs for DAO: ${daoName}, contract: ${daoConfig.contract}`,
+        // );
 
         let allStakedTokenIds = [];
         for (const address of addresses) {
-          console.log(
-            `[DEBUG] Fetching staked NFTs for Stargaze address: ${address}`,
-          );
+          // console.log(
+          //   `[DEBUG] Fetching staked NFTs for Stargaze address: ${address}`,
+          // );
           const stakedTokenIds = await fetchStakedNFTs(
             "stargaze-1",
             daoConfig.contract,
@@ -2344,23 +2344,23 @@ const _fetchStargazeNFTs = async (addresses) => {
 
         // Remove duplicates
         const stakedTokenIds = [...new Set(allStakedTokenIds)];
-        console.log(
-          `[DEBUG] Raw staked response for ${daoName}:`,
-          stakedTokenIds,
-        );
+        // console.log(
+        //   `[DEBUG] Raw staked response for ${daoName}:`,
+        //   stakedTokenIds,
+        // );
 
         // Fetch detailed NFT data for each staked token ID
         if (Array.isArray(stakedTokenIds) && stakedTokenIds.length > 0) {
-          console.log(
-            `[DEBUG] === PROCESSING ${stakedTokenIds.length} STAKED NFTs FOR ${daoName} ===`,
-          );
+          // console.log(
+          //   `[DEBUG] === PROCESSING ${stakedTokenIds.length} STAKED NFTs FOR ${daoName} ===`,
+          // );
 
           for (let i = 0; i < stakedTokenIds.length; i++) {
             const tokenId = stakedTokenIds[i];
             try {
-              console.log(
-                `[DEBUG] [${i + 1}/${stakedTokenIds.length}] Fetching staked NFT ${tokenId} from collection ${daoConfig.collection}`,
-              );
+              // console.log(
+              //   `[DEBUG] [${i + 1}/${stakedTokenIds.length}] Fetching staked NFT ${tokenId} from collection ${daoConfig.collection}`,
+              // );
               const nftData = await fetchStargazeSingleNFT(
                 daoConfig.collection,
                 tokenId.toString(),
@@ -2374,9 +2374,9 @@ const _fetchStargazeNFTs = async (addresses) => {
                   daoAddress: daoConfig.DAO,
                 };
                 stakedNFTs.push(stakedNft);
-                console.log(
-                  `[DEBUG] ✓ Successfully added staked NFT ${tokenId} from ${daoName}. Total staked so far: ${stakedNFTs.length}`,
-                );
+                // console.log(
+                //   `[DEBUG] ✓ Successfully added staked NFT ${tokenId} from ${daoName}. Total staked so far: ${stakedNFTs.length}`,
+                // );
               }
             } catch (error) {
               console.error(
@@ -2386,7 +2386,7 @@ const _fetchStargazeNFTs = async (addresses) => {
             }
           }
         } else {
-          console.log(`[DEBUG] No staked NFTs found for ${daoName}`);
+          // console.log(`[DEBUG] No staked NFTs found for ${daoName}`);
         }
       } catch (error) {
         console.error(
@@ -2396,8 +2396,8 @@ const _fetchStargazeNFTs = async (addresses) => {
       }
     }
 
-    console.log(`[DEBUG] === STAKED NFT FETCH COMPLETE ===`);
-    console.log(`[DEBUG] Total staked NFTs collected: ${stakedNFTs.length}`);
+    // console.log(`[DEBUG] === STAKED NFT FETCH COMPLETE ===`);
+    // console.log(`[DEBUG] Total staked NFTs collected: ${stakedNFTs.length}`);
 
     const query = `
       query ExampleQuery($ownerAddrOrName: String, $sortBy: TokenSort, $limit: Int, $offset: Int) {
@@ -2678,9 +2678,9 @@ const _fetchStargazeNFTs = async (addresses) => {
     });
 
     const finalNFTsArray = Array.from(uniqueNFTs.values());
-    console.log(`[DEBUG] === DEDUPLICATION SUMMARY ===`);
+    // console.log(`[DEBUG] === DEDUPLICATION SUMMARY ===`);
     console.log(
-      `[DEBUG] Total unique NFTs after deduplication: ${uniqueNFTs.size}`,
+      `[DEBUG] Total unique NFTs for Stargaze after deduplication: ${uniqueNFTs.size}`,
     );
 
     return finalNFTsArray;
@@ -2702,12 +2702,12 @@ const fetchOsmosisNFTMetadata = async (
   tokenUri = null,
   useMyGateway = true,
 ) => {
-  console.log(`[DEBUG] Fetching metadata for NFT ${tokenId} from ${contract}`);
+  // console.log(`[DEBUG] Fetching metadata for NFT ${tokenId} from ${contract}`);
 
   // Try MyGateway first for non-listed/non-staked NFTs
   if (useMyGateway && tokenUri) {
     try {
-      console.log(`[DEBUG] Trying MyGateway for ${tokenId}`);
+      // console.log(`[DEBUG] Trying MyGateway for ${tokenId}`);
       const myGatewayUrl = tokenUri.replace(
         "ipfs://",
         API_ENDPOINTS.IPFS_GATEWAY_PRIMARY,
@@ -2731,7 +2731,7 @@ const fetchOsmosisNFTMetadata = async (
 
       if (response.ok) {
         const metadata = await response.json();
-        console.log(`[DEBUG] ✓ MyGateway success for ${tokenId}`);
+        // console.log(`[DEBUG] ✓ MyGateway success for ${tokenId}`);
         return metadata;
       } else {
         console.log(
@@ -2751,9 +2751,9 @@ const fetchOsmosisNFTMetadata = async (
     for (let i = 0; i < CORS_PROXIES.length; i++) {
       const proxyUrl = CORS_PROXIES[i];
       try {
-        console.log(
-          `[DEBUG] Trying CORS proxy ${i + 1}/${CORS_PROXIES.length} for ${tokenId}: ${proxyUrl}`,
-        );
+        // console.log(
+        //   `[DEBUG] Trying CORS proxy ${i + 1}/${CORS_PROXIES.length} for ${tokenId}: ${proxyUrl}`,
+        // );
 
         let proxiedUrl;
         if (proxyUrl.includes("codetabs.com")) {
@@ -2782,7 +2782,7 @@ const fetchOsmosisNFTMetadata = async (
 
         if (response.ok) {
           const metadata = await response.json();
-          console.log(`[DEBUG] ✓ CORS proxy ${i + 1} success for ${tokenId}`);
+          // console.log(`[DEBUG] ✓ CORS proxy ${i + 1} success for ${tokenId}`);
           return metadata;
         } else {
           console.log(
@@ -2812,9 +2812,9 @@ const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
     const osmosisDAOs = daosConfig.DAOs["osmosis-1"];
 
     if (osmosisDAOs) {
-      console.log(
-        `[DEBUG] Pre-fetching collection floors for ${Object.keys(osmosisDAOs).length} collections`,
-      );
+      // console.log(
+      //   `[DEBUG] Pre-fetching collection floors for ${Object.keys(osmosisDAOs).length} collections`,
+      // );
       for (const [daoName, daoConfig] of Object.entries(osmosisDAOs)) {
         try {
           const collectionFloor = await fetchOsmosisCollectionFloor(
@@ -2834,7 +2834,7 @@ const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
     const stakedNFTs = [];
 
     for (const address of addresses) {
-      console.log(`[DEBUG] Fetching staked NFTs for address: ${address}`);
+      // console.log(`[DEBUG] Fetching staked NFTs for address: ${address}`);
 
       try {
         let page = 1;
@@ -2865,9 +2865,9 @@ const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
 
           if (response.ok) {
             const stakedData = await response.json();
-            console.log(
-              `[DEBUG] Found ${stakedData.nfts?.length || 0} staked NFTs for ${address} on page ${page}`,
-            );
+            // console.log(
+            //   `[DEBUG] Found ${stakedData.nfts?.length || 0} staked NFTs for ${address} on page ${page}`,
+            // );
 
             if (stakedData.nfts && Array.isArray(stakedData.nfts)) {
               allStakedNfts.push(...stakedData.nfts);
@@ -2879,22 +2879,22 @@ const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
                 page++;
               }
             } else {
-              console.log(
-                `[DEBUG] No staked NFTs found for ${address} on page ${page} - this is normal`,
-              );
+              // console.log(
+              //   `[DEBUG] No staked NFTs found for ${address} on page ${page} - this is normal`,
+              // );
               hasMorePages = false;
             }
           } else {
-            console.log(
-              `[DEBUG] No staked NFTs found for ${address} - this is normal`,
-            );
+            // console.log(
+            //   `[DEBUG] No staked NFTs found for ${address} - this is normal`,
+            // );
             hasMorePages = false;
           }
         }
 
-        console.log(
-          `[DEBUG] Total staked NFTs found for ${address}: ${allStakedNfts.length}`,
-        );
+        // console.log(
+        //   `[DEBUG] Total staked NFTs found for ${address}: ${allStakedNfts.length}`,
+        // );
 
         if (allStakedNfts.length > 0) {
           // Process staked NFTs
@@ -2906,9 +2906,9 @@ const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
               );
 
               if (!collectionFloor) {
-                console.log(
-                  `[DEBUG] Fetching floor for uncached collection: ${nft.collection.contract}`,
-                );
+                // console.log(
+                //   `[DEBUG] Fetching floor for uncached collection: ${nft.collection.contract}`,
+                // );
                 collectionFloor = await fetchOsmosisCollectionFloor(
                   nft.collection.contract,
                 );
@@ -2925,9 +2925,9 @@ const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
                   true, // Use gateway priority for staked NFTs
                   );
               } else {
-                console.log(
-                  `[DEBUG] No token_uri for staked NFT ${nft.nft_token_id}, falling back to BackboneLabs API`,
-                );
+                // console.log(
+                //   `[DEBUG] No token_uri for staked NFT ${nft.nft_token_id}, falling back to BackboneLabs API`,
+                // );
                 // Fallback to BackboneLabs API for metadata when token_uri is null
                 metadata = await fetchListedNFTMetadata(
                   nft.collection.contract,
@@ -3016,7 +3016,7 @@ const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
               };
 
               stakedNFTs.push(nftData);
-              console.log(`[DEBUG] ✓ Added staked NFT ${nft.nft_token_id}`);
+              // console.log(`[DEBUG] ✓ Added staked NFT ${nft.nft_token_id}`);
             } catch (error) {
               console.error(
                 `[ERROR] Failed to process staked NFT ${nft.nft_token_id}:`,
@@ -3033,19 +3033,19 @@ const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
       }
     }
 
-    console.log(`[DEBUG] Total Osmosis staked NFTs: ${stakedNFTs.length}`);
+    // console.log(`[DEBUG] Total Osmosis staked NFTs: ${stakedNFTs.length}`);
 
     // Fetch wallet NFTs using optimized approach
     const walletNFTs = [];
 
     for (const address of addresses) {
-      console.log(
-        `[DEBUG] Fetching wallet NFTs for Osmosis address: ${address}`,
-      );
+      // console.log(
+      //   `[DEBUG] Fetching wallet NFTs for Osmosis address: ${address}`,
+      // );
 
       // Fetch not listed NFTs - use MyGateway for metadata
       try {
-        console.log(`[DEBUG] Fetching not listed NFTs for ${address}`);
+        // console.log(`[DEBUG] Fetching not listed NFTs for ${address}`);
 
         let page = 1;
         let hasMorePages = true;
@@ -3074,9 +3074,9 @@ const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
 
           if (response.ok) {
             const notListedData = await response.json();
-            console.log(
-              `[DEBUG] Found ${notListedData.nfts?.length || 0} not listed NFTs for ${address} on page ${page}`,
-            );
+            // console.log(
+            //   `[DEBUG] Found ${notListedData.nfts?.length || 0} not listed NFTs for ${address} on page ${page}`,
+            // );
 
             if (notListedData.nfts && Array.isArray(notListedData.nfts)) {
               allNotListedNfts.push(...notListedData.nfts);
@@ -3092,23 +3092,23 @@ const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
               }
             } else {
               // Empty response is normal - address just doesn't have NFTs
-              console.log(
-                `[DEBUG] No not listed NFTs found for ${address} on page ${page} - this is normal`,
-              );
+              // console.log(
+              //   `[DEBUG] No not listed NFTs found for ${address} on page ${page} - this is normal`,
+              // );
               hasMorePages = false;
             }
           } else {
-            console.log(
-              `[DEBUG] No not listed NFTs found for ${address} - this is normal`,
-            );
+            // console.log(
+            //   `[DEBUG] No not listed NFTs found for ${address} - this is normal`,
+            // );
             hasMorePages = false;
             // Don't throw error - continue processing other chains
           }
         }
 
-        console.log(
-          `[DEBUG] Total not listed NFTs found for ${address}: ${allNotListedNfts.length}`,
-        );
+        // console.log(
+        //   `[DEBUG] Total not listed NFTs found for ${address}: ${allNotListedNfts.length}`,
+        // );
 
         if (allNotListedNfts.length > 0) {
           // Process not listed NFTs with MyGateway priority
@@ -3120,9 +3120,9 @@ const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
               );
 
               if (!collectionFloor) {
-                console.log(
-                  `[DEBUG] Fetching floor for uncached collection: ${nft.collection.contract}`,
-                );
+                // console.log(
+                //   `[DEBUG] Fetching floor for uncached collection: ${nft.collection.contract}`,
+                // );
                 collectionFloor = await fetchOsmosisCollectionFloor(
                   nft.collection.contract,
                 );
@@ -3204,7 +3204,7 @@ const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
               };
 
               walletNFTs.push(nftData);
-              console.log(`[DEBUG] ✓ Added not listed NFT ${nft.nft_token_id}`);
+              // console.log(`[DEBUG] ✓ Added not listed NFT ${nft.nft_token_id}`);
             } catch (error) {
               console.error(
                 `[ERROR] Failed to process not listed NFT ${nft.nft_token_id}:`,
@@ -3222,7 +3222,7 @@ const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
 
       // Fetch listed NFTs - keep using Backbone Labs since we need listing prices
       try {
-        console.log(`[DEBUG] Fetching listed NFTs for ${address}`);
+        // console.log(`[DEBUG] Fetching listed NFTs for ${address}`);
 
         let page = 1;
         let hasMorePages = true;
@@ -3251,9 +3251,9 @@ const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
 
           if (response.ok) {
             const listedData = await response.json();
-            console.log(
-              `[DEBUG] Found ${listedData.nfts?.length || 0} listed NFTs for ${address} on page ${page}`,
-            );
+            // console.log(
+            //   `[DEBUG] Found ${listedData.nfts?.length || 0} listed NFTs for ${address} on page ${page}`,
+            // );
 
             if (listedData.nfts && Array.isArray(listedData.nfts)) {
               allListedNfts.push(...listedData.nfts);
@@ -3268,23 +3268,23 @@ const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
               }
             } else {
               // Empty response is normal - address just doesn't have NFTs
-              console.log(
-                `[DEBUG] No listed NFTs found for ${address} on page ${page} - this is normal`,
-              );
+              // console.log(
+              //   `[DEBUG] No listed NFTs found for ${address} on page ${page} - this is normal`,
+              // );
               hasMorePages = false;
             }
           } else {
-            console.log(
-              `[DEBUG] No listed NFTs found for ${address} - this is normal`,
-            );
+            // console.log(
+            //   `[DEBUG] No listed NFTs found for ${address} - this is normal`,
+            // );
             hasMorePages = false;
             // Don't throw error - continue processing other chains
           }
         }
 
-        console.log(
-          `[DEBUG] Total listed NFTs found for ${address}: ${allListedNfts.length}`,
-        );
+        // console.log(
+        //   `[DEBUG] Total listed NFTs found for ${address}: ${allListedNfts.length}`,
+        // );
 
         if (allListedNfts.length > 0) {
           // Process listed NFTs with BackboneLabs API priority (for listing prices and metadata)
@@ -3296,9 +3296,9 @@ const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
               );
 
               if (!collectionFloor) {
-                console.log(
-                  `[DEBUG] Fetching floor for uncached collection: ${nft.collection.contract}`,
-                );
+                // console.log(
+                //   `[DEBUG] Fetching floor for uncached collection: ${nft.collection.contract}`,
+                // );
                 collectionFloor = await fetchOsmosisCollectionFloor(
                   nft.collection.contract,
                 );
@@ -3401,9 +3401,9 @@ const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
               };
 
               walletNFTs.push(nftData);
-              console.log(
-                `[DEBUG] ✓ Added listed NFT ${nft.nft_token_id} (${listPrice?.amount || 0} bOSMO)`,
-              );
+              // console.log(
+              //   `[DEBUG] ✓ Added listed NFT ${nft.nft_token_id} (${listPrice?.amount || 0} bOSMO)`,
+              // );
             } catch (error) {
               console.error(
                 `[ERROR] Failed to process listed NFT ${nft.nft_token_id}:`,
@@ -3420,7 +3420,7 @@ const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
       }
     }
 
-    console.log(`[DEBUG] Total Osmosis wallet NFTs: ${walletNFTs.length}`);
+    // console.log(`[DEBUG] Total Osmosis wallet NFTs: ${walletNFTs.length}`);
 
     // Combine staked and wallet NFTs with deduplication
     const uniqueNFTs = new Map();
@@ -3484,9 +3484,9 @@ const _fetchInjectiveNFTs = async (addresses, injPrice = 1.0) => {
     const injectiveDAOs = daosConfig.DAOs["injective-1"];
 
     if (injectiveDAOs) {
-      console.log(
-        `[DEBUG] Pre-fetching collection floors for ${Object.keys(injectiveDAOs).length} collections`,
-      );
+      // console.log(
+      //   `[DEBUG] Pre-fetching collection floors for ${Object.keys(injectiveDAOs).length} collections`,
+      // );
       for (const [daoName, daoConfig] of Object.entries(injectiveDAOs)) {
         try {
           const collectionFloor = await fetchInjectiveCollectionFloor(
@@ -3505,23 +3505,23 @@ const _fetchInjectiveNFTs = async (addresses, injPrice = 1.0) => {
     // Check if we already have staked NFTs cached for these addresses
     let stakedNFTs = [];
     if (cache.has(addressesCacheKey)) {
-      console.log(
-        `[DEBUG] Using cached staked NFTs for addresses: ${addresses.join(", ")}`,
-      );
+      // console.log(
+      //   `[DEBUG] Using cached staked NFTs for addresses: ${addresses.join(", ")}`,
+      // );
       stakedNFTs = cache.get(addressesCacheKey);
     } else if (injectiveDAOs) {
-      console.log(
-        `[DEBUG] Starting staked NFTs fetch for ${Object.keys(injectiveDAOs).length} Injective DAOs`,
-      );
+      // console.log(
+      //   `[DEBUG] Starting staked NFTs fetch for ${Object.keys(injectiveDAOs).length} Injective DAOs`,
+      // );
 
       // Track processed staked NFTs to avoid duplicates
       const processedStakedNFTs = new Set();
 
       for (const [daoName, daoConfig] of Object.entries(injectiveDAOs)) {
         try {
-          console.log(
-            `[DEBUG] Fetching staked NFTs for Injective DAO: ${daoName}`,
-          );
+          // console.log(
+          //   `[DEBUG] Fetching staked NFTs for Injective DAO: ${daoName}`,
+          // );
 
           // Collect staked NFTs from all Injective addresses
           let allStakedTokenIds = [];
@@ -3549,9 +3549,9 @@ const _fetchInjectiveNFTs = async (addresses, injPrice = 1.0) => {
 
           // Remove duplicates
           const stakedTokenIds = [...new Set(allStakedTokenIds)];
-          console.log(
-            `[DEBUG] Staked NFTs for ${daoName}: ${stakedTokenIds.length} tokens`,
-          );
+          // console.log(
+          //   `[DEBUG] Staked NFTs for ${daoName}: ${stakedTokenIds.length} tokens`,
+          // );
 
           if (stakedTokenIds.length > 0) {
             const collectionFloor = collectionFloors.get(daoConfig.collection);
@@ -3560,9 +3560,9 @@ const _fetchInjectiveNFTs = async (addresses, injPrice = 1.0) => {
             let tokenUriPattern = null;
             if (stakedTokenIds.length > 0) {
               try {
-                console.log(
-                  `[DEBUG] Getting token_uri pattern from first staked NFT ${stakedTokenIds[0]} for ${daoName}`,
-                );
+                // console.log(
+                //   `[DEBUG] Getting token_uri pattern from first staked NFT ${stakedTokenIds[0]} for ${daoName}`,
+                // );
 
                 const query = {
                   nft_info: {
@@ -3591,9 +3591,9 @@ const _fetchInjectiveNFTs = async (addresses, injPrice = 1.0) => {
                       stakedTokenIds[0].toString(),
                       "{tokenId}",
                     );
-                    console.log(
-                      `[DEBUG] ✓ Extracted token_uri pattern for ${daoName}: ${tokenUriPattern}`,
-                    );
+                    // console.log(
+                    //   `[DEBUG] ✓ Extracted token_uri pattern for ${daoName}: ${tokenUriPattern}`,
+                    // );
                   } else {
                     console.warn(
                       `[WARNING] No token_uri found in contract response for ${daoName}`,
@@ -3628,16 +3628,16 @@ const _fetchInjectiveNFTs = async (addresses, injPrice = 1.0) => {
 
               // Skip if we already processed this NFT
               if (processedStakedNFTs.has(nftKey)) {
-                console.log(
-                  `[DEBUG] Skipping already processed staked NFT ${nftKey}`,
-                );
+                // console.log(
+                //   `[DEBUG] Skipping already processed staked NFT ${nftKey}`,
+                // );
                 continue;
               }
 
               try {
-                console.log(
-                  `[DEBUG] [${i + 1}/${stakedTokenIds.length}] Processing staked NFT ${tokenId}`,
-                );
+                // console.log(
+                //   `[DEBUG] [${i + 1}/${stakedTokenIds.length}] Processing staked NFT ${tokenId}`,
+                // );
 
                 const nftApiData = await fetchInjectiveSingleNFT(
                   daoConfig.collection,
@@ -3712,9 +3712,9 @@ const _fetchInjectiveNFTs = async (addresses, injPrice = 1.0) => {
 
                   stakedNFTs.push(nftData);
                   processedStakedNFTs.add(nftKey);
-                  console.log(
-                    `[DEBUG] ✓ Added staked NFT ${tokenId} from ${daoName}`,
-                  );
+                  // console.log(
+                  //   `[DEBUG] ✓ Added staked NFT ${tokenId} from ${daoName}`,
+                  // );
                 }
               } catch (error) {
                 console.error(
@@ -3736,19 +3736,19 @@ const _fetchInjectiveNFTs = async (addresses, injPrice = 1.0) => {
       cache.set(addressesCacheKey, stakedNFTs);
     }
 
-    console.log(`[DEBUG] Total Injective staked NFTs: ${stakedNFTs.length}`);
+    // console.log(`[DEBUG] Total Injective staked NFTs: ${stakedNFTs.length}`);
 
     // Fetch wallet NFTs using the same approach as Osmosis
     const walletNFTs = [];
 
     for (const address of addresses) {
-      console.log(
-        `[DEBUG] Fetching wallet NFTs for Injective address: ${address}`,
-      );
+      // console.log(
+      //   `[DEBUG] Fetching wallet NFTs for Injective address: ${address}`,
+      // );
 
       // Fetch not listed NFTs
       try {
-        console.log(`[DEBUG] Fetching not listed NFTs for ${address}`);
+        // console.log(`[DEBUG] Fetching not listed NFTs for ${address}`);
 
         let page = 1;
         let hasMorePages = true;
@@ -3756,30 +3756,55 @@ const _fetchInjectiveNFTs = async (addresses, injPrice = 1.0) => {
 
         while (hasMorePages) {
           const notListedUrl = `${API_ENDPOINTS.BACKBONE_LABS_API}/dapps/necropolis/nfts/address/${address}/not_listed?page=${page}&perPage=${PAGINATION_CONFIG.BACKBONE_API_PER_PAGE}&chainId=injective-1`;
+          
+          let response = null;
+          let success = false;
+
           // Try multiple CORS proxies
           const corsProxies = CORS_PROXIES;
+          for (let proxyIndex = 0; proxyIndex < corsProxies.length && !success; proxyIndex++) {
+            const proxyUrl = corsProxies[proxyIndex];
+            
+            let proxiedUrl;
+            if (proxyUrl.includes("codetabs.com")) {
+              proxiedUrl = proxyUrl + encodeURIComponent(notListedUrl);
+            } else if (proxyUrl.includes("thingproxy.freeboard.io")) {
+              proxiedUrl = proxyUrl + encodeURIComponent(notListedUrl);
+            } else {
+              proxiedUrl = proxyUrl + notListedUrl;
+            }
 
-          let proxiedUrl;
-          const proxyUrl = corsProxies[0]; // Start with first proxy
+            try {
+              const controller = new AbortController();
+              const timeoutId = setTimeout(
+                () => controller.abort(),
+                REQUEST_CONFIG.TIMEOUT,
+              );
 
-          if (proxyUrl.includes("codetabs.com")) {
-            proxiedUrl = proxyUrl + encodeURIComponent(notListedUrl);
-          } else if (proxyUrl.includes("thingproxy.freeboard.io")) {
-            proxiedUrl = proxyUrl + encodeURIComponent(notListedUrl);
-          } else {
-            proxiedUrl = proxyUrl + notListedUrl;
+              response = await fetch(proxiedUrl, {
+                method: "GET",
+                headers: { Accept: "application/json" },
+                signal: controller.signal,
+              });
+
+              clearTimeout(timeoutId);
+              success = true;
+            } catch (error) {
+              console.log(
+                `[DEBUG] Proxy ${proxyIndex + 1}/${corsProxies.length} failed for not listed NFTs:`,
+                error.name === "AbortError" ? "Request timeout" : error.message,
+              );
+              if (proxyIndex === corsProxies.length - 1) {
+                throw error; // Re-throw if all proxies failed
+              }
+            }
           }
-
-          const response = await fetch(proxiedUrl, {
-            method: "GET",
-            headers: { Accept: "application/json" },
-          });
 
           if (response.ok) {
             const notListedData = await response.json();
-            console.log(
-              `[DEBUG] Found ${notListedData.nfts?.length || 0} not listed NFTs for ${address} on page ${page}`,
-            );
+            // console.log(
+            //   `[DEBUG] Found ${notListedData.nfts?.length || 0} not listed NFTs for ${address} on page ${page}`,
+            // );
 
             if (notListedData.nfts && Array.isArray(notListedData.nfts)) {
               allNotListedNfts.push(...notListedData.nfts);
@@ -3795,23 +3820,23 @@ const _fetchInjectiveNFTs = async (addresses, injPrice = 1.0) => {
               }
             } else {
               // Empty response is normal - address just doesn't have NFTs
-              console.log(
-                `[DEBUG] No not listed NFTs found for ${address} on page ${page} - this is normal`,
-              );
+              // console.log(
+              //   `[DEBUG] No not listed NFTs found for ${address} on page ${page} - this is normal`,
+              // );
               hasMorePages = false;
             }
           } else {
-            console.log(
-              `[DEBUG] No not listed NFTs found for ${address} - this is normal`,
-            );
+            // console.log(
+            //   `[DEBUG] No not listed NFTs found for ${address} - this is normal`,
+            // );
             hasMorePages = false;
             // Don't throw error - continue processing other chains
           }
         }
 
-        console.log(
-          `[DEBUG] Total not listed NFTs found for ${address}: ${allNotListedNfts.length}`,
-        );
+        // console.log(
+        //   `[DEBUG] Total not listed NFTs found for ${address}: ${allNotListedNfts.length}`,
+        // );
 
         if (allNotListedNfts.length > 0) {
           // Process not listed NFTs
@@ -3823,9 +3848,9 @@ const _fetchInjectiveNFTs = async (addresses, injPrice = 1.0) => {
               );
 
               if (!collectionFloor) {
-                console.log(
-                  `[DEBUG] Fetching floor for uncached Injective collection: ${nft.collection.contract}`,
-                );
+                // console.log(
+                //   `[DEBUG] Fetching floor for uncached Injective collection: ${nft.collection.contract}`,
+                // );
                 collectionFloor = await fetchInjectiveCollectionFloor(
                   nft.collection.contract,
                 );
@@ -3904,7 +3929,7 @@ const _fetchInjectiveNFTs = async (addresses, injPrice = 1.0) => {
               };
 
               walletNFTs.push(nftData);
-              console.log(`[DEBUG] ✓ Added not listed NFT ${nft.nft_token_id}`);
+              // console.log(`[DEBUG] ✓ Added not listed NFT ${nft.nft_token_id}`);
             } catch (error) {
               console.error(
                 `[ERROR] Failed to process not listed NFT ${nft.nft_token_id}:`,
@@ -3922,7 +3947,7 @@ const _fetchInjectiveNFTs = async (addresses, injPrice = 1.0) => {
 
       // Fetch listed NFTs
       try {
-        console.log(`[DEBUG] Fetching listed NFTs for ${address}`);
+        // console.log(`[DEBUG] Fetching listed NFTs for ${address}`);
 
         let page = 1;
         let hasMorePages = true;
@@ -3930,30 +3955,55 @@ const _fetchInjectiveNFTs = async (addresses, injPrice = 1.0) => {
 
         while (hasMorePages) {
           const listedUrl = `${API_ENDPOINTS.BACKBONE_LABS_API}/dapps/necropolis/nfts/address/${address}/listed?page=${page}&perPage=${PAGINATION_CONFIG.BACKBONE_API_PER_PAGE}&chainId=injective-1`;
+          
+          let response = null;
+          let success = false;
+
           // Try multiple CORS proxies
           const corsProxies = CORS_PROXIES;
+          for (let proxyIndex = 0; proxyIndex < corsProxies.length && !success; proxyIndex++) {
+            const proxyUrl = corsProxies[proxyIndex];
+            
+            let proxiedUrl;
+            if (proxyUrl.includes("codetabs.com")) {
+              proxiedUrl = proxyUrl + encodeURIComponent(listedUrl);
+            } else if (proxyUrl.includes("thingproxy.freeboard.io")) {
+              proxiedUrl = proxyUrl + encodeURIComponent(listedUrl);
+            } else {
+              proxiedUrl = proxyUrl + listedUrl;
+            }
 
-          let proxiedUrl;
-          const proxyUrl = corsProxies[0]; // Start with first proxy
+            try {
+              const controller = new AbortController();
+              const timeoutId = setTimeout(
+                () => controller.abort(),
+                REQUEST_CONFIG.TIMEOUT,
+              );
 
-          if (proxyUrl.includes("codetabs.com")) {
-            proxiedUrl = proxyUrl + encodeURIComponent(listedUrl);
-          } else if (proxyUrl.includes("thingproxy.freeboard.io")) {
-            proxiedUrl = proxyUrl + encodeURIComponent(listedUrl);
-          } else {
-            proxiedUrl = proxyUrl + listedUrl;
+              response = await fetch(proxiedUrl, {
+                method: "GET",
+                headers: { Accept: "application/json" },
+                signal: controller.signal,
+              });
+
+              clearTimeout(timeoutId);
+              success = true;
+            } catch (error) {
+              console.log(
+                `[DEBUG] Proxy ${proxyIndex + 1}/${corsProxies.length} failed for listed NFTs:`,
+                error.name === "AbortError" ? "Request timeout" : error.message,
+              );
+              if (proxyIndex === corsProxies.length - 1) {
+                throw error; // Re-throw if all proxies failed
+              }
+            }
           }
-
-          const response = await fetch(proxiedUrl, {
-            method: "GET",
-            headers: { Accept: "application/json" },
-          });
 
           if (response.ok) {
             const listedData = await response.json();
-            console.log(
-              `[DEBUG] Found ${listedData.nfts?.length || 0} listed NFTs for ${address} on page ${page}`,
-            );
+            // console.log(
+            //   `[DEBUG] Found ${listedData.nfts?.length || 0} listed NFTs for ${address} on page ${page}`,
+            // );
 
             if (listedData.nfts && Array.isArray(listedData.nfts)) {
               allListedNfts.push(...listedData.nfts);
@@ -3968,23 +4018,23 @@ const _fetchInjectiveNFTs = async (addresses, injPrice = 1.0) => {
               }
             } else {
               // Empty response is normal - address just doesn't have NFTs
-              console.log(
-                `[DEBUG] No listed NFTs found for ${address} on page ${page} - this is normal`,
-              );
+              // console.log(
+              //   `[DEBUG] No listed NFTs found for ${address} on page ${page} - this is normal`,
+              // );
               hasMorePages = false;
             }
           } else {
-            console.log(
-              `[DEBUG] No listed NFTs found for ${address} - this is normal`,
-            );
+            // console.log(
+            //   `[DEBUG] No listed NFTs found for ${address} - this is normal`,
+            // );
             hasMorePages = false;
             // Don't throw error - continue processing other chains
           }
         }
 
-        console.log(
-          `[DEBUG] Total listed NFTs found for ${address}: ${allListedNfts.length}`,
-        );
+        // console.log(
+        //   `[DEBUG] Total listed NFTs found for ${address}: ${allListedNfts.length}`,
+        // );
 
         if (allListedNfts.length > 0) {
           // Process listed NFTs
@@ -3996,9 +4046,9 @@ const _fetchInjectiveNFTs = async (addresses, injPrice = 1.0) => {
               );
 
               if (!collectionFloor) {
-                console.log(
-                  `[DEBUG] Fetching floor for uncached Injective collection: ${nft.collection.contract}`,
-                );
+                // console.log(
+                //   `[DEBUG] Fetching floor for uncached Injective collection: ${nft.collection.contract}`,
+                // );
                 collectionFloor = await fetchInjectiveCollectionFloor(
                   nft.collection.contract,
                 );
@@ -4101,9 +4151,9 @@ const _fetchInjectiveNFTs = async (addresses, injPrice = 1.0) => {
               };
 
               walletNFTs.push(nftData);
-              console.log(
-                `[DEBUG] ✓ Added listed NFT ${nft.nft_token_id} (${listPrice?.amount || 0} INJ)`,
-              );
+              // console.log(
+              //   `[DEBUG] ✓ Added listed NFT ${nft.nft_token_id} (${listPrice?.amount || 0} INJ)`,
+              // );
             } catch (error) {
               console.error(
                 `[ERROR] Failed to process listed NFT ${nft.nft_token_id}:`,
@@ -4120,7 +4170,7 @@ const _fetchInjectiveNFTs = async (addresses, injPrice = 1.0) => {
       }
     }
 
-    console.log(`[DEBUG] Total Injective wallet NFTs: ${walletNFTs.length}`);
+    // console.log(`[DEBUG] Total Injective wallet NFTs: ${walletNFTs.length}`);
 
     // Combine staked and wallet NFTs with deduplication
     const uniqueNFTs = new Map();
@@ -4178,12 +4228,12 @@ const fetchInjectiveNFTMetadata = async (
   tokenUri = null,
   useGateway = true,
 ) => {
-  console.log(`[DEBUG] Fetching metadata for NFT ${tokenId} from ${contract}`);
+  // console.log(`[DEBUG] Fetching metadata for NFT ${tokenId} from ${contract}`);
 
   // Try gateway first for non-listed/non-staked NFTs
   if (useGateway && tokenUri) {
     try {
-      console.log(`[DEBUG] Trying gateway for ${tokenId}`);
+      // console.log(`[DEBUG] Trying gateway for ${tokenId}`);
       const gatewayUrl = tokenUri.replace(
         "ipfs://",
         API_ENDPOINTS.IPFS_GATEWAY_PRIMARY,
@@ -4207,7 +4257,7 @@ const fetchInjectiveNFTMetadata = async (
 
       if (response.ok) {
         const metadata = await response.json();
-        console.log(`[DEBUG] ✓ Gateway success for ${tokenId}`);
+        // console.log(`[DEBUG] ✓ Gateway success for ${tokenId}`);
         return metadata;
       } else {
         console.log(
@@ -4227,9 +4277,9 @@ const fetchInjectiveNFTMetadata = async (
     for (let i = 0; i < CORS_PROXIES.length; i++) {
       const proxyUrl = CORS_PROXIES[i];
       try {
-        console.log(
-          `[DEBUG] Trying CORS proxy ${i + 1}/${CORS_PROXIES.length} for ${tokenId}: ${proxyUrl}`,
-        );
+        // console.log(
+        //   `[DEBUG] Trying CORS proxy ${i + 1}/${CORS_PROXIES.length} for ${tokenId}: ${proxyUrl}`,
+        // );
 
         let proxiedUrl;
         if (proxyUrl.includes("codetabs.com")) {
@@ -4258,7 +4308,7 @@ const fetchInjectiveNFTMetadata = async (
 
         if (response.ok) {
           const metadata = await response.json();
-          console.log(`[DEBUG] ✓ CORS proxy ${i + 1} success for ${tokenId}`);
+          // console.log(`[DEBUG] ✓ CORS proxy ${i + 1} success for ${tokenId}`);
           return metadata;
         } else {
           console.log(
@@ -4285,9 +4335,9 @@ const _fetchInjectiveSingleNFT = async (
   metadataUrl = null,
 ) => {
   try {
-    console.log(
-      `[DEBUG] Fetching Injective NFT metadata: ${collection}/${tokenId}`,
-    );
+    // console.log(
+    //   `[DEBUG] Fetching Injective NFT metadata: ${collection}/${tokenId}`,
+    // );
 
     if (!metadataUrl) {
       console.warn(`[WARNING] No metadata URL provided for ${tokenId}`);
@@ -4304,7 +4354,7 @@ const _fetchInjectiveSingleNFT = async (
       url = url.replace("ipfs://", API_ENDPOINTS.IPFS_GATEWAY_PRIMARY);
     }
 
-    console.log(`[DEBUG] Using metadata URL: ${url}`);
+    // console.log(`[DEBUG] Using metadata URL: ${url}`);
 
     let nftMetadata = null;
 
@@ -4344,10 +4394,10 @@ const _fetchInjectiveSingleNFT = async (
 
         if (response.ok) {
           nftMetadata = await response.json();
-          console.log(
-            `[DEBUG] Fetched metadata from API for ${tokenId}:`,
-            nftMetadata,
-          );
+          // console.log(
+          //   `[DEBUG] Fetched metadata from API for ${tokenId}:`,
+          //   nftMetadata,
+          // );
           break; // Success, exit retry loop
         } else if (
           response.status === 408 ||
@@ -4401,7 +4451,7 @@ const _fetchInjectiveSingleNFT = async (
       return null;
     }
 
-    console.log(`[DEBUG] Processing metadata for ${tokenId}:`, nftMetadata);
+    // console.log(`[DEBUG] Processing metadata for ${tokenId}:`, nftMetadata);
 
     // Process image URL with better handling for different formats
     let imageUrl =
@@ -4450,10 +4500,10 @@ const _fetchInjectiveSingleNFT = async (
       },
     };
 
-    console.log(
-      `[DEBUG] Transformed Injective NFT data for ${tokenId}:`,
-      transformedData,
-    );
+    // console.log(
+    //   `[DEBUG] Transformed Injective NFT data for ${tokenId}:`,
+    //   transformedData,
+    // );
     return transformedData;
   } catch (error) {
     console.error(`Error fetching Injective NFT ${collection}/${tokenId}:`, {
@@ -4485,7 +4535,7 @@ export const fetchInjectiveSingleNFT = async (
 const _fetchInjectiveCollectionFloor = async (collection) => {
   try {
     const url = `${API_ENDPOINTS.BACKBONE_LABS_API}/dapps/necropolis/collections/${collection}`;
-    console.log(`[DEBUG] Fetching Injective collection floor from: ${url}`);
+    // console.log(`[DEBUG] Fetching Injective collection floor from: ${url}`);
 
     let retries = 0;
     const maxRetries = REQUEST_CONFIG.MAX_RETRIES;
@@ -4524,10 +4574,10 @@ const _fetchInjectiveCollectionFloor = async (collection) => {
 
         if (response.ok) {
           const data = await response.json();
-          console.log(
-            `[DEBUG] Injective collection floor data for ${collection}:`,
-            data,
-          );
+          // console.log(
+          //   `[DEBUG] Injective collection floor data for ${collection}:`,
+          //   data,
+          // );
 
           // Handle different response formats
           let floorPrice = 0;
@@ -4546,9 +4596,9 @@ const _fetchInjectiveCollectionFloor = async (collection) => {
               data.floorPrice;
           }
 
-          console.log(
-            `[DEBUG] Extracted floor price for ${collection}: ${floorPrice} INJ`,
-          );
+          // console.log(
+          //   `[DEBUG] Extracted floor price for ${collection}: ${floorPrice} INJ`,
+          // );
 
           if (floorPrice > 0) {
             return {
@@ -4657,23 +4707,23 @@ const _fetchCosmosHubNFTs = async (addresses) => {
     const stakedNFTs = [];
     const cosmosHubDAOs = daosConfig.DAOs["cosmoshub-4"];
 
-    console.log(`[DEBUG] === STARTING STAKED NFT FETCH ===`);
+    // console.log(`[DEBUG] === STARTING STAKED NFT FETCH ===`);
     if (cosmosHubDAOs) {
-      console.log(
-        `[DEBUG] Starting staked NFTs fetch for ${Object.keys(cosmosHubDAOs).length} Cosmos Hub DAOs`,
-      );
+      // console.log(
+      //   `[DEBUG] Starting staked NFTs fetch for ${Object.keys(cosmosHubDAOs).length} Cosmos Hub DAOs`,
+      // );
 
       for (const [daoName, daoConfig] of Object.entries(cosmosHubDAOs)) {
         try {
-          console.log(
-            `[DEBUG] Fetching staked NFTs for DAO: ${daoName}, contract: ${daoConfig.contract}`,
-          );
+          // console.log(
+          //   `[DEBUG] Fetching staked NFTs for DAO: ${daoName}, contract: ${daoConfig.contract}`,
+          // );
 
           let allStakedTokenIds = [];
           for (const address of addresses) {
-            console.log(
-              `[DEBUG] Fetching staked NFTs for Cosmos Hub address: ${address}`,
-            );
+            // console.log(
+            //   `[DEBUG] Fetching staked NFTs for Cosmos Hub address: ${address}`,
+            // );
             const stakedTokenIds = await fetchStakedNFTs(
               "cosmoshub-4",
               daoConfig.contract,
@@ -4686,23 +4736,23 @@ const _fetchCosmosHubNFTs = async (addresses) => {
 
           // Remove duplicates
           const stakedTokenIds = [...new Set(allStakedTokenIds)];
-          console.log(
-            `[DEBUG] Raw staked response for ${daoName}:`,
-            stakedTokenIds,
-          );
+          // console.log(
+          //   `[DEBUG] Raw staked response for ${daoName}:`,
+          //   stakedTokenIds,
+          // );
 
           // Fetch detailed NFT data for each staked token ID
           if (Array.isArray(stakedTokenIds) && stakedTokenIds.length > 0) {
-            console.log(
-              `[DEBUG] === PROCESSING ${stakedTokenIds.length} STAKED NFTs FOR ${daoName} ===`,
-            );
+            // console.log(
+            //   `[DEBUG] === PROCESSING ${stakedTokenIds.length} STAKED NFTs FOR ${daoName} ===`,
+            // );
 
             for (let i = 0; i < stakedTokenIds.length; i++) {
               const tokenId = stakedTokenIds[i];
               try {
-                console.log(
-                  `[DEBUG] [${i + 1}/${stakedTokenIds.length}] Fetching staked NFT ${tokenId} from collection ${daoConfig.collection}`,
-                );
+                // console.log(
+                //   `[DEBUG] [${i + 1}/${stakedTokenIds.length}] Fetching staked NFT ${tokenId} from collection ${daoConfig.collection}`,
+                // );
                 const nftData = await fetchCosmosHubSingleNFT(
                   daoConfig.collection,
                   tokenId.toString(),
@@ -4776,9 +4826,9 @@ const _fetchCosmosHubNFTs = async (addresses) => {
                     sourceAddress: addresses[0], // Associate with first address for staked NFTs
                   };
                   stakedNFTs.push(stakedNft);
-                  console.log(
-                    `[DEBUG] ✓ Successfully added staked NFT ${tokenId} from ${daoName}. Total staked so far: ${stakedNFTs.length}`,
-                  );
+                  // console.log(
+                  //   `[DEBUG] ✓ Successfully added staked NFT ${tokenId} from ${daoName}. Total staked so far: ${stakedNFTs.length}`,
+                  // );
                 }
               } catch (error) {
                 console.error(
@@ -4788,7 +4838,7 @@ const _fetchCosmosHubNFTs = async (addresses) => {
               }
             }
           } else {
-            console.log(`[DEBUG] No staked NFTs found for ${daoName}`);
+            // console.log(`[DEBUG] No staked NFTs found for ${daoName}`);
           }
         } catch (error) {
           console.error(
@@ -4799,14 +4849,14 @@ const _fetchCosmosHubNFTs = async (addresses) => {
       }
     }
 
-    console.log(`[DEBUG] === STAKED NFT FETCH COMPLETE ===`);
-    console.log(`[DEBUG] Total staked NFTs collected: ${stakedNFTs.length}`);
+    // console.log(`[DEBUG] === STAKED NFT FETCH COMPLETE ===`);
+    // console.log(`[DEBUG] Total staked NFTs collected: ${stakedNFTs.length}`);
 
     // Fetch regular NFTs from Cosmos Hub
     const regularNFTs = [];
 
     for (const address of addresses) {
-      console.log(`[DEBUG] Fetching Cosmos Hub NFTs for address: ${address}`);
+      // console.log(`[DEBUG] Fetching Cosmos Hub NFTs for address: ${address}`);
 
       // Query each collection for tokens owned by this address
       for (const [collectionName, collectionData] of Object.entries(
@@ -4823,15 +4873,15 @@ const _fetchCosmosHubNFTs = async (addresses) => {
           ) {
             contractAddress = collectionData["cosmoshub-4"];
           } else {
-            console.log(
-              `[DEBUG] No cosmoshub-4 contract address found for ${collectionName}`,
-            );
+            // console.log(
+            //   `[DEBUG] No cosmoshub-4 contract address found for ${collectionName}`,
+            // );
             continue;
           }
 
-          console.log(
-            `[DEBUG] Querying collection ${collectionName} (${contractAddress}) for address ${address}`,
-          );
+          // console.log(
+          //   `[DEBUG] Querying collection ${collectionName} (${contractAddress}) for address ${address}`,
+          // );
 
           const query = { tokens: { owner: address } };
           const encodedQuery = btoa(JSON.stringify(query));
@@ -4845,7 +4895,7 @@ const _fetchCosmosHubNFTs = async (addresses) => {
 
           while (retries <= maxRetries) {
             try {
-              console.log(`[DEBUG] Querying tokens from: ${url}`);
+              // console.log(`[DEBUG] Querying tokens from: ${url}`);
 
               const response = await fetch(url, {
                 method: "GET",
@@ -4856,10 +4906,10 @@ const _fetchCosmosHubNFTs = async (addresses) => {
 
               if (response.ok) {
                 const data = await response.json();
-                console.log(
-                  `[DEBUG] Tokens response for ${collectionName}:`,
-                  data,
-                );
+                // console.log(
+                //   `[DEBUG] Tokens response for ${collectionName}:`,
+                //   data,
+                // );
 
                 // Handle response format
                 tokensData = data.data || data;
@@ -4916,9 +4966,9 @@ const _fetchCosmosHubNFTs = async (addresses) => {
             tokensData.tokens &&
             Array.isArray(tokensData.tokens)
           ) {
-            console.log(
-              `[DEBUG] Found ${tokensData.tokens.length} tokens in ${collectionName} for ${address}`,
-            );
+            // console.log(
+            //   `[DEBUG] Found ${tokensData.tokens.length} tokens in ${collectionName} for ${address}`,
+            // );
 
             // Get floor price from Stargaze if available
             let floorPrice = {
@@ -4956,9 +5006,9 @@ const _fetchCosmosHubNFTs = async (addresses) => {
             // Fetch detailed NFT data for each token
             for (const tokenId of tokensData.tokens) {
               try {
-                console.log(
-                  `[DEBUG] Fetching NFT data for ${collectionName}/${tokenId}`,
-                );
+                // console.log(
+                //   `[DEBUG] Fetching NFT data for ${collectionName}/${tokenId}`,
+                // );
                 const nftData = await fetchCosmosHubSingleNFT(
                   contractAddress,
                   tokenId,
@@ -4983,9 +5033,9 @@ const _fetchCosmosHubNFTs = async (addresses) => {
                   };
 
                   regularNFTs.push(transformedNFT);
-                  console.log(
-                    `[DEBUG] ✓ Added NFT ${tokenId} from ${collectionName}`,
-                  );
+                  // console.log(
+                  //   `[DEBUG] ✓ Added NFT ${tokenId} from ${collectionName}`,
+                  // );
                 }
               } catch (error) {
                 console.error(
@@ -4995,9 +5045,9 @@ const _fetchCosmosHubNFTs = async (addresses) => {
               }
             }
           } else {
-            console.log(
-              `[DEBUG] No tokens found in ${collectionName} for ${address}`,
-            );
+            // console.log(
+            //   `[DEBUG] No tokens found in ${collectionName} for ${address}`,
+            // );
           }
         } catch (error) {
           console.error(

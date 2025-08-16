@@ -132,17 +132,17 @@ export default function NFTDashboard({
   // Function to remove NFTs associated with a manual address
   const removeNFTsByManualAddress = useCallback(
     (chainName, manualAddress) => {
-      console.log(
-        `[DEBUG] Removing NFTs for manual address: ${chainName}-${manualAddress}`,
-      );
+      // console.log(
+      //   `[DEBUG] Removing NFTs for manual address: ${chainName}-${manualAddress}`,
+      // );
 
       const manualAddressKey = `${chainName}-manual-${manualAddress}`;
 
       // Get NFTs associated with this manual address
       const nftsToRemove = nftsByAddress.get(manualAddressKey) || [];
-      console.log(
-        `[DEBUG] Found ${nftsToRemove.length} NFTs to remove for ${manualAddressKey}`,
-      );
+      // console.log(
+      //   `[DEBUG] Found ${nftsToRemove.length} NFTs to remove for ${manualAddressKey}`,
+      // );
 
       // Remove NFTs from main list - use a comprehensive approach
       setNfts((prevNfts) => {
@@ -187,16 +187,16 @@ export default function NFTDashboard({
               (nft) => !(nft.chain === chainName && nft.daoStaked === true),
             );
             if (beforeStakedFilter !== filteredNfts.length) {
-              console.log(
-                `[DEBUG] Removed ${beforeStakedFilter - filteredNfts.length} staked NFTs from ${chainName} chain`,
-              );
+              // console.log(
+              //   `[DEBUG] Removed ${beforeStakedFilter - filteredNfts.length} staked NFTs from ${chainName} chain`,
+              // );
             }
           }
         }
 
-        console.log(
-          `[DEBUG] Reduced NFT count from ${prevNfts.length} to ${filteredNfts.length}`,
-        );
+        // console.log(
+        //   `[DEBUG] Reduced NFT count from ${prevNfts.length} to ${filteredNfts.length}`,
+        // );
         return filteredNfts;
       });
 
@@ -315,15 +315,15 @@ export default function NFTDashboard({
   const fetchAllNFTs = useCallback(async () => {
     // Prevent duplicate fetching
     if (isFetchingNFTs) {
-      console.log("[DEBUG] Already fetching NFTs, skipping duplicate request");
+      // console.log("[DEBUG] Already fetching NFTs, skipping duplicate request");
       return;
     }
 
-    console.log("[DEBUG] fetchAllNFTs called with addresses:", addresses);
-    console.log(
-      "[DEBUG] Already fetched addresses:",
-      Array.from(fetchedAddresses),
-    );
+    // console.log("[DEBUG] fetchAllNFTs called with addresses:", addresses);
+    // console.log(
+    //   "[DEBUG] Already fetched addresses:",
+    //   Array.from(fetchedAddresses),
+    // );
 
     // Check if there are any new addresses to fetch
     const chainsToProcess = [];
@@ -358,7 +358,7 @@ export default function NFTDashboard({
     });
 
     if (chainsToProcess.length === 0) {
-      console.log("[DEBUG] No new addresses to fetch");
+      // console.log("[DEBUG] No new addresses to fetch");
       return;
     }
 
@@ -390,9 +390,9 @@ export default function NFTDashboard({
 
     // Process each chain
     for (const { chain, chainAddresses } of chainsToProcess) {
-      console.log(
-        `[DEBUG] Starting ${chain.name} fetch for ${chainAddresses.length} addresses`,
-      );
+      // console.log(
+      //   `[DEBUG] Starting ${chain.name} fetch for ${chainAddresses.length} addresses`,
+      // );
 
       // Set loading state for this chain
       setChainLoadingStates((prev) => ({
@@ -415,9 +415,9 @@ export default function NFTDashboard({
         });
 
         const chainNfts = await fetchNFTsForChain(chain, chainAddresses);
-        console.log(
-          `[DEBUG] Found ${chainNfts.length} NFTs for ${chain.name}`,
-        );
+        // console.log(
+        //   `[DEBUG] Found ${chainNfts.length} NFTs for ${chain.name}`,
+        // );
 
         // Always consider the fetch successful, even if no NFTs found
         if (chainNfts.length > 0) {
@@ -452,11 +452,11 @@ export default function NFTDashboard({
           // Increment completed chains
           completedChains++;
 
-          console.log(`[DEBUG] Chain ${chain.name} completed. ${completedChains}/${totalChains} chains done`);
+          // console.log(`[DEBUG] Chain ${chain.name} completed. ${completedChains}/${totalChains} chains done`);
 
           // Check if all chains are complete
           if (completedChains === totalChains) {
-            console.log(`[DEBUG] All ${totalChains} chains completed processing`);
+            // console.log(`[DEBUG] All ${totalChains} chains completed processing`);
 
             // Clear fetching status
             setFetchingStatus([]);
@@ -467,7 +467,7 @@ export default function NFTDashboard({
             // Mark that all chains have completed
             setAllChainsCompleted(true);
             
-            console.log(`[DEBUG] All chains completed, waiting for NFT processing to finish`);
+            // console.log(`[DEBUG] All chains completed, waiting for NFT processing to finish`);
           }
 
           return newStates;
@@ -482,9 +482,9 @@ export default function NFTDashboard({
       // Get current NFTs and combine with new ones
       setNfts((currentNfts) => {
         const combinedNfts = [...currentNfts, ...allNfts];
-        console.log(
-          `[DEBUG] Total NFTs before deduplication: ${combinedNfts.length}`,
-        );
+        // console.log(
+        //   `[DEBUG] Total NFTs before deduplication: ${combinedNfts.length}`,
+        // );
 
         // Deduplicate NFTs by contract-tokenId combination
         const uniqueNfts = new Map();
@@ -496,22 +496,22 @@ export default function NFTDashboard({
         });
 
         const deduplicatedNfts = Array.from(uniqueNfts.values());
-        console.log(
-          `[DEBUG] Total NFTs after deduplication: ${deduplicatedNfts.length}`,
-        );
+        // console.log(
+        //   `[DEBUG] Total NFTs after deduplication: ${deduplicatedNfts.length}`,
+        // );
 
         // Sort NFTs based on current sort setting
         const sortedNfts = sortNFTs(deduplicatedNfts, sortBy);
 
-        console.log(
-          `[DEBUG] Final sorted ${sortedNfts.length} NFTs by floor price USD`,
-        );
+        // console.log(
+        //   `[DEBUG] Final sorted ${sortedNfts.length} NFTs by floor price USD`,
+        // );
 
         return sortedNfts;
       });
     } else if (completedChains === totalChains) {
       // Mark that all chains are completed, but don't change loading state yet
-      console.log(`[DEBUG] All chains completed but no new NFTs - waiting for state update`);
+      // console.log(`[DEBUG] All chains completed but no new NFTs - waiting for state update`);
       setAllChainsCompleted(true);
     }
   }, [
@@ -524,7 +524,7 @@ export default function NFTDashboard({
   useEffect(() => {
     // Only change loading state when all chains are done AND NFTs are ready for filtering
     if (allChainsCompleted && isFetchingNFTs && nfts.length > 0) {
-      console.log(`[DEBUG] Setting isFetchingNFTs to false - NFTs ready for filtering`);
+      // console.log(`[DEBUG] Setting isFetchingNFTs to false - NFTs ready for filtering`);
       setIsFetchingNFTs(false);
       setAllChainsCompleted(false); // Reset for next fetch
       setHasLoadedNFTs(true); // Enable filters
@@ -535,7 +535,7 @@ export default function NFTDashboard({
   }, [nfts, allChainsCompleted, isFetchingNFTs, onFetchStatusChange]);
 
   useEffect(() => {
-    console.log("useEffect triggered for fetchAllNFTs, addresses:", addresses);
+    // console.log("useEffect triggered for fetchAllNFTs, addresses:", addresses);
     // Check if there are any addresses (connected or manual) before fetching
     const hasAddresses = Object.keys(addresses).some(
       (key) => addresses[key] && !key.endsWith("_manual"),
@@ -547,7 +547,7 @@ export default function NFTDashboard({
     if (hasAddresses || hasManualAddresses) {
       fetchAllNFTs();
     } else {
-      console.log("[DEBUG] No addresses found, resetting all NFT state.");
+      // console.log("[DEBUG] No addresses found, resetting all NFT state.");
       setNfts([]);
       setFilteredNfts([]);
       setHasLoadedNFTs(false);
@@ -573,9 +573,9 @@ export default function NFTDashboard({
 
   const fetchNFTsForChain = async (chain, chainAddresses) => {
     try {
-      console.log(
-        `[DEBUG] Fetching NFTs for chain: "${chain.name}" with ${chainAddresses.length} addresses`,
-      );
+      // console.log(
+      //   `[DEBUG] Fetching NFTs for chain: "${chain.name}" with ${chainAddresses.length} addresses`,
+      // );
 
       // Validate addresses for this chain
       const validAddresses = [];
@@ -592,7 +592,7 @@ export default function NFTDashboard({
       }
 
       if (validAddresses.length === 0) {
-        console.log(`[DEBUG] No valid addresses for ${chain.name}`);
+        // console.log(`[DEBUG] No valid addresses for ${chain.name}`);
         return [];
       }
 
@@ -603,10 +603,10 @@ export default function NFTDashboard({
         const currentBosmoPrice = bosmoPrice || 0.2;
         return await fetchOsmosisNFTs(validAddresses, currentBosmoPrice);
       } else if (chain.name === "injective") {
-        console.log(
-          `[DEBUG] Fetching Injective NFTs for addresses:`,
-          validAddresses,
-        );
+        // console.log(
+        //   `[DEBUG] Fetching Injective NFTs for addresses:`,
+        //   validAddresses,
+        // );
         // Use current bINJ price from props or use default
         const currentBinjPrice = binjPrice || 1.0;
         const injectiveNFTs = await fetchInjectiveNFTs(validAddresses, currentBinjPrice);
@@ -617,13 +617,13 @@ export default function NFTDashboard({
           image: processImageUrl(nft.image), // Use processImageUrl here
         }));
 
-        console.log(`[DEBUG] Found ${transformedNFTs.length} NFTs for injective`);
+        // console.log(`[DEBUG] Found ${transformedNFTs.length} NFTs for injective`);
         return transformedNFTs;
       } else if (chain.name === "initia") {
-        console.log(
-          `[DEBUG] Fetching Initia NFTs for addresses:`,
-          validAddresses,
-        );
+        // console.log(
+        //   `[DEBUG] Fetching Initia NFTs for addresses:`,
+        //   validAddresses,
+        // );
         const initiaNFTs = [];
 
         for (const address of validAddresses) {
@@ -648,13 +648,13 @@ export default function NFTDashboard({
             );
           }
         }
-        console.log(`[DEBUG] Found ${initiaNFTs.length} NFTs for initia`);
+        // console.log(`[DEBUG] Found ${initiaNFTs.length} NFTs for initia`);
         return initiaNFTs;
       } else if (chain.name === "neutron") {
-        console.log(
-          `[DEBUG] Fetching Neutron NFTs for addresses:`,
-          validAddresses,
-        );
+        // console.log(
+        //   `[DEBUG] Fetching Neutron NFTs for addresses:`,
+        //   validAddresses,
+        // );
 
         try {
           const neutronNFTs = await fetchNeutronNFTs(validAddresses);
@@ -664,19 +664,19 @@ export default function NFTDashboard({
             image: processImageUrl(nft.image), // Use processImageUrl here
           }));
 
-          console.log(
-            `[DEBUG] Found ${transformedNFTs.length} NFTs for neutron`,
-          );
+          // console.log(
+          //   `[DEBUG] Found ${transformedNFTs.length} NFTs for neutron`,
+          // );
           return transformedNFTs;
         } catch (error) {
           console.error(`[ERROR] Error fetching Neutron NFTs:`, error);
           return [];
         }
       } else if (chain.name === "cosmoshub") {
-        console.log(
-          `[DEBUG] Fetching Cosmos Hub NFTs for addresses:`,
-          validAddresses,
-        );
+        // console.log(
+        //   `[DEBUG] Fetching Cosmos Hub NFTs for addresses:`,
+        //   validAddresses,
+        // );
 
         try {
           const cosmosHubNFTs = await fetchCosmosHubNFTs(validAddresses);
@@ -686,9 +686,9 @@ export default function NFTDashboard({
             image: processImageUrl(nft.image), // Use processImageUrl here
           }));
 
-          console.log(
-            `[DEBUG] Found ${transformedNFTs.length} NFTs for cosmoshub`,
-          );
+          // console.log(
+          //   `[DEBUG] Found ${transformedNFTs.length} NFTs for cosmoshub`,
+          // );
           return transformedNFTs;
         } catch (error) {
           console.error(`[ERROR] Error fetching Cosmos Hub NFTs:`, error);
@@ -697,9 +697,9 @@ export default function NFTDashboard({
       }
 
       // For other chains, return empty array for now
-      console.log(
-        `[DEBUG] Chain ${chain.name} not implemented yet, returning empty array`,
-      );
+      // console.log(
+      //   `[DEBUG] Chain ${chain.name} not implemented yet, returning empty array`,
+      // );
       return [];
     } catch (error) {
       console.error(`Error fetching NFTs for ${chain.name}:`, error);
