@@ -459,7 +459,7 @@ export default function NFTDashboard({
             // console.log(`[DEBUG] All ${totalChains} chains completed processing`);
 
             // Clear fetching status
-            setFetchingStatus([]);
+            setFetchingStatus(["..."]);
 
             // Clear manual address fetching state  
             setIsManualAddressFetching(false);

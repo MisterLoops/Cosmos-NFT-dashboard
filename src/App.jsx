@@ -740,7 +740,7 @@ export default function App() {
     <div className="app">
       <header className="app-header">
         <div className="app-title-container">
-          <img src="/favicon.svg" alt="Logo" className="app-logo" />
+          <img src="/cosmosNFTHUBlogo.png" alt="Logo" className="app-logo" />
           <div className="app-title">
             <div className="title-main">NFTHUB</div>
             <div className="title-sub">COSMOS</div>

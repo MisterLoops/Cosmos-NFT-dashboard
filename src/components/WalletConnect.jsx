@@ -127,14 +127,21 @@ export default function WalletConnect({
         <div className="testing-message">
           <h3>V1</h3>
           <p>
-            Welcome the to the V1 of Cosmos NFTHUB. This is a dashboard that I've built for fun on my spare time that displays all your NFTs across Cosmos chains. While you can see your holdings on major marketplaces and DAOs, there are still improvements to be made and regarding DAOs implementation, they are added one by one. You may notice some bugs. Hence why your feedback is important to report anything that doesn't work properly, what DAOs, chains and features you'd like to be added.
-It's a simple app that runs in your browser, nothing's stored in a database, and the connection is an offline connection, so, you're safe!
+            Welcome the to the V1 of Cosmos NFTHUB.
           </p>
+          <p>This is a dashboard that I've built for fun on my spare time
+             that displays all your NFTs across Cosmos chains.</p>
+          <p>While you can see your holdings on major marketplaces
+              and DAOs, there are still improvements to be made and regarding DAOs implementation, they are added one
+               by one. You may notice some bugs. Hence why your feedback is important to report anything that doesn't
+                work properly, what DAOs, chains and features you'd like to be added.</p>
+          <p>It's a simple app that runs in your browser, nothing's stored in a database, 
+          and the connection is an offline connection, so, you're safe!</p>
           <p>
             Please reach out to me on X for feedbacks.
           </p>
           <p>
-            Thanks for testing, enjoy!
+            Thanks for trying, hope you'll like it!
           </p>
           <p><strong><a href="https://x.com/MisterLoops" target="_blank" rel="noopener noreferrer">MisterLoops</a></strong></p>
         </div>
