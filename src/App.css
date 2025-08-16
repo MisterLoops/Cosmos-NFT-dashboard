@@ -3473,7 +3473,7 @@ body {
 .footer-inner {
   display: flex;
   flex-direction: column;
-  align-items: flex-end; /* right align */
+  align-items: center; /* right align */
   gap: 6px;
   padding: 8px 14px;
   border-radius: 999px;
@@ -3544,8 +3544,8 @@ body {
 
 /* Mobile tweak */
 @media (max-width: 420px){
-  body { padding-bottom: 100px; }
-  .footer-inner { padding: 6px 10px; gap: 4px; }
+  body { padding-bottom: 50px; }
+  .footer-inner { padding: 4px 10px; gap: 2px; font: 500 9px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;}
   .footer-logo { height: 20px; }
-  .footer-logo img { width: 20px !important; height: 20px !important; }
+  .footer-logo img { width: 30px !important; height: 20px !important; }
   }

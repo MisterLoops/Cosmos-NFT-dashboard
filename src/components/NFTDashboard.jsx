@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import NFTCard from "./NFTCard";
 import FilterPanel from "./FilterPanel";
-import LoadingSpinner from "./LoadingSpinner";
 import LoadingAnimation from "./LoadingAnimation";
 import {
   fetchStargazeNFTs,
@@ -73,7 +72,6 @@ export default function NFTDashboard({
 }) {
   const [nfts, setNfts] = useState([]);
   const [filteredNfts, setFilteredNfts] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState("grid");
   const [showFilters, setShowFilters] = useState(false);
   const [filtersClosing, setFiltersClosing] = useState(false);
@@ -827,9 +825,6 @@ export default function NFTDashboard({
   const goToNextPage = (shouldScroll = false) => goToPage(currentPage + 1, shouldScroll);
   const goToPreviousPage = (shouldScroll = false) => goToPage(currentPage - 1, shouldScroll);
 
-  if (loading) {
-    return <LoadingSpinner message="Loading your NFT collection..." />;
-  }
 
   return (
     <div className="nft-dashboard">
@@ -1267,8 +1262,8 @@ export default function NFTDashboard({
             <div className="footer-title">Cosmos NFTHUB DASHBOARD V1 @2025</div>
             <div className="footer-bottom">
               <div className="footer-logo">
-                <span>Build with love by</span>
-                <img src="loops-logo.png" alt="Cosmonaut logo"></img>
+                <span>Built with love by</span>
+                <a href="https://x.com/MisterLoops" target="_blank" rel="noopener noreferrer"><img src="loops-logo.png" alt="Cosmonaut logo"></img></a>
               </div>
               {/* <a href="#" class="footer-support">Support appreciated</a> */}
             </div>
