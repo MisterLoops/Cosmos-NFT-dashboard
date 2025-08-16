@@ -126,9 +126,12 @@ export default function WalletConnect({
       <div className="testing-container">
         <div className="testing-message">
           <h3>V1</h3>
+          <span className="testing-message-bold">
           <p>
             Welcome the to the V1 of Cosmos NFTHUB.
           </p>
+          <br></br>
+          </span>
           <p>This is a dashboard that I've built for fun on my spare time
              that displays all your NFTs across Cosmos chains.</p>
           <p>While you can see your holdings on major marketplaces
@@ -140,9 +143,14 @@ export default function WalletConnect({
           <p>
             Please reach out to me on X for feedbacks.
           </p>
+          <span className="testing-message-bold">
           <p>
-            Thanks for trying, hope you'll like it!
-          </p>
+            Thanks for trying it, hope you'll like using it!
+          </p><br></br>
+          </span>
+          <span className="testing-message-bold">
+          <p>EVERYTHING IS AN EXPERIMENT</p>
+          </span><br></br>
           <p><strong><a href="https://x.com/MisterLoops" target="_blank" rel="noopener noreferrer">MisterLoops</a></strong></p>
         </div>
       </div>

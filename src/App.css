@@ -1046,6 +1046,11 @@ body {
   text-align: center;
 }
 
+.testing-message-bold {
+  font-weight: bold;
+  color: #ff6b9d;
+}
+
 .testing-message h3 {
   margin: 0 0 1rem 0;
   color: #ff6b9d;
