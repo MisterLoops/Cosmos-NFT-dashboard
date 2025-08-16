@@ -2923,6 +2923,16 @@ const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
                   nft.collection.contract,
                   nft.token_uri,
                   true, // Use gateway priority for staked NFTs
+                  );
+              } else {
+                console.log(
+                  `[DEBUG] No token_uri for staked NFT ${nft.nft_token_id}, falling back to BackboneLabs API`,
+                );
+                // Fallback to BackboneLabs API for metadata when token_uri is null
+                metadata = await fetchListedNFTMetadata(
+                  nft.collection.contract,
+                  nft.nft_token_id,
+                  "osmosis",
                 );
               }
 

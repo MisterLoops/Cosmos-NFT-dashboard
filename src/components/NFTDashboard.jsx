@@ -1262,11 +1262,11 @@ export default function NFTDashboard({
           )}
         </div>
       </div>
-        <footer class="footer">
-          <div class="footer-inner">
-            <div class="footer-title">Cosmos NFTHUB DASHBOARD V1 @2025</div>
-            <div class="footer-bottom">
-              <div class="footer-logo">
+        <footer className="footer">
+          <div className="footer-inner">
+            <div className="footer-title">Cosmos NFTHUB DASHBOARD V1 @2025</div>
+            <div className="footer-bottom">
+              <div className="footer-logo">
                 <span>Build with love by</span>
                 <img src="loops-logo.png" alt="Cosmonaut logo"></img>
               </div>
