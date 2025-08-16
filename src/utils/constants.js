@@ -166,3 +166,5 @@ export const PAGINATION_CONFIG = {
   ITEMS_PER_PAGE: 50,
   BACKBONE_API_PER_PAGE: 100, // Per page for backbone API requests (listed and not_listed NFTs)
 };
+
+export const DONATION_ADDRESS = "stars1d2y72xglnyrphze97kqfmccysdqpf4996srcyj";

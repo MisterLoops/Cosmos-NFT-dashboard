@@ -1,4 +1,4 @@
-# Cosmos NFTHUB DAshboard V1
+# Cosmos NFTHUB Dashboard V1
 **It's LIVE, try it** [HERE](https://cosmosnfthub.xyz/) 
 
 **A Dashboard in React that displays all your Cosmos NFTs on several Cosmos chains from one single place...**

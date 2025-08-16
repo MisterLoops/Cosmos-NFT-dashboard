@@ -8,6 +8,10 @@ import {
   ArrowDown,
   DollarSign,
   Award,
+  Heart,
+  Copy,
+  Check,
+  X
 } from "lucide-react";
 import NFTCard from "./NFTCard";
 import FilterPanel from "./FilterPanel";
@@ -20,7 +24,7 @@ import {
   fetchInitiaNFTs,
   fetchCosmosHubNFTs,
 } from "../utils/fetchFunctions";
-import { CHAIN_CONFIGS, CHAINS, PAGINATION_CONFIG } from "../utils/constants.js";
+import { CHAIN_CONFIGS, CHAINS, PAGINATION_CONFIG, DONATION_ADDRESS } from "../utils/constants.js";
 
 // Function to process image URLs, handling potential GIF and IPFS cases
 const processImageUrl = (originalSrc) => {
@@ -70,6 +74,8 @@ export default function NFTDashboard({
   onManualAddressRemoved,
   onFetchStatusChange,
 }) {
+  const [showDonation, setShowDonation] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [nfts, setNfts] = useState([]);
   const [filteredNfts, setFilteredNfts] = useState([]);
   const [viewMode, setViewMode] = useState("grid");
@@ -128,6 +134,24 @@ export default function NFTDashboard({
       );
     };
   }, [showFilters]);
+
+  const copyAddress = async () => {
+    try {
+      await navigator.clipboard.writeText(DONATION_ADDRESS);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = DONATION_ADDRESS;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   // Function to remove NFTs associated with a manual address
   const removeNFTsByManualAddress = useCallback(
@@ -1258,17 +1282,60 @@ export default function NFTDashboard({
         </div>
       </div>
         <footer className="footer">
-          <div className="footer-inner">
-            <div className="footer-title">Cosmos NFTHUB DASHBOARD V1 @2025</div>
-            <div className="footer-bottom">
-              <div className="footer-logo">
-                <span>Built with love by</span>
-                <a href="https://x.com/MisterLoops" target="_blank" rel="noopener noreferrer"><img src="loops-logo.png" alt="Cosmonaut logo"></img></a>
+        <div className="footer-inner">
+          <div className="footer-title">Cosmos NFTHUB DASHBOARD V1 @2025</div>
+          <div className="footer-bottom">
+            <div className="footer-logo">
+              <span>Built with love by</span>
+              <a href="https://x.com/MisterLoops" target="_blank" rel="noopener noreferrer">
+                <img src="loops-logo.png" alt="Cosmonaut logo" />
+              </a>
+            </div>
+            <button 
+              onClick={() => setShowDonation(true)}
+              className="donate-btn"
+              title="Support this project"
+            >
+              <Heart className="donate-icon" />
+            </button>
+          </div>
+        </div>
+      </footer>
+       {/* Donation Modal */}
+      {showDonation && (
+        <div className="donation-overlay" onClick={() => setShowDonation(false)}>
+          <div className="donation-modal" onClick={(e) => e.stopPropagation()}>
+            <button 
+              className="close-btn" 
+              onClick={() => setShowDonation(false)}
+            >
+              <X size={20} />
+            </button>
+            
+            <div className="donation-content">
+              <Heart className="donation-heart" />
+              <h3>Thank you for supporting!</h3>
+              <p>I spent quite much time on this.</p>
+              
+              <div className="address-container">
+                <label>Stargaze Address:</label>
+                <div className="address-box">
+                  <span className="address-text">{DONATION_ADDRESS}</span>
+                  <button 
+                    onClick={copyAddress}
+                    className="copy-btn"
+                    title={copied ? "Copied!" : "Copy address"}
+                  >
+                    {copied ? <Check size={16} /> : <Copy size={16} />}
+                  </button>
+                </div>
+                {copied && <span className="copied-text">Address copied to clipboard!</span>}
               </div>
-              {/* <a href="#" class="footer-support">Support appreciated</a> */}
             </div>
           </div>
-        </footer>
+        </div>
+      )}
+
     </div>
   );
 }
