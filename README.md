@@ -1,7 +1,8 @@
 # Cosmos NFTHUB DAshboard V1
-It's LIVE, try it [Here](https://cosmosnfthub.xyz/) 
+**It's LIVE, try it** [HERE](https://cosmosnfthub.xyz/) 
 
 **A Dashboard in React that displays all your Cosmos NFTs on several Cosmos chains from one single place...**
+
 It simply runs in your browser, no data is stored, no database is required at this stage, wallet connection is offline with Keplr or Leap wallets.
 
 ## APIs
