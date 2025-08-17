@@ -67,7 +67,7 @@ body {
   top: 6.6rem;
   left: 2rem;
   right: 2rem;
-  background: rgba(255, 255, 255, 0.05);
+  background: #1e1e2f;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
@@ -78,6 +78,8 @@ body {
   transform: translateY(-20px);
   transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   z-index: 2000;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 107, 157, 0.5) rgba(255, 255, 255, 0.1);
 }
 
 .token-balances.visible {
@@ -93,12 +95,6 @@ body {
   opacity: 0;
   transform: translateY(-10px);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.6, 1);
-}
-
-/* Token balances scrollbar styling */
-.token-balances {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 107, 157, 0.5) rgba(255, 255, 255, 0.1);
 }
 
 .token-balances::-webkit-scrollbar {
@@ -177,7 +173,7 @@ body {
 
 .balance-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   margin-bottom: 1rem;
 }
@@ -224,8 +220,8 @@ body {
 
 .balance-content {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
+  justify-content: center;
+  align-items: center;
   gap: 1rem;
 }
 
@@ -240,7 +236,7 @@ body {
   font-weight: 600;
   font-size: 1.1rem;
   color: #ff6b9d;
-  text-align: right;
+  text-align: center;
 }
 
 .wallet-dropdown-container {
@@ -1382,7 +1378,7 @@ body {
   border-radius: 12px;
   padding-top: 25px;
   margin: 0;
-  z-index: 10;
+  z-index: 1;
 }
 
 .compact-loading-animation {
@@ -1471,8 +1467,9 @@ body {
   line-height: 1.2;
 }
 
-/* Desktop Token Balances */
+* Desktop Token Balances */
 .desktop-token-balances {
+  position: relative;
   padding: 0 0.5rem;
   width: 100%;
   margin: 0 0 1rem 0;
@@ -1480,6 +1477,8 @@ body {
   min-height: 5rem;
   max-height: 5rem;
   display: block;
+  position: absolute;
+  z-index:10000;
 }
 
 .token-summary {
@@ -1531,12 +1530,10 @@ body {
   border-radius: 6px;
   padding: 0.5rem 0.75rem;
   transition: all 0.15s ease;
-  font-size: 2.5rem;
   position: relative;
   flex-shrink: 0;
   white-space: nowrap;
   height: 2.25rem;
-  order: 0;
   cursor: pointer;
   z-index: 1;
 }
@@ -1548,28 +1545,47 @@ body {
   z-index: 10;
 }
 
+.token-summary-logo {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.token-summary-symbol {
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+}
+
+.token-summary-value {
+  font-weight: 500;
+  color: #ff6b9d;
+  font-size: 0.8rem;
+}
+
 .token-summary-tooltip {
   position: absolute;
   top: calc(100% + 8px);
   left: 50%;
-  transform: translateX(-50%) translateY(8px);
+  transform: translateX(-50%) translateY(-10px);
   background: rgba(30, 30, 47, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 8px;
-  padding: 0.75rem;
-  white-space: nowrap;
-  z-index: 99999;
+  padding: 1rem;
+  z-index: 10000;
   opacity: 0;
   visibility: hidden;
-  transition: all 0.2s ease;
   backdrop-filter: blur(15px);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  pointer-events: none;
+  min-width: 200px;
+  white-space: nowrap;
+  transition: all 0.25s ease;
 }
 
-.token-summary-item:hover .token-summary-tooltip {
+.token-summary-item:hover .token-summary-tooltip,
+.token-summary-item.tooltip-active .token-summary-tooltip {
   opacity: 1;
-  z-index: 99999;
   visibility: visible;
   transform: translateX(-50%) translateY(0);
 }
@@ -1584,13 +1600,22 @@ body {
   height: 0;
   border-left: 6px solid transparent;
   border-right: 6px solid transparent;
-  border-bottom: 6px solid rgba(20, 20, 30, 0.95);
+  border-bottom: 6px solid rgba(30, 30, 47, 0.95);
 }
 
 .tooltip-content {
   display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tooltip-native-section {
+  display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .tooltip-logo {
@@ -1615,33 +1640,60 @@ body {
 .tooltip-price {
   font-weight: 400;
   color: #ff6b9d;
-  font-size: 0.75rem;
+  font-size: 0.85rem;
 }
 
-.token-summary-logo {
+.assets-section-title {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.tooltip-assets-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.tooltip-asset-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.25rem 0;
+}
+
+.asset-line-info {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.asset-line-logo {
   width: 16px;
   height: 16px;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.token-summary-symbol {
+.asset-line-symbol {
   font-weight: 500;
   color: rgba(255, 255, 255, 0.9);
-  font-size: 0.9rem;
+  font-size: 0.8rem;
 }
 
-.token-summary-amount {
+.asset-line-amount {
   font-weight: 400;
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.8rem;
 }
 
-.token-summary-value {
+.asset-line-value {
   font-weight: 500;
   color: #ff6b9d;
   font-size: 0.8rem;
 }
+
 
 .tokens-btn.mobile-only {
   display: none;
@@ -1662,7 +1714,7 @@ body {
 }
 
 .stats {
-  position: relative; 
+  /* position: relative;  */
   display: flex;
   gap: 4rem;
   justify-content: center;
@@ -1702,6 +1754,7 @@ body {
   flex-direction: column;
   align-items: center;
   text-align: center;
+  z-index:1
 }
 
 .selected-stat {
@@ -3248,7 +3301,7 @@ body {
 
   .balance-content {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     gap: 0.375rem;
   }
 
@@ -3259,7 +3312,7 @@ body {
 
   .usd-value {
     font-size: 0.9rem;
-    text-align: left;
+    text-align: center;
   }
 }
 
@@ -3303,6 +3356,132 @@ body {
   .balance-card {
     padding: 1rem;
   }
+  .balance-card {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  padding: 1.25rem;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(5px);
+  overflow: hidden;
+}
+
+.chain-tooltip {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: all 0.4s ease;
+  margin-top: 1rem;
+}
+
+.balance-card.tooltip-active .chain-tooltip {
+  max-height: 500px; /* big enough to fit content */
+  opacity: 1;
+}
+
+.chain-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 6px solid rgba(30, 30, 47, 0.95);
+}
+
+.tooltip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 0.75rem;
+}
+
+.tooltip-chain-logo {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.tooltip-header .asset-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.tooltip-header .asset-symbol {
+  font-weight: 600;
+  color: white;
+  font-size: 0.95rem;
+}
+
+.tooltip-header .asset-amount {
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+}
+
+.tooltip-header .asset-value {
+  font-weight: 500;
+  color: #ff6b9d;
+  font-size: 0.85rem;
+}
+
+.tooltip-assets {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.tooltip-asset {
+  padding: 0.25rem 0;
+}
+
+.asset-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.asset-logo {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.asset-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.asset-symbol {
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.8rem;
+}
+
+.asset-amount {
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.8rem;
+}
+
+.asset-value {
+  font-weight: 500;
+  color: #ff6b9d;
+  font-size: 0.8rem;
+}
 }
 
 /* Traits overlay */
