@@ -537,7 +537,7 @@ export default function App() {
 
             if (response.ok) {
               const data = await response.json();
-              console.log(`All balances for ${chainName}:`, data);
+              // console.log(`All balances for ${chainName}:`, data);
 
               const assets = [];
 
@@ -601,7 +601,7 @@ export default function App() {
   };
 
   const fetchAllAssetPrices = async () => {
-    console.log("[DEBUG] Fetching prices for all supported assets");
+    // console.log("[DEBUG] Fetching prices for all supported assets");
     const prices = {};
 
     // Symbol to CoinGecko ID mapping
@@ -624,20 +624,20 @@ export default function App() {
 
     if (coingeckoIds) {
       try {
-        console.log("[DEBUG] Fetching from CoinGecko:", coingeckoIds);
+        // console.log("[DEBUG] Fetching from CoinGecko:", coingeckoIds);
         const coingeckoResponse = await fetch(
           `${API_ENDPOINTS.COINGECKO_SIMPLE_PRICE}?ids=${coingeckoIds}&vs_currencies=usd`,
         );
 
         if (coingeckoResponse.ok) {
           const coingeckoData = await coingeckoResponse.json();
-          console.log("[DEBUG] CoinGecko response:", coingeckoData);
+          // console.log("[DEBUG] CoinGecko response:", coingeckoData);
 
           // Map prices back to symbols
           Object.entries(symbolToCoinGeckoId).forEach(([symbol, coingeckoId]) => {
             if (coingeckoData[coingeckoId]?.usd) {
               prices[symbol] = coingeckoData[coingeckoId].usd;
-              console.log(`[DEBUG] Set price for ${symbol}: $${prices[symbol]}`);
+              // console.log(`[DEBUG] Set price for ${symbol}: $${prices[symbol]}`);
             }
           });
         } else {
@@ -667,10 +667,10 @@ export default function App() {
     Object.entries(fallbackPrices).forEach(([symbol, fallbackPrice]) => {
       if (!prices[symbol] || prices[symbol] === 0) {
         prices[symbol] = fallbackPrice;
-        console.log(`[DEBUG] Applied fallback price for ${symbol}: $${fallbackPrice}`);
+        // console.log(`[DEBUG] Applied fallback price for ${symbol}: $${fallbackPrice}`);
       }
     });
-    
+
     if (bosmoPrice) {
       prices['bOSMO'] = bosmoPrice;
     }

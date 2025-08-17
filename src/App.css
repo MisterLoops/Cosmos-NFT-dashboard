@@ -1469,7 +1469,7 @@ body {
 
 * Desktop Token Balances */
 .desktop-token-balances {
-  position: relative;
+  position: fixed;
   padding: 0 0.5rem;
   width: 100%;
   margin: 0 0 1rem 0;
@@ -1565,7 +1565,7 @@ body {
 }
 
 .token-summary-tooltip {
-  position: absolute;
+  position: fixed;
   top: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%) translateY(-10px);
@@ -1592,7 +1592,8 @@ body {
 
 .token-summary-tooltip::after {
   content: '';
-  position: absolute;
+  position: fixed;
+  z-index: 10000;
   bottom: 100%;
   left: 50%;
   transform: translateX(-50%);
@@ -1721,6 +1722,7 @@ body {
   width: 100%;
   min-height: 150px; 
   padding: 2rem 0 1rem 0;
+  z-index:-1;
 }
 
 .selected-stats-container {
