@@ -3828,13 +3828,14 @@ body {
         }
         
         .address-container {
-          text-align: left;
+          text-align: center;
+          padding:5px;
         }
         
         .address-container label {
           display: block;
           margin-bottom: 12px;
-          font-size: 14px;
+          font-size: 10px;
           font-weight: 600;
           color: #ff6b9d;
           opacity: 0.95;
@@ -3845,9 +3846,10 @@ body {
           background: rgba(255, 255, 255, 0.08);
           border: 1px solid rgba(255, 255, 255, 0.15);
           border-radius: 12px;
-          padding: 16px;
-          gap: 12px;
+          padding: 5px;
+          gap: 0px;
           align-items: center;
+          justify-content: center;
           backdrop-filter: blur(5px);
           transition: all 0.2s ease;
         }
@@ -3861,7 +3863,7 @@ body {
         .address-text {
           flex: 1;
           font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
-          font-size: 13px;
+          font-size: 14px;
           word-break: break-all;
           color: rgba(255, 255, 255, 0.95);
           line-height: 1.4;

@@ -39,8 +39,8 @@ export const REQUEST_CONFIG = {
 
 // Consolidated chain configuration - single source of truth
 export const CHAIN_CONFIGS = {
-  stargaze: { 
-    chainId: "stargaze-1", 
+  stargaze: {
+    chainId: "stargaze-1",
     prefix: "stars",
     displayName: "Stargaze",
     rpc: "https://rpc.stargaze-apis.com",
@@ -49,8 +49,8 @@ export const CHAIN_CONFIGS = {
     symbol: "STARS",
     decimals: 6,
   },
-  osmosis: { 
-    chainId: "osmosis-1", 
+  osmosis: {
+    chainId: "osmosis-1",
     prefix: "osmo",
     displayName: "Osmosis",
     rpc: "https://rpc.osmosis.zone",
@@ -59,8 +59,8 @@ export const CHAIN_CONFIGS = {
     symbol: "OSMO",
     decimals: 6,
   },
-  cosmoshub: { 
-    chainId: "cosmoshub-4", 
+  cosmoshub: {
+    chainId: "cosmoshub-4",
     prefix: "cosmos",
     displayName: "Cosmos Hub",
     rpc: "https://rpc.cosmos.network",
@@ -69,8 +69,8 @@ export const CHAIN_CONFIGS = {
     symbol: "ATOM",
     decimals: 6,
   },
-  injective: { 
-    chainId: "injective-1", 
+  injective: {
+    chainId: "injective-1",
     prefix: "inj",
     displayName: "Injective",
     rpc: "https://sentry.tm.injective.network:443",
@@ -79,8 +79,8 @@ export const CHAIN_CONFIGS = {
     symbol: "INJ",
     decimals: 18,
   },
-  initia: { 
-    chainId: "interwoven-1", 
+  initia: {
+    chainId: "interwoven-1",
     prefix: "init",
     displayName: "Intergaze",
     rpc: "https://rpc.initia.xyz",
@@ -89,8 +89,8 @@ export const CHAIN_CONFIGS = {
     symbol: "INIT",
     decimals: 6,
   },
-  neutron: { 
-    chainId: "neutron-1", 
+  neutron: {
+    chainId: "neutron-1",
     prefix: "neutron",
     displayName: "Neutron",
     rpc: "https://rpc.neutron.org",
@@ -99,8 +99,8 @@ export const CHAIN_CONFIGS = {
     symbol: "NTRN",
     decimals: 6,
   },
-  mantra: { 
-    chainId: "mantra-1", 
+  mantra: {
+    chainId: "mantra-1",
     prefix: "mantra",
     displayName: "Mantra",
     rpc: "https://rpc.mantrachain.io",
@@ -109,8 +109,8 @@ export const CHAIN_CONFIGS = {
     symbol: "OM",
     decimals: 6,
   },
-  akash: { 
-    chainId: "akashnet-2", 
+  akash: {
+    chainId: "akashnet-2",
     prefix: "akash",
     displayName: "Akash",
     rpc: "https://rpc.akash.forbole.com",
@@ -198,7 +198,7 @@ export const IBC_TOKEN_MAPPINGS = {
 
   // bOSMO on Osmosis
   'factory/osmo1s3l0lcqc7tu0vpj6wdjz9wqpxv8nk6eraevje4fuwkyjnwuy82qsx3lduv/boneOsmo': { symbol: 'bOSMO', decimals: 6, originChain: 'bOSMO' }, // bOSMO on Osmosis
-  
+
   // bINJ on Injective
   'factory/inj1dxp690rd86xltejgfq2fa7f2nxtgmm5cer3hvu/bINJ': { symbol: 'bINJ', decimals: 18, originChain: 'bINJ' }, // bINJ on Injective
 
@@ -238,4 +238,11 @@ export const PAGINATION_CONFIG = {
   BACKBONE_API_PER_PAGE: 100, // Per page for backbone API requests (listed and not_listed NFTs)
 };
 
-export const DONATION_ADDRESS = "stars1d2y72xglnyrphze97kqfmccysdqpf4996srcyj";
+export const DONATION_ADDRESSES = [
+{ chain: "Stargaze", address: "stars1d2y72xglnyrphze97kqfmccysdqpf4996srcyj" },
+{ chain: "Osmosis", address: "osmo1d2y72xglnyrphze97kqfmccysdqpf499xh84e3" },
+{ chain: "Mantra", address: "mantra1d2y72xglnyrphze97kqfmccysdqpf499987pve" },
+{ chain: "Akash", address: "akash1d2y72xglnyrphze97kqfmccysdqpf499rhezke" },
+{ chain: "Atom", address: "cosmos1d2y72xglnyrphze97kqfmccysdqpf499wv590r" },
+{ chain: "BTC (taproot)", address: "bc1pj2caj3hjsax74lx6dwlwp6rduxl9j0m7nfeh0fussul0pwa94u4qrlfj70" },
+];
