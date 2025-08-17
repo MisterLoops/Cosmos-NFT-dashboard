@@ -30,6 +30,21 @@
         "DAO": "stars14ra94sxqat45vhhc7pnjn8qxxgu4y00zen2xyx4qhq67cq7h3cnqqrmrng",
         "collection": "stars1fmr3kvjp0usfr9h7n38h0guutp4mw36lzqr0u9qj64ljwhcjg5yqad9nd4",
         "contract": "stars1a3hyaftd9fs5sclst2ecne86c5w9ysfp7a2tfc23wg7w8xggt93s7ggfqz"
+      },
+      "616th Expeditionary Corps": {
+        "DAO": "stars1774hkxvm92dapwlhffn3kk9lp6hynj02rtqtezmr8nrax6xkdkxsalvz2h",
+        "collection": "stars1spfklhh89xrapqjk9lxv53afnffz95zaxnn09awsm5szesnhcrtqy78u9d",
+        "contract": "stars1san3slk8rpyeffh4fk36rrfcex5m4hhp6mhfgtkfzv3trzralphq6e94fd"
+      },
+        "Nucleus - Council of Scientists": {
+        "DAO": "stars1k42yvq92hpwww4gunsz7x9d5r4qnskg7cpsjfae3u85j4cjr8e5q5rtah6",
+        "collection": "stars1met6d6wuaks907fpk8z8yzkp52p2al20064lqxgnqynslvk5e2ussq2v2e",
+        "contract": "stars16txt8c26c64nedhp9x8vlqgqp85kgmt203kcvg9p38aqhhdcwugqp0rx92"
+      },
+      "CEWT CULT": {
+        "DAO": "stars1fyktadawjqktygy2kdstdrz06mncfz9p8ltf4zqax5h4exrgrcgq58jzl6",
+        "collection": "stars1wjq8m7n2wjfmfhrx7cdt04u3tkmf544d3clmedm7pjh8fs9qzteqfve4e0",
+        "contract": "stars1hnj0lc4tntdjc5wme2kd7hnfelmj7mmqhcg4g8ekgks6kgk7etzqvx9m7w"
       }
     },
     "osmosis-1": {
@@ -56,6 +71,16 @@
         "DAO": "neutron16v4gk9xpkdnpl7v4lemx76ucuup9nvlvfa3zfgzsrvykhyvzkktq9kd3uv",
         "collection": "neutron1ctvuvplkju7q7lxjmmea6afrpyhc8wns6mp0v7rj2tw5255heksq0kaw4n",
         "contract": "neutron1p52k9ym90944mtuu7d00v9hxakljh2jwkanqyk0tglmue2c0820sgnlrp4"
+      },
+      "Big Data - RAID": {
+        "DAO": "neutron1avraelav0ns0pvqwndzlyd229rw7e80fl08f4pt78yw5jlu6ql7s4mh8m2",
+        "collection": "neutron1d8gunmftxsa62vt9lsqs9dk8295y2ht2q6yrasp6t6ztqclw65lqd77jh2",
+        "contract": "neutron1vnfqjhxpx8pg0yvumlmg2ylqlmmsr7ht22d3astarjx5tskarvcsqdedrx"
+      },
+      "Stonerneuts": {
+        "DAO": "neutron17k2fdauy0tvhqzcg3ukss3d3x03m93vfczvtp2h4neplr053jz8s5pttt0",
+        "collection": "neutron1498zllcunnyzzk7mgj63ayc6c7zc9dthlc6zsvl8r0feten4r92q7pnaz3",
+        "contract": "neutron1glgm83rjptztu8n3vewwtgewdd2kk5euxuau9nvwkm0vgs5g7u0s4248sf"
       }
     }
   }
