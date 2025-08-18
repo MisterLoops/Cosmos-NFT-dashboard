@@ -123,9 +123,14 @@ const ChainBalanceCard = ({ chainName, chainData, chainConfig }) => {
               <div className="asset-details">
                 <span className="asset-symbol">{nativeAsset.symbol}</span>
                 <span className="asset-amount">
-                  {nativeAsset.formattedAmount.toLocaleString(undefined, {
-                    maximumFractionDigits: nativeAsset.formattedAmount < 1 ? 6 : 2,
-                  })}
+                  {(() => {
+                    const amount = nativeAsset.formattedAmount;
+                    if (amount === 0) return "0";
+                    if (amount < 0.00001) return amount.toExponential(2);
+                    if (amount < 0.01) return amount.toFixed(4);
+                    if (amount < 1) return amount.toFixed(2);
+                    return amount.toLocaleString(undefined, { maximumFractionDigits: 2 });
+                  })()}
                 </span>
               </div>
               <span className="asset-value">
@@ -152,9 +157,14 @@ const ChainBalanceCard = ({ chainName, chainData, chainConfig }) => {
                     <div className="asset-details">
                       <span className="asset-symbol">{asset.symbol}</span>
                       <span className="asset-amount">
-                        {asset.formattedAmount.toLocaleString(undefined, {
-                          maximumFractionDigits: asset.formattedAmount < 1 ? 6 : 2,
-                        })}
+                        {(() => {
+                    const amount = asset.formattedAmount;
+                    if (amount === 0) return "0";
+                    if (amount < 0.00001) return amount.toExponential(2);
+                    if (amount < 0.01) return amount.toFixed(4);
+                    if (amount < 1) return amount.toFixed(2);
+                    return amount.toLocaleString(undefined, { maximumFractionDigits: 2 });
+                  })()}
                       </span>
                     </div>
                     <span className="asset-value">
@@ -284,10 +294,14 @@ const DesktopChainPortfolio = ({ chainBalances }) => {
                                 />
                                 <span className="asset-line-symbol">{asset.symbol}</span>
                                 <span className="asset-line-amount">
-                                  {asset.formattedAmount.toLocaleString(undefined, { 
-                                    minimumFractionDigits: asset.amount < 1 ? 6 : 2,
-                                    maximumFractionDigits: asset.amount < 1 ? 6 : 2,
-                                    })}
+                                  {(() => {
+                                    const amount = asset.formattedAmount;
+                                    if (amount === 0) return "0";
+                                    if (amount < 0.00001) return amount.toExponential(2);
+                                    if (amount < 0.01) return amount.toFixed(4);
+                                    if (amount < 1) return amount.toFixed(2);
+                                    return amount.toLocaleString(undefined, { maximumFractionDigits: 2 });
+                                  })()}
                                 </span>
                               </div>
                               <span className="asset-line-value">
@@ -693,6 +707,7 @@ export default function App() {
         const amount = parseFloat(asset.amount) / Math.pow(10, decimals);
         const price = assetPrices[asset.symbol] || 0;
         const value = amount * price;
+
 
         asset.formattedAmount = amount;
         asset.price = price;
