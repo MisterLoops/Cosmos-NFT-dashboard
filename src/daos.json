@@ -45,6 +45,26 @@
         "DAO": "stars1fyktadawjqktygy2kdstdrz06mncfz9p8ltf4zqax5h4exrgrcgq58jzl6",
         "collection": "stars1wjq8m7n2wjfmfhrx7cdt04u3tkmf544d3clmedm7pjh8fs9qzteqfve4e0",
         "contract": "stars1hnj0lc4tntdjc5wme2kd7hnfelmj7mmqhcg4g8ekgks6kgk7etzqvx9m7w"
+      },
+      "Crypto Hamsters DAO": {
+        "DAO": "stars1d9qpjn8nr8fses9k7w0yhtyfu0fw9jm00xz27hz7nmcfqan7srkqk42k28",
+        "collection": "stars1k7lmdfx2eh5k3dt4jz3uuv4wl6s0tyft2twwjy0mgs3qxs3u3ynssv8dr2",
+        "contract": "stars1vunlfnmufl53dhpuw0ag0k6qnwq05z4ytynvw62ud59gryv3zt8qlan4cw"
+      },
+      "DAOnuts": {
+        "DAO": "stars17y5pa005pg4trljle834v2dcxqv250dq6du5xkqku2ln98wf4yzsrm2wl5",
+        "collection": "stars14dvtygyukyrh7r765nynvqnmyxjcwtvekj8dy5rj9aknp9mmk8qswgdwh7",
+        "contract": "stars1al2hwt06dzassnjx9y5e0gjh64xflvwuqfzkk8ux7dv4v8xnxk8q3xfurt"
+      },
+      "Shitmos Economic Zone": {
+        "DAO": "stars1r2s7nnymn2g5g5gsmj56cvwttuqs86ky763ue4xqxvdv6f5k8ewsar5kzp",
+        "collection": "stars1z2mxxjct3lmq6yndqx6e7sxuamc7t0k24y9jq3y907vmg2wwt4rs7klax9",
+        "contract": "stars1t33t3t4j7ueuhajejl630pcepycazfr3sy49qk6qlxgz09dxxrhqg9pplg"
+      },
+      "Underworld Necropolis": {
+        "DAO": "stars14gp9x2xnkd4tecunhzmfj6du40vt8nm9chagt36qq2dqpyg329tsaw2mx0",
+        "collection": "stars1gfzln3v6z0g3h2dl4waj6u7vlrjta4hszwpqwc5s55c63fgrt8ksaq89t8",
+        "contract": "stars1hhulr5jwuyqey5m8azf34lf2n40pdxyrvz2k28wtky0nv4qpayys36jxfv"
       }
     },
     "osmosis-1": {
