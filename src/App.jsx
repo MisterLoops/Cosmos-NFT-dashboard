@@ -1086,19 +1086,19 @@ export default function App() {
           <a href="https://www.stargaze.zone" target="_blank" rel="noopener noreferrer" data-tooltip="Stargaze Marketplace on Stargaze">
             <img src="/Stargaze.svg" alt="Stargaze" />
           </a>
-          <a href="https://intergaze.xyz/" target="_blank" rel="noopener noreferrer" data-tooltip="Intergaze Marketplace on Initia">
+          <a href="https://intergaze.xyz" target="_blank" rel="noopener noreferrer" data-tooltip="Intergaze Marketplace on Initia">
             <img src="/Intergaze.png" alt="Intergaze" />
           </a>
           <a href="https://app.backbonelabs.io" target="_blank" rel="noopener noreferrer" data-tooltip="BackBoneLabs Marketplace on Osmosis and Injective">
             <img src="/BackBoneLabs.png" alt="BackBoneLabs" />
           </a>
-          <a href="https://app.superbolt.wtf/" target="_blank" rel="noopener noreferrer" data-tooltip="Superbolt Marketplace on Neutron">
+          <a href="https://app.superbolt.wtf" target="_blank" rel="noopener noreferrer" data-tooltip="Superbolt Marketplace on Neutron">
             <img src="/Superbolt.png" alt="Superbolt" />
           </a>
-          {/* <a href="https://cosmwasm.com/" target="_blank" rel="noopener noreferrer" data-tooltip="CosmWasm Smart Contracts">
-            <img src="/CosmWasm.png" alt="CosmWasm" />
-          </a> */}
-          <a href="https://daodao.zone/" target="_blank" rel="noopener noreferrer" data-tooltip="DAODAO, DAOs on Cosmos chains">
+          <a href="https://app.arkprotocol.io/" target="_blank" rel="noopener noreferrer" data-tooltip="Ark Protocol, Interchain NFT transfers">
+            <img src="/Ark.png" alt="Ark Protocol" />
+          </a>
+          <a href="https://daodao.zone" target="_blank" rel="noopener noreferrer" data-tooltip="DAODAO, DAOs on Cosmos chains">
             <img src="/DAODAO.png" alt="DAODAO" />
           </a>
           <a href="https://www.stargaze.zone/m/onchain-omies/tokens" target="_blank" rel="noopener noreferrer" data-tooltip="Onchain OMies, MANTRA genesis collection on Stargaze">
