@@ -158,13 +158,13 @@ const ChainBalanceCard = ({ chainName, chainData, chainConfig }) => {
                       <span className="asset-symbol">{asset.symbol}</span>
                       <span className="asset-amount">
                         {(() => {
-                    const amount = asset.formattedAmount;
-                    if (amount === 0) return "0";
-                    if (amount < 0.00001) return amount.toExponential(2);
-                    if (amount < 0.01) return amount.toFixed(4);
-                    if (amount < 1) return amount.toFixed(2);
-                    return amount.toLocaleString(undefined, { maximumFractionDigits: 2 });
-                  })()}
+                          const amount = asset.formattedAmount;
+                          if (amount === 0) return "0";
+                          if (amount < 0.00001) return amount.toExponential(2);
+                          if (amount < 0.01) return amount.toFixed(4);
+                          if (amount < 1) return amount.toFixed(2);
+                          return amount.toLocaleString(undefined, { maximumFractionDigits: 2 });
+                        })()}
                       </span>
                     </div>
                     <span className="asset-value">
@@ -1075,6 +1075,35 @@ export default function App() {
           <div className="app-title">
             <div className="title-main">NFTHUB</div>
             <div className="title-sub">COSMOS</div>
+          </div>
+        </div>
+        <div className="marketplace-links desktop-only">
+          <div className="marketplace-logos">
+            <a href="https://www.madscientists.io/" target="_blank" rel="noopener noreferrer" data-tooltip="Mad Scientists, Osmosis genesis collection on Osmosis/Stargaze">
+          <img src="/MadScientist.png" alt="Mad Scientist" className="header-character" style={{height:'70px'}} />
+          </a>
+            
+          <a href="https://www.stargaze.zone" target="_blank" rel="noopener noreferrer" data-tooltip="Stargaze Marketplace on Stargaze">
+            <img src="/Stargaze.svg" alt="Stargaze" />
+          </a>
+          <a href="https://intergaze.xyz/" target="_blank" rel="noopener noreferrer" data-tooltip="Intergaze Marketplace on Initia">
+            <img src="/Intergaze.png" alt="Intergaze" />
+          </a>
+          <a href="https://app.backbonelabs.io" target="_blank" rel="noopener noreferrer" data-tooltip="BackBoneLabs Marketplace on Osmosis and Injective">
+            <img src="/BackBoneLabs.png" alt="BackBoneLabs" />
+          </a>
+          <a href="https://app.superbolt.wtf/" target="_blank" rel="noopener noreferrer" data-tooltip="Superbolt Marketplace on Neutron">
+            <img src="/Superbolt.png" alt="Superbolt" />
+          </a>
+          {/* <a href="https://cosmwasm.com/" target="_blank" rel="noopener noreferrer" data-tooltip="CosmWasm Smart Contracts">
+            <img src="/CosmWasm.png" alt="CosmWasm" />
+          </a> */}
+          <a href="https://daodao.zone/" target="_blank" rel="noopener noreferrer" data-tooltip="DAODAO, DAOs on Cosmos chains">
+            <img src="/DAODAO.png" alt="DAODAO" />
+          </a>
+          <a href="https://www.stargaze.zone/m/onchain-omies/tokens" target="_blank" rel="noopener noreferrer" data-tooltip="Onchain OMies, MANTRA genesis collection on Stargaze">
+          <img src="/OMie.png" alt="Omie" className="header-character" style={{height:'70px'}}/>
+          </a>
           </div>
         </div>
         <div className="wallet-info">
