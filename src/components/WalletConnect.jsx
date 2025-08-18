@@ -127,9 +127,9 @@ export default function WalletConnect({
         <div className="testing-message">
           <h3>V1</h3>
           <span className="testing-message-bold">
-          <p>
+          <h2>
             Welcome the to the V1 of Cosmos NFTHUB.
-          </p>
+          </h2>
           <br></br>
           </span>
           <p>This is a dashboard that I've built for fun on my spare time
@@ -156,7 +156,7 @@ export default function WalletConnect({
       </div>
 
       <div className="connect-container">
-        <Wallet size={64} className="wallet-icon" />
+        <Wallet size={48} className="wallet-icon" />
         <h1>Connect Your Wallet</h1>
         <p>
           Select which Cosmos wallet you'd like to connect to access the Cosmos NFTHUB
@@ -176,8 +176,8 @@ export default function WalletConnect({
             disabled={connecting}
             className="wallet-option-btn"
           >
-            <div className="wallet-option-content">
-              <div className="wallet-logo keplr-logo">
+            <div className="wallet-option-content" title="Keplr wallet">
+              <div className="wallet-logo keplr-logo" >
                 <img
                   src="https://cdn.prod.website-files.com/667dc891bc7b863b5397495b/66a8b2095086e8b326351bd3_logo-icon.svg"
                   alt="Keplr"
@@ -188,9 +188,9 @@ export default function WalletConnect({
                   }}
                 />
               </div>
-              <div className="wallet-info">
+              {/* <div className="wallet-info">
                 <h3>Keplr Wallet</h3>
-              </div>
+              </div> */}
             </div>
           </button>
 
@@ -199,7 +199,7 @@ export default function WalletConnect({
             disabled={connecting}
             className="wallet-option-btn"
           >
-            <div className="wallet-option-content">
+            <div className="wallet-option-content" title="Leap wallet">
               <div className="wallet-logo leap-logo">
                 <img
                   src="https://assets.leapwallet.io/logos/leap-cosmos-logo.png"
@@ -211,9 +211,9 @@ export default function WalletConnect({
                   }}
                 />
               </div>
-              <div className="wallet-info">
+              {/* <div className="wallet-info">
                 <h3>Leap Wallet</h3>
-              </div>
+              </div> */}
             </div>
           </button>
         </div>

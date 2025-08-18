@@ -1095,9 +1095,9 @@ export default function App() {
           <a href="https://app.superbolt.wtf/" target="_blank" rel="noopener noreferrer" data-tooltip="Superbolt Marketplace on Neutron">
             <img src="/Superbolt.png" alt="Superbolt" />
           </a>
-          <a href="https://cosmwasm.com/" target="_blank" rel="noopener noreferrer" data-tooltip="CosmWasm Smart Contracts">
+          {/* <a href="https://cosmwasm.com/" target="_blank" rel="noopener noreferrer" data-tooltip="CosmWasm Smart Contracts">
             <img src="/CosmWasm.png" alt="CosmWasm" />
-          </a>
+          </a> */}
           <a href="https://daodao.zone/" target="_blank" rel="noopener noreferrer" data-tooltip="DAODAO, DAOs on Cosmos chains">
             <img src="/DAODAO.png" alt="DAODAO" />
           </a>
