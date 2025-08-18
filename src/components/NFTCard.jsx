@@ -170,7 +170,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode }) {
 
   const formatPrice = (amount, decimals = 8) => {
     if (!amount) return "0";
-    if (amount > 1000) {
+    if (amount > 1) {
       return parseFloat(amount).toLocaleString(undefined, {
       maximumFractionDigits: 2,
     });
