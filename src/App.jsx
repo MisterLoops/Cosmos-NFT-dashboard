@@ -1079,7 +1079,7 @@ export default function App() {
         </div>
         <div className="marketplace-links desktop-only">
           <div className="marketplace-logos">
-            <a href="https://www.madscientists.io/" target="_blank" rel="noopener noreferrer" data-tooltip="Mad Scientists, Osmosis genesis collection on Osmosis/Stargaze">
+            <a href="https://www.madscientists.io/" target="_blank" rel="noopener noreferrer" data-tooltip="Mad Scientists, OSMOSIS genesis collection on Osmosis/Stargaze">
           <img src="/MadScientist.png" alt="Mad Scientist" className="header-character" style={{height:'70px'}} />
           </a>
             
