@@ -9,7 +9,325 @@ import {
   CHAIN_ENDPOINTS,
   CORS_PROXIES,
   API_ENDPOINTS,
+  IBC_TOKEN_MAPPINGS
 } from "./utils/constants.js";
+
+// Enhanced Portfolio Display Component for Mobile
+const ChainBasedPortfolio = ({ chainBalances, showTokens, tokenBalancesClosing }) => {
+  // Calculate total portfolio value
+  const totalPortfolioValue = Object.values(chainBalances).reduce(
+    (total, chainData) => total + (chainData.totalValue || 0),
+    0
+  );
+
+  // Filter out chains with no assets
+  const chainsWithAssets = Object.entries(chainBalances)
+    .filter(([_, chainData]) => chainData.assets && chainData.assets.length > 0)
+    .sort(([, a], [, b]) => b.totalValue - a.totalValue); // Sort by total value descending
+
+  return (
+    <div
+      className={`token-balances ${showTokens && !tokenBalancesClosing ? "visible" : ""} ${tokenBalancesClosing ? "closing" : ""}`}
+    >
+      <div className="token-balances-header">
+        <h3>Portfolio</h3>
+        <div className="total-value">
+          Total: ${totalPortfolioValue.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
+        </div>
+      </div>
+      <div className="balances-grid">
+        {chainsWithAssets.map(([chainName, chainData]) => (
+          <ChainBalanceCard
+            key={chainName}
+            chainName={chainName}
+            chainData={chainData}
+            chainConfig={CHAIN_CONFIGS[chainName]}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Chain-based balance card component for Mobile
+const ChainBalanceCard = ({ chainName, chainData, chainConfig }) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+  const hasAssets = chainData.assets && chainData.assets.length > 0;
+
+  if (!hasAssets) return null;
+
+  // Get the native asset for price display
+  const nativeAsset = chainData.assets.find(asset => asset.isNative);
+  // Get non-native assets for the tooltip
+  const assets = chainData.assets.filter(asset => !asset.isNative);
+
+  // Close tooltip when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setShowTooltip(false);
+    };
+
+    if (showTooltip) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showTooltip]);
+
+  return (
+    <div
+      className={`balance-card ${showTooltip ? 'tooltip-active' : ''}`}
+      onClick={(e) => {
+        e.stopPropagation();
+        setShowTooltip(!showTooltip);
+      }}
+    >
+      {/* Default view: Logo, Chain name, Total value */}
+      <div className="balance-header">
+        <div className="token-info">
+          <img
+            src={TOKEN_LOGOS[chainName]}
+            alt={chainConfig?.displayName || chainName}
+            className="token-logo"
+            onError={(e) => e.target.style.display = "none"}
+          />
+          <div className="token-details">
+            <span className="chain-name">{chainName.toUpperCase()}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="balance-content">
+        <div className="usd-value">
+          ${chainData.totalValue.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
+        </div>
+      </div>
+
+      {/* Expanded tooltip view */}
+      {showTooltip && (
+        <div className="chain-tooltip">
+          {/* Native token price as title */}
+          {nativeAsset && (
+            <div className="tooltip-header">
+              <img
+                src={TOKEN_LOGOS[chainName]}
+                alt={nativeAsset.symbol}
+                className="tooltip-chain-logo"
+                onError={(e) => e.target.style.display = "none"}
+              />
+              <div className="asset-details">
+                <span className="asset-symbol">{nativeAsset.symbol}</span>
+                <span className="asset-amount">
+                  {(() => {
+                    const amount = nativeAsset.formattedAmount;
+                    if (amount === 0) return "0";
+                    if (amount < 0.00001) return amount.toExponential(2);
+                    if (amount < 0.01) return amount.toFixed(4);
+                    if (amount < 1) return amount.toFixed(2);
+                    return amount.toLocaleString(undefined, { maximumFractionDigits: 2 });
+                  })()}
+                </span>
+              </div>
+              <span className="asset-value">
+                ${nativeAsset.value.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </span>
+            </div>
+          )}
+
+          {/* Non-native assets list */}
+          {assets.length > 0 && (
+            <div className="tooltip-assets">
+              {assets.map((asset, index) => (
+                <div key={index} className="tooltip-asset">
+                  <div className="asset-info">
+                    <img
+                      src={TOKEN_LOGOS[asset.originChain] || TOKEN_LOGOS[chainName]}
+                      alt={asset.symbol}
+                      className="asset-logo"
+                      onError={(e) => e.target.style.display = "none"}
+                    />
+                    <div className="asset-details">
+                      <span className="asset-symbol">{asset.symbol}</span>
+                      <span className="asset-amount">
+                        {(() => {
+                    const amount = asset.formattedAmount;
+                    if (amount === 0) return "0";
+                    if (amount < 0.00001) return amount.toExponential(2);
+                    if (amount < 0.01) return amount.toFixed(4);
+                    if (amount < 1) return amount.toFixed(2);
+                    return amount.toLocaleString(undefined, { maximumFractionDigits: 2 });
+                  })()}
+                      </span>
+                    </div>
+                    <span className="asset-value">
+                      ${asset.value.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Desktop Chain-Based Portfolio Summary
+const DesktopChainPortfolio = ({ chainBalances }) => {
+  const [activeTooltip, setActiveTooltip] = useState(null);
+
+  // Calculate total portfolio value
+  const totalPortfolioValue = Object.values(chainBalances).reduce(
+    (total, chainData) => total + (chainData.totalValue || 0),
+    0
+  );
+
+  // Filter and sort chains with assets
+  const chainsWithAssets = Object.entries(chainBalances)
+    .filter(([_, chainData]) => chainData.assets && chainData.assets.length > 0)
+    .sort(([, a], [, b]) => b.totalValue - a.totalValue);
+
+  // Render in specific order: Mantra, Akash, Osmosis, Cosmos, Initia, then others
+  const preferredOrder = ["mantra", "akash", "osmosis", "cosmoshub", "initia", "stargaze", "neutron", "injective"];
+  const orderedChains = [];
+  const otherChains = [];
+
+  chainsWithAssets.forEach(([chainName, chainData]) => {
+    const index = preferredOrder.indexOf(chainName);
+    if (index !== -1) {
+      orderedChains[index] = [chainName, chainData];
+    } else {
+      otherChains.push([chainName, chainData]);
+    }
+  });
+
+  // Filter out undefined values and combine with other chains
+  const finalOrder = [...orderedChains.filter(Boolean), ...otherChains];
+
+  return (
+    <div className="desktop-token-balances">
+      <div className="token-summary">
+        <div className="token-summary-list">
+          {finalOrder.map(([chainName, chainData]) => {
+            const nativeAsset = chainData.assets.find(asset => asset.isNative);
+            const assets = chainData.assets;
+            const isTooltipActive = activeTooltip === chainName;
+
+            return (
+              <div
+                key={chainName}
+                className="token-summary-item"
+                onMouseEnter={() => setActiveTooltip(chainName)}
+                onMouseLeave={() => setActiveTooltip(null)}
+              >
+                {/* Default view: Logo, Chain name, Total value */}
+                <img
+                  src={TOKEN_LOGOS[chainName]}
+                  alt={chainName}
+                  className="token-summary-logo"
+                  onError={(e) => {
+                    e.target.style.display = "none";
+                  }}
+                />
+                <span className="token-summary-symbol">
+                  {chainName.toUpperCase()}
+                </span>
+                <span className="token-summary-value">
+                  ${chainData.totalValue.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
+
+                {/* Tooltip with native price and non-native assets */}
+                {isTooltipActive && (
+                  <div className="token-summary-tooltip">
+                    <div className="tooltip-content">
+                      {/* Native token price as title */}
+                      {nativeAsset && (
+                        <div className="tooltip-native-section">
+                          <img
+                            src={TOKEN_LOGOS[chainName]}
+                            alt={nativeAsset.symbol}
+                            className="tooltip-logo"
+                            onError={(e) => {
+                              e.target.style.display = "none";
+                            }}
+                          />
+                          <div className="tooltip-info">
+                            <span className="tooltip-symbol">
+                              {nativeAsset.symbol}
+                            </span>
+                            <span className="tooltip-price">
+                              ${nativeAsset.price.toLocaleString(undefined, {
+                                minimumFractionDigits: nativeAsset.price < 1 ? 4 : 2,
+                                maximumFractionDigits: nativeAsset.price < 1 ? 4 : 2,
+                              })}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Non-native assets breakdown */}
+                      {assets.length > 0 && (
+                        <div className="tooltip-assets-breakdown">
+                          {assets.map((asset, index) => (
+                            <div key={index} className="tooltip-asset-line">
+                              <div className="asset-line-info">
+                                <img
+                                  src={TOKEN_LOGOS[asset.originChain] || TOKEN_LOGOS[chainName]}
+                                  alt={asset.symbol}
+                                  className="asset-line-logo"
+                                  onError={(e) => e.target.style.display = "none"}
+                                />
+                                <span className="asset-line-symbol">{asset.symbol}</span>
+                                <span className="asset-line-amount">
+                                  {(() => {
+                                    const amount = asset.formattedAmount;
+                                    if (amount === 0) return "0";
+                                    if (amount < 0.00001) return amount.toExponential(2);
+                                    if (amount < 0.01) return amount.toFixed(4);
+                                    if (amount < 1) return amount.toFixed(2);
+                                    return amount.toLocaleString(undefined, { maximumFractionDigits: 2 });
+                                  })()}
+                                </span>
+                              </div>
+                              <span className="asset-line-value">
+                                ${asset.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <div className="token-summary-total">
+          ${totalPortfolioValue.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default function App() {
   const [wallet, setWallet] = useState(null);
@@ -19,6 +337,8 @@ export default function App() {
   const [showTokens, setShowTokens] = useState(false);
   const [tokenBalancesClosing, setTokenBalancesClosing] = useState(false);
   const [tokenBalances, setTokenBalances] = useState({});
+  const [chainBalances, setChainBalances] = useState({});
+  const [assetPrices, setAssetPrices] = useState({});
   const [showWalletDropdown, setShowWalletDropdown] = useState(false);
   const [walletDropdownClosing, setWalletDropdownClosing] = useState(false);
   const [showManualAddressForm, setShowManualAddressForm] = useState(false);
@@ -208,148 +528,201 @@ export default function App() {
     fetchBinjPrice();
   }, []);
 
-  // Function to fetch prices for multiple tokens
-  const fetchTokenPrices = async (balances) => {
-    // console.log("[DEBUG] Fetching token prices for balances:", balances);
+  const fetchAllChainBalances = async (addresses) => {
+    const chainBalances = {}; // Structure: { chainName: { assets: [...], totalValue: 0 } }
+
+    const balancePromises = Object.entries(addresses).map(
+      async ([chainName, address]) => {
+        if (CHAIN_ENDPOINTS[chainName]) {
+          try {
+            const endpoint = CHAIN_ENDPOINTS[chainName];
+            const url = `${endpoint.rest}/cosmos/bank/v1beta1/balances/${address}`;
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+            const response = await fetch(url, {
+              method: "GET",
+              headers: {
+                Accept: "application/json",
+              },
+              signal: controller.signal,
+            });
+
+            clearTimeout(timeoutId);
+
+            if (response.ok) {
+              const data = await response.json();
+              // console.log(`All balances for ${chainName}:`, data);
+
+              const assets = [];
+
+              if (data.balances && Array.isArray(data.balances)) {
+                // Process all token balances
+                data.balances.forEach(balance => {
+                  const denom = balance.denom;
+                  const amount = balance.amount;
+
+                  // Skip zero balances
+                  if (!amount || amount === '0') return;
+
+                  // Check native token
+                  if (denom === endpoint.denom) {
+                    assets.push({
+                      symbol: endpoint.symbol,
+                      amount: amount,
+                      denom: denom,
+                      decimals: endpoint.decimals,
+                      isNative: true,
+                      originChain: chainName,
+                    });
+                  } else {
+                    // Check IBC tokens
+                    const tokenInfo = IBC_TOKEN_MAPPINGS[denom];
+                    if (tokenInfo) {
+                      assets.push({
+                        symbol: tokenInfo.symbol,
+                        amount: amount,
+                        denom: denom,
+                        decimals: tokenInfo.decimals,
+                        isNative: false,
+                        originChain: tokenInfo.originChain,
+                      });
+                    }
+                  }
+                });
+              }
+
+              return [chainName, { assets, totalValue: 0 }];
+            } else {
+              console.warn(`Failed to fetch balances for ${chainName}: ${response.status}`);
+              return [chainName, { assets: [], totalValue: 0 }];
+            }
+          } catch (error) {
+            console.error(`Error fetching balances for ${chainName}:`, error);
+            return [chainName, { assets: [], totalValue: 0 }];
+          }
+        }
+        return [chainName, { assets: [], totalValue: 0 }];
+      },
+    );
+
+    const results = await Promise.all(balancePromises);
+
+    results.forEach(([chainName, chainData]) => {
+      chainBalances[chainName] = chainData;
+    });
+
+    return chainBalances;
+  };
+
+  const fetchAllAssetPrices = async () => {
+    // console.log("[DEBUG] Fetching prices for all supported assets");
     const prices = {};
-    const tokensToFetch = [];
 
-    // Determine which tokens need prices fetched
-    if (balances.osmosis && balances.osmosis.symbol === "OSMO") {
-      tokensToFetch.push({
-        id: "osmosis",
-        symbol: "OSMO",
-        coingeckoId: "osmosis",
-      });
-    }
-    if (balances.stargaze && balances.stargaze.symbol === "STARS") {
-      tokensToFetch.push({
-        id: "stargaze",
-        symbol: "STARS",
-        coingeckoId: "stargaze",
-      });
-    }
-    if (balances.cosmoshub && balances.cosmoshub.symbol === "ATOM") {
-      tokensToFetch.push({
-        id: "cosmoshub",
-        symbol: "ATOM",
-        coingeckoId: "cosmos",
-      });
-    }
-    if (balances.injective && balances.injective.symbol === "INJ") {
-      tokensToFetch.push({
-        id: "injective",
-        symbol: "INJ",
-        coingeckoId: "injective-protocol",
-      });
-    }
-    if (balances.initia && balances.initia.symbol === "INIT") {
-      tokensToFetch.push({
-        id: "initia",
-        symbol: "INIT",
-        coingeckoId: "initia",
-      });
-    }
-    if (balances.neutron && balances.neutron.symbol === "NTRN") {
-      tokensToFetch.push({
-        id: "neutron",
-        symbol: "NTRN",
-        coingeckoId: "neutron-3",
-      });
-    }
-    if (balances.mantra && balances.mantra.symbol === "OM") {
-      tokensToFetch.push({
-        id: "mantra",
-        symbol: "OM",
-        coingeckoId: "mantra-dao",
-      });
-    }
-    if (balances.akash && balances.akash.symbol === "AKT") {
-      tokensToFetch.push({
-        id: "akash",
-        symbol: "AKT",
-        coingeckoId: "akash-network",
-      });
-    }
+    // Symbol to CoinGecko ID mapping
+    const symbolToCoinGeckoId = {
+      'OSMO': 'osmosis',
+      'STARS': 'stargaze',
+      'ATOM': 'cosmos',
+      'INJ': 'injective-protocol',
+      'INIT': 'initia',
+      'NTRN': 'neutron-3',
+      'OM': 'mantra-dao',
+      'AKT': 'akash-network',
+      'TIA': 'celestia',
+      'BTC': 'bitcoin',
+      'USDC': 'usd-coin'
+    };
 
-    // console.log("[DEBUG] Tokens to fetch:", tokensToFetch);
+    const coingeckoIds = Object.values(symbolToCoinGeckoId)
+      .join(',');
 
-    // Fetch prices from CoinGecko first
-    if (tokensToFetch.length > 0) {
-      const coingeckoIds = tokensToFetch
-        .map((token) => token.coingeckoId)
-        .join(",");
+    if (coingeckoIds) {
       try {
         // console.log("[DEBUG] Fetching from CoinGecko:", coingeckoIds);
         const coingeckoResponse = await fetch(
           `${API_ENDPOINTS.COINGECKO_SIMPLE_PRICE}?ids=${coingeckoIds}&vs_currencies=usd`,
         );
+
         if (coingeckoResponse.ok) {
           const coingeckoData = await coingeckoResponse.json();
           // console.log("[DEBUG] CoinGecko response:", coingeckoData);
-          tokensToFetch.forEach((token) => {
-            if (coingeckoData[token.coingeckoId]?.usd) {
-              prices[token.id] = coingeckoData[token.coingeckoId].usd;
-              // console.log(
-              //   `[DEBUG] Set price for ${token.symbol}: $${prices[token.id]}`,
-              // );
+
+          // Map prices back to symbols
+          Object.entries(symbolToCoinGeckoId).forEach(([symbol, coingeckoId]) => {
+            if (coingeckoData[coingeckoId]?.usd) {
+              prices[symbol] = coingeckoData[coingeckoId].usd;
+              // console.log(`[DEBUG] Set price for ${symbol}: $${prices[symbol]}`);
             }
           });
         } else {
-          console.warn(
-            "[WARNING] Failed to fetch prices from CoinGecko:",
-            coingeckoResponse.status,
-          );
+          console.warn("[WARNING] Failed to fetch prices from CoinGecko:", coingeckoResponse.status);
         }
       } catch (error) {
         console.error("[ERROR] Error fetching prices from CoinGecko:", error);
       }
     }
 
-    // Fallback to Llama.fi for tokens that didn't get a price from CoinGecko
-    const tokensWithoutPrice = tokensToFetch.filter(
-      (token) => !prices[token.id],
-    );
-    if (tokensWithoutPrice.length > 0) {
-      // console.log(
-      //   "[DEBUG] Fetching missing prices from Llama.fi:",
-      //   tokensWithoutPrice.map((t) => t.symbol),
-      // );
-      for (const token of tokensWithoutPrice) {
-        try {
-          const llamaResponse = await fetch(
-            `${API_ENDPOINTS.LLAMA_FI_BASE}${token.coingeckoId}`,
-          );
-          if (llamaResponse.ok) {
-            const llamaData = await llamaResponse.json();
-            const price =
-              llamaData?.coins?.[`coingecko:${token.coingeckoId}`]?.price;
-            if (price && price > 0) {
-              prices[token.id] = price;
-              // console.log(
-              //   `[DEBUG] Set price from Llama.fi for ${token.symbol}: $${prices[token.id]}`,
-              // );
-            } else {
-              console.warn(
-                `[WARNING] Llama.fi price for ${token.symbol} is zero or missing.`,
-              );
-            }
-          } else {
-            console.warn(
-              `[WARNING] Failed to fetch price from Llama.fi for ${token.symbol}: ${llamaResponse.status}`,
-            );
-          }
-        } catch (error) {
-          console.error(
-            `[ERROR] Error fetching price from Llama.fi for ${token.symbol}:`,
-            error,
-          );
-        }
-      }
-    }
+    // Fallback prices for missing tokens
+    const fallbackPrices = {
+      'OSMO': 0.5,
+      'STARS': 0.02,
+      'ATOM': 11.5,
+      'INJ': 25.0,
+      'INIT': 0.43,
+      'NTRN': 0.4,
+      'OM': 3.8,
+      'AKT': 3.2,
+      'TIA': 5.5,
+      'BTC': 95000,
+      'USDC': 1.0
+    };
 
-    // console.log("[DEBUG] Final token prices:", prices);
-    setTokenPrices(prices);
+    // Apply fallbacks for missing prices
+    Object.entries(fallbackPrices).forEach(([symbol, fallbackPrice]) => {
+      if (!prices[symbol] || prices[symbol] === 0) {
+        prices[symbol] = fallbackPrice;
+        // console.log(`[DEBUG] Applied fallback price for ${symbol}: $${fallbackPrice}`);
+      }
+    });
+
+    if (bosmoPrice) {
+      prices['bOSMO'] = bosmoPrice;
+    }
+    if (binjPrice) {
+      prices['bINJ'] = binjPrice;
+    }
+    return prices;
+  };
+
+  const calculateChainValues = (chainBalances, assetPrices) => {
+    const updatedChainBalances = { ...chainBalances };
+
+    Object.entries(updatedChainBalances).forEach(([chainName, chainData]) => {
+      let totalValue = 0;
+
+      chainData.assets.forEach(asset => {
+        const decimals = asset.decimals || 6;
+        const amount = parseFloat(asset.amount) / Math.pow(10, decimals);
+        const price = assetPrices[asset.symbol] || 0;
+        const value = amount * price;
+
+
+        asset.formattedAmount = amount;
+        asset.price = price;
+        asset.value = value;
+
+        totalValue += value;
+      });
+
+      chainData.totalValue = totalValue;
+
+      // Sort assets by value (highest first)
+      chainData.assets.sort((a, b) => b.value - a.value);
+    });
+
+    return updatedChainBalances;
   };
 
   const getAddressesFromChains = async (walletType = "keplr") => {
@@ -397,88 +770,44 @@ export default function App() {
   };
 
   const fetchTokenBalances = async (addresses) => {
-    const balances = {};
+    try {
+      // Fetch all chain balances
+      const allChainBalances = await fetchAllChainBalances(addresses);
 
-    const balancePromises = Object.entries(addresses).map(
-      async ([chainName, address]) => {
-        if (CHAIN_ENDPOINTS[chainName]) {
-          try {
-            const endpoint = CHAIN_ENDPOINTS[chainName];
-            const url = `${endpoint.rest}/cosmos/bank/v1beta1/balances/${address}`;
+      // Fetch all asset prices
+      const allAssetPrices = await fetchAllAssetPrices();
 
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      // Calculate values for each chain
+      const balancesWithValues = calculateChainValues(allChainBalances, allAssetPrices);
 
-            const response = await fetch(url, {
-              method: "GET",
-              headers: {
-                Accept: "application/json",
-              },
-              signal: controller.signal,
-            });
+      setChainBalances(balancesWithValues);
+      setAssetPrices(allAssetPrices);
 
-            clearTimeout(timeoutId);
+      // Maintain backward compatibility for existing code
+      const legacyBalances = {};
+      const legacyPrices = {};
 
-            if (response.ok) {
-              const data = await response.json();
-              // console.log(`Balance data for ${chainName}:`, data);
-
-              let balance;
-              if (data.balances && Array.isArray(data.balances)) {
-                balance = data.balances.find((b) => b.denom === endpoint.denom);
-              }
-
-              return [
-                chainName,
-                {
-                  amount: balance?.amount || "0",
-                  denom: endpoint.denom,
-                  symbol: endpoint.symbol,
-                  decimals: endpoint.decimals,
-                },
-              ];
-            } else {
-              console.warn(
-                `Failed to fetch balance for ${chainName}: ${response.status} ${response.statusText}`,
-              );
-              return [
-                chainName,
-                {
-                  amount: "0",
-                  denom: CHAIN_ENDPOINTS[chainName].denom,
-                  symbol: CHAIN_ENDPOINTS[chainName].symbol,
-                  decimals: CHAIN_ENDPOINTS[chainName].decimals,
-                },
-              ];
-            }
-          } catch (error) {
-            console.error(`Error fetching balance for ${chainName}:`, error);
-            return [
-              chainName,
-              {
-                amount: "0",
-                denom: CHAIN_ENDPOINTS[chainName].denom,
-                symbol: CHAIN_ENDPOINTS[chainName].symbol,
-                decimals: CHAIN_ENDPOINTS[chainName].decimals,
-              },
-            ];
-          }
+      Object.entries(balancesWithValues).forEach(([chainName, chainData]) => {
+        const nativeAsset = chainData.assets.find(asset => asset.isNative);
+        if (nativeAsset) {
+          legacyBalances[chainName] = {
+            amount: nativeAsset.amount,
+            denom: nativeAsset.denom,
+            symbol: nativeAsset.symbol,
+            decimals: nativeAsset.decimals,
+          };
+          legacyPrices[chainName] = nativeAsset.price;
         }
-        return null;
-      },
-    );
-
-    const results = await Promise.all(balancePromises);
-    results
-      .filter((result) => result !== null)
-      .forEach(([chainName, balance]) => {
-        balances[chainName] = balance;
       });
 
-    setTokenBalances(balances);
-    // Fetch token prices after balances are set
-    fetchTokenPrices(balances);
+      setTokenBalances(legacyBalances);
+      setTokenPrices(legacyPrices);
+
+    } catch (error) {
+      console.error('Error fetching token balances:', error);
+    }
   };
+
 
   const formatBalance = (balance) => {
     if (!balance || !balance.amount) return "0";
@@ -524,6 +853,8 @@ export default function App() {
     setError("");
     setShowTokens(false);
     setTokenBalances({});
+    setChainBalances({});
+    setAssetPrices({});
     setTokenPrices({});
     setShowWalletDropdown(false);
     setShowManualAddressForm(false);
@@ -547,11 +878,11 @@ export default function App() {
   const isAddressValid = (address, chainPrefix) => {
     // Handle special case for Neutron addresses which use "neutron1" prefix
     const expectedPrefix = chainPrefix === "neutron" ? "neutron1" : chainPrefix;
-    
+
     // Basic check for prefix and length (typical length is 39-65 characters for Neutron)
     const minLength = chainPrefix === "neutron" ? 39 : 39;
     const maxLength = chainPrefix === "neutron" ? 65 : 45;
-    
+
     return (
       address.startsWith(expectedPrefix) &&
       address.length >= minLength &&
@@ -738,7 +1069,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <header className="app-header">
+      {hasCompletedInitialLoad && (<header className="app-header">
         <div className="app-title-container">
           <img src="/cosmosNFTHUBlogo.png" alt="Logo" className="app-logo" />
           <div className="app-title">
@@ -760,10 +1091,7 @@ export default function App() {
               }
             }}
             className="tokens-btn mobile-only"
-            disabled={
-              Object.keys(tokenBalances).length === 0 ||
-              Object.keys(tokenPrices).length === 0
-            }
+            disabled={Object.keys(chainBalances).length === 0}
           >
             Portfolio
           </button>
@@ -982,199 +1310,21 @@ export default function App() {
             )}
           </div>
         </div>
-      </header>
+      </header>)}
 
+      {/* Mobile Chain-Based Portfolio */}
       {(showTokens || tokenBalancesClosing) && !isFetchingNFTs && (
-        <div
-          className={`token-balances ${showTokens && !tokenBalancesClosing ? "visible" : ""} ${tokenBalancesClosing ? "closing" : ""}`}
-        >
-          <div className="token-balances-header">
-            <h3>Portfolio</h3>
-            <div className="total-value">
-              Total: $
-              {Object.entries(tokenBalances)
-                .reduce((total, [chain, balance]) => {
-                  if (!balance || !balance.amount) return total;
-                  const decimals = balance.decimals || 6;
-                  const amount =
-                    parseFloat(balance.amount) / Math.pow(10, decimals);
-                  const price = tokenPrices[chain] || 0;
-                  return total + amount * price;
-                }, 0)
-                .toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-            </div>
-          </div>
-          <div className="balances-grid">
-            {Object.entries(tokenBalances).map(([chain, balance]) => {
-              if (!balance || !balance.amount) return null;
-              const decimals = balance.decimals || 6;
-              const amount =
-                parseFloat(balance.amount) / Math.pow(10, decimals);
-              const price = tokenPrices[chain] || 0;
-              const usdValue = amount * price;
-
-              return (
-                <div key={chain} className="balance-card">
-                  <div className="balance-header">
-                    <div className="token-info">
-                      <img
-                        src={TOKEN_LOGOS[chain]}
-                        alt={balance.symbol}
-                        className="token-logo"
-                        onError={(e) => {
-                          e.target.style.display = "none";
-                        }}
-                      />
-                      <div className="token-details">
-                        <span className="token-symbol">{balance.symbol}</span>
-                        <span className="chain-name">{chain}</span>
-                      </div>
-                    </div>
-                    {price > 0 && (
-                      <div className="token-price">
-                        $
-                        {price.toLocaleString(undefined, {
-                          minimumFractionDigits: 4,
-                          maximumFractionDigits: 4,
-                        })}
-                      </div>
-                    )}
-                  </div>
-                  <div className="balance-content">
-                    <div className="balance-amount">
-                      {amount.toLocaleString(undefined, {
-                        maximumFractionDigits: 2,
-                      })}
-                    </div>
-                    {price > 0 && (
-                      <div className="usd-value">
-                        $
-                        {usdValue.toLocaleString(undefined, {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <ChainBasedPortfolio
+          chainBalances={chainBalances}
+          showTokens={showTokens}
+          tokenBalancesClosing={tokenBalancesClosing}
+        />
       )}
 
-      {/* Desktop Token Balances Display */}
-
-        {Object.keys(tokenBalances).length > 0 &&
-          Object.keys(tokenPrices).length > 0 && 
-          !isFetchingNFTs && (
-            <div className="desktop-token-balances">
-            <div className="token-summary">
-              <div className="token-summary-list">
-                {/* Render tokens in specific order: Mantra, Akash, Osmosis, Cosmos, Initia, then others */}
-                {[
-                  "mantra",
-                  "akash",
-                  "osmosis",
-                  "cosmoshub",
-                  "initia",
-                  "stargaze",
-                  "neutron",
-                  "injective",
-                ]
-                  .filter(
-                    (chain) =>
-                      tokenBalances[chain] && tokenBalances[chain].amount,
-                  )
-                  .map((chain) => {
-                    const balance = tokenBalances[chain];
-                    const decimals = balance.decimals || 6;
-                    const amount =
-                      parseFloat(balance.amount) / Math.pow(10, decimals);
-                    const price = tokenPrices[chain] || 0;
-                    const usdValue = amount * price;
-
-                    return (
-                      <div key={chain} className="token-summary-item">
-                        <img
-                          src={TOKEN_LOGOS[chain]}
-                          alt={balance.symbol}
-                          className="token-summary-logo"
-                          onError={(e) => {
-                            e.target.style.display = "none";
-                          }}
-                        />
-                        <span className="token-summary-symbol">
-                          {balance.symbol}
-                        </span>
-                        <span className="token-summary-amount">
-                          {amount.toLocaleString(undefined, {
-                            maximumFractionDigits: 2,
-                          })}
-                        </span>
-                        {price > 0 && (
-                          <span className="token-summary-value">
-                            $
-                            {usdValue.toLocaleString(undefined, {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })}
-                          </span>
-                        )}
-                        <div className="token-summary-tooltip">
-                          <div className="tooltip-content">
-                            <img
-                              src={TOKEN_LOGOS[chain]}
-                              alt={balance.symbol}
-                              className="tooltip-logo"
-                              onError={(e) => {
-                                e.target.style.display = "none";
-                              }}
-                            />
-                            <div className="tooltip-info">
-                              <span className="tooltip-symbol">
-                                {balance.symbol}
-                              </span>
-                              <span className="tooltip-price">
-                                {price > 0
-                                  ? `$${price.toLocaleString(undefined, {
-                                      minimumFractionDigits: 4,
-                                      maximumFractionDigits: 4,
-                                    })}`
-                                  : "Price loading..."}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-              <div className="token-summary-total">
-                $
-                {Object.entries(tokenBalances)
-                  .reduce((total, [chain, balance]) => {
-                    if (!balance || !balance.amount) return total;
-                    const decimals = balance.decimals || 6;
-                    const amount =
-                      parseFloat(balance.amount) / Math.pow(10, decimals);
-                    const price = tokenPrices[chain] || 0;
-                    return total + amount * price;
-                  }, 0)
-                  .toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-              </div>
-            </div>
-              </div>
-          )}
-
-
-      
+      {/* Desktop Chain-Based Portfolio */}
+      {Object.keys(chainBalances).length > 0 && !isFetchingNFTs && (
+        <DesktopChainPortfolio chainBalances={chainBalances} />
+      )}
 
       {wallet && Object.keys(tokenBalances).length > 0 && (
         <NFTDashboard
@@ -1193,7 +1343,6 @@ export default function App() {
               }
             }
           }}
-          
         />
       )}
     </div>

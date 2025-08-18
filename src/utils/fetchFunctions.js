@@ -433,12 +433,14 @@ const _fetchStargazeSingleNFT = async (collectionAddr, tokenId) => {
         token(collectionAddr: $collectionAddr, tokenId: $tokenId) {
           name
           tokenId
+          imageUrl
           collection {
             floor {
               denom
               amount
               amountUsd
               symbol
+              exponent
             }
             name
             contractAddress
@@ -454,7 +456,24 @@ const _fetchStargazeSingleNFT = async (collectionAddr, tokenId) => {
             denom
             symbol
             amountUsd
+            exponent
           }
+          lastSalePrice {
+          amount
+          denom
+          amountUsd
+          symbol
+          exponent
+          }
+          highestOffer {
+            offerPrice {
+              amount
+              amountUsd
+              denom
+              exponent
+              symbol
+              }
+            }
           rarityOrder
           media {
             visualAssets {
@@ -1440,12 +1459,12 @@ const _fetchNeutronSingleNFT = async (collectionAddr, tokenId) => {
           // Process traits from the GraphQL response
           const processedTraits = nft.trait
             ? nft.trait.map((trait) => ({
-                trait_type: trait.trait_type,
-                value: trait.value,
-                rarity: trait.trait_stats?.rarity
-                  ? `${(trait.trait_stats.rarity * 100).toFixed(2)}%`
-                  : undefined,
-              }))
+              trait_type: trait.trait_type,
+              value: trait.value,
+              rarity: trait.trait_stats?.rarity
+                ? `${(trait.trait_stats.rarity * 100).toFixed(2)}%`
+                : undefined,
+            }))
             : [];
 
           // Return in the same format as fetchNeutronNFTs
@@ -2405,16 +2424,6 @@ const _fetchStargazeNFTs = async (addresses) => {
           tokens {
             name
             tokenId
-            collection {
-              floor {
-                denom
-                amount
-                amountUsd
-                symbol
-              }
-              name
-              contractAddress
-            }
             traits {
               rarity
               name
@@ -2426,8 +2435,46 @@ const _fetchStargazeNFTs = async (addresses) => {
               denom
               symbol
               amountUsd
+              exponent
             }
+            lastSalePrice {
+            amount
+            denom
+            amountUsd
+            symbol
+            exponent
+            }
+            highestOffer {
+              offerPrice {
+                amount
+                amountUsd
+                denom
+                exponent
+                symbol
+                }
+              }
             rarityOrder
+            imageUrl
+            collection {
+              floor {
+                denom
+                amount
+                amountUsd
+                symbol
+                exponent
+              }
+              highestOffer {
+                offerPrice {
+                  amount
+                  amountUsd
+                  exponent
+                  denom
+                  symbol
+                  }
+                }
+              name
+              contractAddress
+            }
             media {
               visualAssets {
                 md {
@@ -2500,13 +2547,15 @@ const _fetchStargazeNFTs = async (addresses) => {
           let floorAmountUsd = 0;
 
           if (floor) {
-            floorAmount = parseFloat(floor.amount) / 1000000;
+            const exponent = floor.exponent ?? 6;
+            floorAmount = parseFloat(floor.amount) / Math.pow(10, exponent);
             floorAmountUsd = parseFloat(floor.amountUsd) || 0;
           }
 
           let listPrice = null;
           if (token.isEscrowed && token.listPrice) {
-            const listAmount = parseFloat(token.listPrice.amount) / 1000000;
+            const exponent = token.listPrice.exponent ?? 6;
+            const listAmount = parseFloat(token.listPrice.amount) / Math.pow(10, exponent);
             listPrice = {
               amount: listAmount,
               denom: token.listPrice.denom,
@@ -2516,24 +2565,24 @@ const _fetchStargazeNFTs = async (addresses) => {
           }
 
           // Process image URL
-          let imageUrl = token.media?.visualAssets?.md?.url;
+          let imageUrl = token.imageUrl;
           if (imageUrl) {
             // Check if it's a GIF
-            const isGif = imageUrl.toLowerCase().includes(".gif");
+            // const isGif = imageUrl.toLowerCase().includes(".gif");
 
-            // Handle Stargaze image service URLs with IPFS for GIFs
-            if (
-              isGif &&
-              imageUrl.includes("i.stargaze-apis.com") &&
-              imageUrl.includes("ipfs://")
-            ) {
-              const ipfsMatch = imageUrl.match(
-                /ipfs:\/\/([a-zA-Z0-9]+\/[^)]+)/,
-              );
-              if (ipfsMatch) {
-                imageUrl = `${API_ENDPOINTS.IPFS_GATEWAY_PRIMARY}${ipfsMatch[1]}`;
-              }
-            }
+            // // Handle Stargaze image service URLs with IPFS for GIFs
+            // if (
+            //   isGif &&
+            //   imageUrl.includes("i.stargaze-apis.com") &&
+            //   imageUrl.includes("ipfs://")
+            // ) {
+            //   const ipfsMatch = imageUrl.match(
+            //     /ipfs:\/\/([a-zA-Z0-9]+\/[^)]+)/,
+            //   );
+            //   if (ipfsMatch) {
+            //     imageUrl = `${API_ENDPOINTS.IPFS_GATEWAY_PRIMARY}${ipfsMatch[1]}`;
+            //   }
+            // }
 
             // Handle generic IPFS URLs
             if (imageUrl.startsWith("ipfs://")) {
@@ -2583,13 +2632,15 @@ const _fetchStargazeNFTs = async (addresses) => {
       let floorAmountUsd = 0;
 
       if (floor) {
-        floorAmount = parseFloat(floor.amount) / 1000000;
+        const exponent = floor.exponent ?? 6;
+        floorAmount = parseFloat(floor.amount) / Math.pow(10, exponent);
         floorAmountUsd = parseFloat(floor.amountUsd) || 0;
       }
 
       let listPrice = null;
       if (token.isEscrowed && token.listPrice) {
-        const listAmount = parseFloat(token.listPrice.amount) / 1000000;
+        const exponent = token.listPrice.exponent ?? 6;
+        const listAmount = parseFloat(token.listPrice.amount) / Math.pow(10, exponent);
         listPrice = {
           amount: listAmount,
           denom: token.listPrice.denom,
@@ -2599,22 +2650,22 @@ const _fetchStargazeNFTs = async (addresses) => {
       }
 
       // Process image URL
-      let imageUrl = token.media?.visualAssets?.md?.url;
+      let imageUrl = token.imageUrl;
       if (imageUrl) {
         // Check if it's a GIF
-        const isGif = imageUrl.toLowerCase().includes(".gif");
+        // const isGif = imageUrl.toLowerCase().includes(".gif");
 
-        // Handle Stargaze image service URLs with IPFS for GIFs
-        if (
-          isGif &&
-          imageUrl.includes("i.stargaze-apis.com") &&
-          imageUrl.includes("ipfs://")
-        ) {
-          const ipfsMatch = imageUrl.match(/ipfs:\/\/([a-zA-Z0-9]+\/[^)]+)/);
-          if (ipfsMatch) {
-            imageUrl = `${API_ENDPOINTS.IPFS_GATEWAY_PRIMARY}${ipfsMatch[1]}`;
-          }
-        }
+        // // Handle Stargaze image service URLs with IPFS for GIFs
+        // if (
+        //   isGif &&
+        //   imageUrl.includes("i.stargaze-apis.com") &&
+        //   imageUrl.includes("ipfs://")
+        // ) {
+        //   const ipfsMatch = imageUrl.match(/ipfs:\/\/([a-zA-Z0-9]+\/[^)]+)/);
+        //   if (ipfsMatch) {
+        //     imageUrl = `${API_ENDPOINTS.IPFS_GATEWAY_PRIMARY}${ipfsMatch[1]}`;
+        //   }
+        // }
 
         // Handle generic IPFS URLs
         if (imageUrl.startsWith("ipfs://")) {
@@ -2923,7 +2974,7 @@ const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
                   nft.collection.contract,
                   nft.token_uri,
                   true, // Use gateway priority for staked NFTs
-                  );
+                );
               } else {
                 // console.log(
                 //   `[DEBUG] No token_uri for staked NFT ${nft.nft_token_id}, falling back to BackboneLabs API`,
@@ -2964,7 +3015,7 @@ const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
                   osmosisDAOs || {},
                 )) {
                   if (daoConfig.collection === contractAddress) {
-                      return {
+                    return {
                       name: daoName.replace(" DAO", ""),
                       daoName: daoName,
                       daoAddress: daoConfig.DAO,
@@ -3756,7 +3807,7 @@ const _fetchInjectiveNFTs = async (addresses, injPrice = 1.0) => {
 
         while (hasMorePages) {
           const notListedUrl = `${API_ENDPOINTS.BACKBONE_LABS_API}/dapps/necropolis/nfts/address/${address}/not_listed?page=${page}&perPage=${PAGINATION_CONFIG.BACKBONE_API_PER_PAGE}&chainId=injective-1`;
-          
+
           let response = null;
           let success = false;
 
@@ -3764,7 +3815,7 @@ const _fetchInjectiveNFTs = async (addresses, injPrice = 1.0) => {
           const corsProxies = CORS_PROXIES;
           for (let proxyIndex = 0; proxyIndex < corsProxies.length && !success; proxyIndex++) {
             const proxyUrl = corsProxies[proxyIndex];
-            
+
             let proxiedUrl;
             if (proxyUrl.includes("codetabs.com")) {
               proxiedUrl = proxyUrl + encodeURIComponent(notListedUrl);
@@ -3955,7 +4006,7 @@ const _fetchInjectiveNFTs = async (addresses, injPrice = 1.0) => {
 
         while (hasMorePages) {
           const listedUrl = `${API_ENDPOINTS.BACKBONE_LABS_API}/dapps/necropolis/nfts/address/${address}/listed?page=${page}&perPage=${PAGINATION_CONFIG.BACKBONE_API_PER_PAGE}&chainId=injective-1`;
-          
+
           let response = null;
           let success = false;
 
@@ -3963,7 +4014,7 @@ const _fetchInjectiveNFTs = async (addresses, injPrice = 1.0) => {
           const corsProxies = CORS_PROXIES;
           for (let proxyIndex = 0; proxyIndex < corsProxies.length && !success; proxyIndex++) {
             const proxyUrl = corsProxies[proxyIndex];
-            
+
             let proxiedUrl;
             if (proxyUrl.includes("codetabs.com")) {
               proxiedUrl = proxyUrl + encodeURIComponent(listedUrl);

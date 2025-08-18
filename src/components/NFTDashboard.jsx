@@ -24,42 +24,42 @@ import {
   fetchInitiaNFTs,
   fetchCosmosHubNFTs,
 } from "../utils/fetchFunctions";
-import { CHAIN_CONFIGS, CHAINS, PAGINATION_CONFIG, DONATION_ADDRESS } from "../utils/constants.js";
+import { CHAIN_CONFIGS, CHAINS, PAGINATION_CONFIG, DONATION_ADDRESSES } from "../utils/constants.js";
 
 // Function to process image URLs, handling potential GIF and IPFS cases
 const processImageUrl = (originalSrc) => {
   if (!originalSrc) return originalSrc;
 
-  // Check if it's a GIF
-  const isGif = originalSrc.toLowerCase().includes(".gif");
+  // // Check if it's a GIF
+  // const isGif = originalSrc.toLowerCase().includes(".gif");
 
-  // Handle Stargaze image service URLs with IPFS for GIFs
-  if (
-    isGif &&
-    (originalSrc.includes("i.stargaze-apis.com") ||
-      originalSrc.includes("ipfs-gw.stargaze-apis.com")) &&
-    originalSrc.includes("ipfs://")
-  ) {
-    const ipfsMatch = originalSrc.match(/ipfs:\/\/([a-zA-Z0-9]+\/[^)]+)/);
-    if (ipfsMatch) {
-      return `https://ipfs.io/ipfs/${ipfsMatch[1]}`;
-    }
-  }
+  // // Handle Stargaze image service URLs with IPFS for GIFs
+  // if (
+  //   isGif &&
+  //   (originalSrc.includes("i.stargaze-apis.com") ||
+  //     originalSrc.includes("ipfs-gw.stargaze-apis.com")) &&
+  //   originalSrc.includes("ipfs://")
+  // ) {
+  //   const ipfsMatch = originalSrc.match(/ipfs:\/\/([a-zA-Z0-9]+\/[^)]+)/);
+  //   if (ipfsMatch) {
+  //     return `https://ipfs.io/ipfs/${ipfsMatch[1]}`;
+  //   }
+  // }
 
-  // Handle Stargaze IPFS gateway URLs - extract IPFS hash and use ipfs.io for better compatibility
-  if (originalSrc.includes("ipfs-gw.stargaze-apis.com/ipfs/")) {
-    const ipfsMatch = originalSrc.match(
-      /ipfs-gw\.stargaze-apis\.com\/ipfs\/(.+)/,
-    );
-    if (ipfsMatch) {
-      return `https://ipfs.io/ipfs/${ipfsMatch[1]}`;
-    }
-  }
+  // // Handle Stargaze IPFS gateway URLs - extract IPFS hash and use ipfs.io for better compatibility
+  // if (originalSrc.includes("ipfs-gw.stargaze-apis.com/ipfs/")) {
+  //   const ipfsMatch = originalSrc.match(
+  //     /ipfs-gw\.stargaze-apis\.com\/ipfs\/(.+)/,
+  //   );
+  //   if (ipfsMatch) {
+  //     return `https://ipfs.io/ipfs/${ipfsMatch[1]}`;
+  //   }
+  // }
 
-  // Handle generic IPFS URLs
-  if (originalSrc.startsWith("ipfs://")) {
-    return originalSrc.replace("ipfs://", "https://ipfs.io/ipfs/");
-  }
+  // // Handle generic IPFS URLs
+  // if (originalSrc.startsWith("ipfs://")) {
+  //   return originalSrc.replace("ipfs://", "https://ipfs.io/ipfs/");
+  // }
 
   // Return original if it's not a GIF needing special handling or a non-IPFS URL
   return originalSrc;
@@ -75,7 +75,7 @@ export default function NFTDashboard({
   onFetchStatusChange,
 }) {
   const [showDonation, setShowDonation] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copiedChain, setCopiedChain] = useState(null);
   const [nfts, setNfts] = useState([]);
   const [filteredNfts, setFilteredNfts] = useState([]);
   const [viewMode, setViewMode] = useState("grid");
@@ -135,21 +135,17 @@ export default function NFTDashboard({
     };
   }, [showFilters]);
 
-  const copyAddress = async () => {
+  const copyAddress = async (chain, address) => {
     try {
-      await navigator.clipboard.writeText(DONATION_ADDRESS);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(address);
+      setCopiedChain(chain);
+
+      // reset after 2s
+      setTimeout(() => {
+        setCopiedChain(null);
+      }, 2000);
     } catch (err) {
-      // Fallback for older browsers
-      const textArea = document.createElement('textarea');
-      textArea.value = DONATION_ADDRESS;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      console.error("Failed to copy: ", err);
     }
   };
 
@@ -332,7 +328,7 @@ export default function NFTDashboard({
 
   // Track if fetching is currently in progress to prevent duplicate requests
   const [isFetchingNFTs, setIsFetchingNFTs] = useState(false);
-  
+
   // Track when all chains have completed fetching
   const [allChainsCompleted, setAllChainsCompleted] = useState(false);
 
@@ -351,35 +347,37 @@ export default function NFTDashboard({
 
     // Check if there are any new addresses to fetch
     const chainsToProcess = [];
-    CHAINS.forEach((chain) => {
-      const chainAddresses = [];
+    CHAINS
+      .filter(chain => chain.name !== "mantra" && chain.name !== "akash")
+      .forEach((chain) => {
+        const chainAddresses = [];
 
-      if (addresses[chain.name]) {
-        const addressKey = `${chain.name}-${addresses[chain.name]}`;
-        if (!fetchedAddresses.has(addressKey)) {
-          chainAddresses.push({
-            address: addresses[chain.name],
-            type: "connected",
-            key: addressKey,
-          });
+        if (addresses[chain.name]) {
+          const addressKey = `${chain.name}-${addresses[chain.name]}`;
+          if (!fetchedAddresses.has(addressKey)) {
+            chainAddresses.push({
+              address: addresses[chain.name],
+              type: "connected",
+              key: addressKey,
+            });
+          }
         }
-      }
 
-      if (addresses[`${chain.name}_manual`]) {
-        const addressKey = `${chain.name}-manual-${addresses[`${chain.name}_manual`]}`;
-        if (!fetchedAddresses.has(addressKey)) {
-          chainAddresses.push({
-            address: addresses[`${chain.name}_manual`],
-            type: "manual", 
-            key: addressKey,
-          });
+        if (addresses[`${chain.name}_manual`]) {
+          const addressKey = `${chain.name}-manual-${addresses[`${chain.name}_manual`]}`;
+          if (!fetchedAddresses.has(addressKey)) {
+            chainAddresses.push({
+              address: addresses[`${chain.name}_manual`],
+              type: "manual",
+              key: addressKey,
+            });
+          }
         }
-      }
 
-      if (chainAddresses.length > 0) {
-        chainsToProcess.push({ chain, chainAddresses });
-      }
-    });
+        if (chainAddresses.length > 0) {
+          chainsToProcess.push({ chain, chainAddresses });
+        }
+      });
 
     if (chainsToProcess.length === 0) {
       // console.log("[DEBUG] No new addresses to fetch");
@@ -387,10 +385,10 @@ export default function NFTDashboard({
     }
 
     // Determine if we're fetching manual addresses only (for compact animation)
-    const hasManualAddresses = chainsToProcess.some(({ chainAddresses }) => 
+    const hasManualAddresses = chainsToProcess.some(({ chainAddresses }) =>
       chainAddresses.some(({ type }) => type === "manual")
     );
-    const hasConnectedAddresses = chainsToProcess.some(({ chainAddresses }) => 
+    const hasConnectedAddresses = chainsToProcess.some(({ chainAddresses }) =>
       chainAddresses.some(({ type }) => type === "connected")
     );
 
@@ -490,7 +488,7 @@ export default function NFTDashboard({
 
             // Mark that all chains have completed
             setAllChainsCompleted(true);
-            
+
             // console.log(`[DEBUG] All chains completed, waiting for NFT processing to finish`);
           }
 
@@ -1018,8 +1016,8 @@ export default function NFTDashboard({
             (filters.addresses && filters.addresses.length > 0)) ? (
             <div className="filter-tags-container">
               {filters.chains.map((chain) => (
-                <div 
-                  key={chain} 
+                <div
+                  key={chain}
                   className="filter-tag-pill"
                   onClick={() =>
                     setFilters({
@@ -1036,8 +1034,8 @@ export default function NFTDashboard({
               ))}
 
               {filters.collections.map((collection) => (
-                <div 
-                  key={collection} 
+                <div
+                  key={collection}
                   className="filter-tag-pill"
                   onClick={() =>
                     setFilters({
@@ -1054,7 +1052,7 @@ export default function NFTDashboard({
               ))}
 
               {filters.listed && (
-                <div 
+                <div
                   className="filter-tag-pill"
                   onClick={() => setFilters({ ...filters, listed: false })}
                 >
@@ -1064,7 +1062,7 @@ export default function NFTDashboard({
               )}
 
               {filters.staked && (
-                <div 
+                <div
                   className="filter-tag-pill"
                   onClick={() => setFilters({ ...filters, staked: false })}
                 >
@@ -1075,8 +1073,8 @@ export default function NFTDashboard({
 
               {filters.addresses &&
                 filters.addresses.map((address) => (
-                  <div 
-                    key={address} 
+                  <div
+                    key={address}
                     className="filter-tag-pill"
                     onClick={() =>
                       setFilters({
@@ -1108,9 +1106,8 @@ export default function NFTDashboard({
 
         {(showFilters || filtersClosing) && (
           <div
-            className={`filter-panel-container ${
-              showFilters && !filtersClosing ? "visible" : ""
-            } ${filtersClosing ? "closing" : ""}`}
+            className={`filter-panel-container ${showFilters && !filtersClosing ? "visible" : ""
+              } ${filtersClosing ? "closing" : ""}`}
           >
             <FilterPanel
               filters={filters}
@@ -1281,7 +1278,7 @@ export default function NFTDashboard({
           )}
         </div>
       </div>
-        <footer className="footer">
+      <footer className="footer">
         <div className="footer-inner">
           <div className="footer-title">Cosmos NFTHUB DASHBOARD V1 @2025</div>
           <div className="footer-bottom">
@@ -1291,7 +1288,7 @@ export default function NFTDashboard({
                 <img src="loops-logo.png" alt="Cosmonaut logo" />
               </a>
             </div>
-            <button 
+            <button
               onClick={() => setShowDonation(true)}
               className="donate-btn"
               title="Support this project"
@@ -1301,36 +1298,44 @@ export default function NFTDashboard({
           </div>
         </div>
       </footer>
-       {/* Donation Modal */}
+      {/* Donation Modal */}
       {showDonation && (
         <div className="donation-overlay" onClick={() => setShowDonation(false)}>
           <div className="donation-modal" onClick={(e) => e.stopPropagation()}>
-            <button 
-              className="close-btn" 
+            <button
+              className="close-btn"
               onClick={() => setShowDonation(false)}
             >
               <X size={20} />
             </button>
-            
+
             <div className="donation-content">
               <Heart className="donation-heart" />
               <h3>Thank you for supporting!</h3>
               <p>I spent quite much time on this.</p>
-              
-              <div className="address-container">
-                <label>Stargaze Address:</label>
-                <div className="address-box">
-                  <span className="address-text">{DONATION_ADDRESS}</span>
-                  <button 
-                    onClick={copyAddress}
-                    className="copy-btn"
-                    title={copied ? "Copied!" : "Copy address"}
-                  >
-                    {copied ? <Check size={16} /> : <Copy size={16} />}
-                  </button>
-                </div>
-                {copied && <span className="copied-text">Address copied to clipboard!</span>}
-              </div>
+              <p>Any donation welcome 😉</p>
+              {DONATION_ADDRESSES &&
+                DONATION_ADDRESSES.map((info) => {
+                  const isCopied = copiedChain === info.chain;
+
+                  return (
+                    <div key={info.chain} className="address-container">
+                      <div className="address-box">
+                        <span className="address-text">{info.chain}</span>
+                        <button
+                          onClick={() => copyAddress(info.chain, info.address)}
+                          className="copy-btn"
+                          title={isCopied ? "Copied!" : "Copy address"}
+                        >
+                          {isCopied ? <Check size={16} /> : <Copy size={16} />}
+                        </button>
+                      </div>
+                      {isCopied && (
+                        <span className="copied-text">Address copied to clipboard!</span>
+                      )}
+                    </div>
+                  );
+                })}
             </div>
           </div>
         </div>
