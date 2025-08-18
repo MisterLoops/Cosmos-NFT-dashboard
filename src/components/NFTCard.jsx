@@ -126,7 +126,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode }) {
     }
 
     // Check for Stargaze processed URLs that contain video files
-    if (url.includes("i.stargaze-apis.com") && url.includes("/plain/ipfs://")) {
+    if (url.includes("i.stargaze-apis.com") && url.includes("f:mp4")) {
       const ipfsMatch = url.match(/\/plain\/ipfs:\/\/([^\/]+\/[^)]+)/);
       if (ipfsMatch && ipfsMatch[1]) {
         return videoExtensions.some((ext) => ipfsMatch[1].toLowerCase().includes(ext));
@@ -168,12 +168,32 @@ export default function NFTCard({ nft, marketplaceLink, viewMode }) {
     return `#${rarity}`;
   };
 
-  const formatPrice = (amount) => {
+  const formatPrice = (amount, decimals = 8) => {
+    if (!amount) return "0";
+    if (amount > 1000) {
+      return parseFloat(amount).toLocaleString(undefined, {
+      maximumFractionDigits: 2,
+    });
+    }
+    return parseFloat(amount).toLocaleString(undefined, {
+      maximumFractionDigits: decimals,
+    });
+  };
+
+  const formatPriceUsd = (amount) => {
     if (!amount) return "0";
     return parseFloat(amount).toLocaleString(undefined, {
       maximumFractionDigits: 2,
     });
   };
+
+  const collectionToOnlyNumberName = (nft) => {
+    const isNumberOnly = (str) => /^\d+$/.test(str);
+    if (isNumberOnly(nft.name)) {
+      return `${nft.collection} #${nft.name}`;
+    }
+    return nft.name;
+  }
 
   return (
     <div 
@@ -274,7 +294,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode }) {
 
       <div className="nft-info">
         <div className="nft-header">
-          <h3 className="nft-name">{nft.name}</h3>
+          <h3 className="nft-name">{collectionToOnlyNumberName(nft)}</h3>
           {viewMode === 'grid' ? (
             <div
               className={`nft-rarity ${(nft.traits && nft.traits.length > 0) || (nft.attributes && nft.attributes.length > 0) ? 'has-traits' : ''}`}
@@ -318,7 +338,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode }) {
               }
             >
               {viewMode === 'grid' && nft.listPrice
-                ? `Listed | ${formatPrice(nft.listPrice.amount)} ${nft.listPrice.symbol} ($${formatPrice(nft.listPrice.amountUsd)})`
+                ? `Listed | ${formatPrice(nft.listPrice.amount)} ${nft.listPrice.symbol} ($${formatPriceUsd(nft.listPrice.amountUsd)})`
                 : "Listed"}
             </div>
           )}
@@ -399,7 +419,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode }) {
               </span>
               {nft.floor.amountUsd > 0 && (
                 <span className="floor-usd">
-                  (${formatPrice(nft.floor.amountUsd)})
+                  (${formatPriceUsd(nft.floor.amountUsd)})
                 </span>
               )}
             </div>

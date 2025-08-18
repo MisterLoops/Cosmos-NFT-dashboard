@@ -267,7 +267,6 @@ const DesktopChainPortfolio = ({ chainBalances }) => {
                               })}
                             </span>
                           </div>
-
                         </div>
                       )}
 
@@ -285,7 +284,10 @@ const DesktopChainPortfolio = ({ chainBalances }) => {
                                 />
                                 <span className="asset-line-symbol">{asset.symbol}</span>
                                 <span className="asset-line-amount">
-                                  {asset.formattedAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                                  {asset.formattedAmount.toLocaleString(undefined, { 
+                                    minimumFractionDigits: asset.amount < 1 ? 6 : 2,
+                                    maximumFractionDigits: asset.amount < 1 ? 6 : 2,
+                                    })}
                                 </span>
                               </div>
                               <span className="asset-line-value">

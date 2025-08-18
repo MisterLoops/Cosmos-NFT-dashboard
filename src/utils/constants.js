@@ -193,8 +193,8 @@ export const IBC_TOKEN_MAPPINGS = {
   'ibc/14D1406D84227FDF4B055EA5CB2298095BBCA3F3BC3EF583AE6DF36F0FB179C8': { symbol: 'TIA', decimals: 6, originChain: 'celestia' }, // TIA on Osmosis
 
   // BTC on other chains
-  'ibc/E45CFCB959F4F6D1065B7033EE49A88E606E6AD82E75725219B3D68B0FA89987': { symbol: 'BTC', decimals: 6, originChain: 'bitcoin' }, // BTC on Stargaze
-  'factory/osmo1z6r6qdknhgsc0zeracktgpcxf43j6sekq07nw8sxduc9lg0qjjlqfu25e3/alloyed/allBTC': { symbol: 'BTC', decimals: 6, originChain: 'bitcoin' }, // BTC on Osmosis
+  'ibc/E45CFCB959F4F6D1065B7033EE49A88E606E6AD82E75725219B3D68B0FA89987': { symbol: 'BTC', decimals: 8, originChain: 'bitcoin' }, // BTC on Stargaze
+  'factory/osmo1z6r6qdknhgsc0zeracktgpcxf43j6sekq07nw8sxduc9lg0qjjlqfu25e3/alloyed/allBTC': { symbol: 'BTC', decimals: 8, originChain: 'bitcoin' }, // BTC on Osmosis
 
   // bOSMO on Osmosis
   'factory/osmo1s3l0lcqc7tu0vpj6wdjz9wqpxv8nk6eraevje4fuwkyjnwuy82qsx3lduv/boneOsmo': { symbol: 'bOSMO', decimals: 6, originChain: 'bOSMO' }, // bOSMO on Osmosis

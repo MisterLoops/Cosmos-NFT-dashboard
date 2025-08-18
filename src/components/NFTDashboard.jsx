@@ -30,36 +30,36 @@ import { CHAIN_CONFIGS, CHAINS, PAGINATION_CONFIG, DONATION_ADDRESSES } from "..
 const processImageUrl = (originalSrc) => {
   if (!originalSrc) return originalSrc;
 
-  // Check if it's a GIF
-  const isGif = originalSrc.toLowerCase().includes(".gif");
+  // // Check if it's a GIF
+  // const isGif = originalSrc.toLowerCase().includes(".gif");
 
-  // Handle Stargaze image service URLs with IPFS for GIFs
-  if (
-    isGif &&
-    (originalSrc.includes("i.stargaze-apis.com") ||
-      originalSrc.includes("ipfs-gw.stargaze-apis.com")) &&
-    originalSrc.includes("ipfs://")
-  ) {
-    const ipfsMatch = originalSrc.match(/ipfs:\/\/([a-zA-Z0-9]+\/[^)]+)/);
-    if (ipfsMatch) {
-      return `https://ipfs.io/ipfs/${ipfsMatch[1]}`;
-    }
-  }
+  // // Handle Stargaze image service URLs with IPFS for GIFs
+  // if (
+  //   isGif &&
+  //   (originalSrc.includes("i.stargaze-apis.com") ||
+  //     originalSrc.includes("ipfs-gw.stargaze-apis.com")) &&
+  //   originalSrc.includes("ipfs://")
+  // ) {
+  //   const ipfsMatch = originalSrc.match(/ipfs:\/\/([a-zA-Z0-9]+\/[^)]+)/);
+  //   if (ipfsMatch) {
+  //     return `https://ipfs.io/ipfs/${ipfsMatch[1]}`;
+  //   }
+  // }
 
-  // Handle Stargaze IPFS gateway URLs - extract IPFS hash and use ipfs.io for better compatibility
-  if (originalSrc.includes("ipfs-gw.stargaze-apis.com/ipfs/")) {
-    const ipfsMatch = originalSrc.match(
-      /ipfs-gw\.stargaze-apis\.com\/ipfs\/(.+)/,
-    );
-    if (ipfsMatch) {
-      return `https://ipfs.io/ipfs/${ipfsMatch[1]}`;
-    }
-  }
+  // // Handle Stargaze IPFS gateway URLs - extract IPFS hash and use ipfs.io for better compatibility
+  // if (originalSrc.includes("ipfs-gw.stargaze-apis.com/ipfs/")) {
+  //   const ipfsMatch = originalSrc.match(
+  //     /ipfs-gw\.stargaze-apis\.com\/ipfs\/(.+)/,
+  //   );
+  //   if (ipfsMatch) {
+  //     return `https://ipfs.io/ipfs/${ipfsMatch[1]}`;
+  //   }
+  // }
 
-  // Handle generic IPFS URLs
-  if (originalSrc.startsWith("ipfs://")) {
-    return originalSrc.replace("ipfs://", "https://ipfs.io/ipfs/");
-  }
+  // // Handle generic IPFS URLs
+  // if (originalSrc.startsWith("ipfs://")) {
+  //   return originalSrc.replace("ipfs://", "https://ipfs.io/ipfs/");
+  // }
 
   // Return original if it's not a GIF needing special handling or a non-IPFS URL
   return originalSrc;
