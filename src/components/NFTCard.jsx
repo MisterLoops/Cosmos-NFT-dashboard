@@ -58,7 +58,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode }) {
     // For Cloudflare IPFS URLs that failed, try ipfs.io
     if (e.target.src.includes("cloudflare-ipfs.com") && !e.target.src.includes("ipfs.io")) {
       console.log("Trying ipfs.io gateway as fallback");
-      const ipfsMatch = e.target.src.match(/ipfs\/([^\/?\s]+)/);
+      const ipfsMatch = e.target.src.match(/ipfs\/(.+)/);;
       if (ipfsMatch) {
         e.target.src = `https://ipfs.io/ipfs/${ipfsMatch[1]}`;
         return;
@@ -68,7 +68,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode }) {
     // If it's an IPFS URL that failed, try another gateway
     if (e.target.src.includes("ipfs.io") && !e.target.src.includes("gateway.pinata.cloud")) {
       console.log("Trying Pinata gateway as fallback");
-      const ipfsMatch = e.target.src.match(/ipfs\/([^\/?\s]+)/);
+      const ipfsMatch = e.target.src.match(/ipfs\/(.+)/);;
       if (ipfsMatch) {
         e.target.src = `https://gateway.pinata.cloud/ipfs/${ipfsMatch[1]}`;
         return;
@@ -78,7 +78,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode }) {
     // Try dweb.link gateway as final fallback
     if (e.target.src.includes("gateway.pinata.cloud") && !e.target.src.includes("dweb.link")) {
       console.log("Trying dweb.link gateway as final fallback");
-      const ipfsMatch = e.target.src.match(/ipfs\/([^\/?\s]+)/);
+      const ipfsMatch = e.target.src.match(/ipfs\/(.+)/);;
       if (ipfsMatch) {
         e.target.src = `https://dweb.link/ipfs/${ipfsMatch[1]}`;
         return;
@@ -88,7 +88,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode }) {
     // For videos, try cloudflare-ipfs.com as final attempt
     if (e.target.tagName === "VIDEO" && e.target.src.includes("dweb.link") && !e.target.src.includes("cloudflare-ipfs.com")) {
       console.log("Trying cloudflare-ipfs.com gateway for video");
-      const ipfsMatch = e.target.src.match(/ipfs\/([^\/?\s]+)/);
+      const ipfsMatch = e.target.src.match(/ipfs\/(.+)/);
       if (ipfsMatch) {
         e.target.src = `https://cloudflare-ipfs.com/ipfs/${ipfsMatch[1]}`;
         return;

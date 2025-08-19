@@ -1080,7 +1080,7 @@ export default function App() {
         <div className="marketplace-links desktop-only">
           <div className="marketplace-logos">
             <a href="https://www.madscientists.io/" target="_blank" rel="noopener noreferrer" data-tooltip="Mad Scientists, OSMOSIS genesis collection on Osmosis/Stargaze">
-          <img src="/MadScientist.png" alt="Mad Scientist" className="header-character" style={{height:'70px'}} />
+          <img src="/MadScientist.png" alt="Mad Scientist" className="header-character" style={{height:'70px', opacity:1}} />
           </a>
             
           <a href="https://www.stargaze.zone" target="_blank" rel="noopener noreferrer" data-tooltip="Stargaze Marketplace on Stargaze">
@@ -1102,7 +1102,7 @@ export default function App() {
             <img src="/DAODAO.png" alt="DAODAO" />
           </a>
           <a href="https://www.stargaze.zone/m/onchain-omies/tokens" target="_blank" rel="noopener noreferrer" data-tooltip="Onchain OMies, MANTRA genesis collection on Stargaze">
-          <img src="/OMie.png" alt="Omie" className="header-character" style={{height:'70px'}}/>
+          <img src="/OMie.png" alt="Omie" className="header-character" style={{height:'70px', opacity:1}}/>
           </a>
           </div>
         </div>
