@@ -6,7 +6,9 @@ import {
   REQUEST_CONFIG,
   PAGINATION_CONFIG,
 } from "./constants.js";
+import pLimit from './pLimit.js';
 
+const limit = pLimit(20);
 // --- Caching and Deduplication Logic ---
 
 // Store for active requests and their promises
@@ -479,6 +481,8 @@ const _fetchStargazeSingleNFT = async (collectionAddr, tokenId) => {
             visualAssets {
               md {
                 url
+                type
+
               }
             }
           }
@@ -1573,121 +1577,98 @@ const _fetchNeutronNFTs = async (addresses) => {
   console.log(`[DEBUG] Fetching Neutron NFTs for addresses:`, addresses);
 
   try {
-    // First, fetch staked NFTs from all Neutron DAOs
     const stakedNFTs = [];
+    const regularNFTs = [];
     const neutronDAOs = daosConfig.DAOs["neutron-1"];
 
-    // console.log(`[DEBUG] === STARTING STAKED NFT FETCH ===`);
+    //
+    // === FETCH STAKED NFTs (parallelize DAOs + single-NFT fetches) ===
+    //
     if (neutronDAOs) {
-      // console.log(
-      //   `[DEBUG] Starting staked NFTs fetch for ${Object.keys(neutronDAOs).length} Neutron DAOs`,
-      // );
+      const daoResults = await Promise.allSettled(
+        Object.entries(neutronDAOs).map(async ([daoName, daoConfig]) => {
+          limit(async () => {
+            try {
+              const stakedTokensByAddress = new Map();
 
-      // Collect staked NFTs from all Neutron addresses and track which address they belong to
-      for (const [daoName, daoConfig] of Object.entries(neutronDAOs)) {
-        try {
-          // console.log(
-          //   `[DEBUG] Fetching staked NFTs for Neutron DAO: ${daoName}`,
-          // );
-          const stakedTokensByAddress = new Map();
-          for (const address of addresses) {
-            console.log(
-              `[DEBUG] Fetching staked NFTs for Neutron address: ${address}`,
-            );
-            const stakedTokenIds = await fetchStakedNFTs(
-              "neutron-1",
-              daoConfig.contract,
-              address,
-            );
-            if (Array.isArray(stakedTokenIds) && stakedTokenIds.length > 0) {
-              stakedTokensByAddress.set(address, stakedTokenIds);
-            }
-          }
-
-          // console.log(
-          //   `[DEBUG] Raw staked response for ${daoName}:`,
-          //   Object.fromEntries(stakedTokensByAddress),
-          // );
-
-          // Process staked NFTs for each address
-          if (stakedTokensByAddress.size > 0) {
-            for (const [address, stakedTokenIds] of stakedTokensByAddress) {
-              // console.log(
-              //   `[DEBUG] === PROCESSING ${stakedTokenIds.length} STAKED NFTs FOR ${daoName} FROM ADDRESS ${address} ===`,
-              // );
-
-              // Process in batches of 5 for better performance
-              const batchSize = 5;
-              for (let i = 0; i < stakedTokenIds.length; i += batchSize) {
-                const batch = stakedTokenIds.slice(i, i + batchSize);
-                // console.log(
-                //   `[DEBUG] Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(stakedTokenIds.length / batchSize)} (${batch.length} NFTs) for ${daoName} from ${address}`,
-                // );
-
-                const batchPromises = batch.map(async (tokenId, index) => {
-                  try {
-                    // console.log(
-                    //   `[DEBUG] [${i + index + 1}/${stakedTokenIds.length}] Fetching staked NFT ${tokenId} from collection ${daoConfig.collection} for address ${address}`,
-                    // );
-                    const nftData = await fetchNeutronSingleNFT(
-                      daoConfig.collection,
-                      tokenId.toString(),
-                    );
-
-                    if (nftData) {
-                      // console.log(
-                      //   `[DEBUG] ✓ Successfully fetched staked NFT ${tokenId} from ${daoName} for address ${address}`,
-                      // );
-                      return {
-                        ...nftData,
-                        daoStaked: true,
-                        daoName: daoName,
-                        daoAddress: daoConfig.DAO,
-                        sourceAddress: address, // Properly assign the source address
-                      };
-                    }
-                    return null;
-                  } catch (error) {
-                    console.error(
-                      `[ERROR] ✗ Failed to fetch staked NFT ${tokenId} from ${daoName} for address ${address}:`,
-                      error,
-                    );
-                    return null;
+              // fetch staked IDs per address (sequential to avoid rate limits)
+              for (const address of addresses) {
+                try {
+                  const stakedTokenIds = await fetchStakedNFTs(
+                    "neutron-1",
+                    daoConfig.contract,
+                    address,
+                  );
+                  if (Array.isArray(stakedTokenIds) && stakedTokenIds.length > 0) {
+                    stakedTokensByAddress.set(address, stakedTokenIds);
                   }
-                });
-
-                const batchResults = await Promise.all(batchPromises);
-                const validResults = batchResults.filter((nft) => nft !== null);
-                stakedNFTs.push(...validResults);
-
-                // console.log(
-                //   `[DEBUG] ✓ Batch complete. Added ${validResults.length} NFTs. Total staked so far: ${stakedNFTs.length}`,
-                // );
-
-                // Small delay between batches to avoid overwhelming APIs
-                if (i + batchSize < stakedTokenIds.length) {
-                  await delay(200);
+                } catch (err) {
+                  console.error(
+                    `[ERROR] Failed to fetch staked NFTs for Neutron DAO ${daoName}, address ${address}:`,
+                    err,
+                  );
                 }
               }
+
+              if (stakedTokensByAddress.size > 0) {
+                // fetch all single NFT data in parallel
+                const nftResults = await Promise.allSettled(
+                  Array.from(stakedTokensByAddress.entries()).flatMap(
+                    ([address, stakedTokenIds]) =>
+                      stakedTokenIds.map(async (tokenId) => {
+                        limit(async () => {
+                          try {
+                            const nftData = await fetchNeutronSingleNFT(
+                              daoConfig.collection,
+                              tokenId.toString(),
+                            );
+
+                            if (nftData) {
+                              return {
+                                ...nftData,
+                                daoStaked: true,
+                                daoName,
+                                daoAddress: daoConfig.DAO,
+                                sourceAddress: address,
+                              };
+                            }
+                            return null;
+                          } catch (error) {
+                            console.error(
+                              `[ERROR] ✗ Failed to fetch staked NFT ${tokenId} from ${daoName} for address ${address}:`,
+                              error,
+                            );
+                            return null;
+                          }
+                        })
+                      })
+                  )
+                );
+
+                nftResults.forEach((res) => {
+                  if (res.status === "fulfilled" && res.value) {
+                    stakedNFTs.push(res.value);
+                  }
+                });
+              }
+            } catch (daoError) {
+              console.error(`[ERROR] Failed to fetch staked NFTs from ${daoName}:`, daoError);
             }
-          } else {
-            // console.log(`[DEBUG] No staked NFTs found for ${daoName}`);
-          }
-        } catch (error) {
-          console.error(
-            `[ERROR] Failed to fetch staked NFTs from ${daoName}:`,
-            error,
-          );
+          })
+        })
+      );
+
+      daoResults.forEach((res, i) => {
+        if (res.status === "rejected") {
+          const daoName = Object.keys(neutronDAOs)[i];
+          console.error(`[ERROR] DAO ${daoName} fetch failed:`, res.reason);
         }
-      }
+      });
     }
 
-    // console.log(`[DEBUG] === STAKED NFT FETCH COMPLETE ===`);
-    // console.log(`[DEBUG] Total staked NFTs collected: ${stakedNFTs.length}`);
-
-    // Fetch regular NFTs from Neutron
-    const regularNFTs = [];
-
+    //
+    // === FETCH REGULAR NFTs (keep existing sequential/retry logic) ===
+    //
     for (const address of addresses) {
       try {
         console.log(`[DEBUG] Fetching Neutron NFTs for address: ${address}`);
@@ -1744,13 +1725,7 @@ const _fetchNeutronNFTs = async (addresses) => {
               },
               {
                 OR: [
-                  {
-                    nft: {
-                      is: {
-                        owner_id: { equals: address },
-                      },
-                    },
-                  },
+                  { nft: { is: { owner_id: { equals: address } } } },
                   {
                     nft: {
                       is: {
@@ -1787,71 +1762,36 @@ const _fetchNeutronNFTs = async (addresses) => {
               REQUEST_CONFIG.TIMEOUT,
             );
 
-            // console.log(
-            //   `[DEBUG] Making Neutron API call for ${address} with variables:`,
-            //   JSON.stringify(variables, null, 2),
-            // );
-
-            // Use CORS proxy directly since Superbolt API doesn't allow direct requests from this origin
             const corsProxies = CORS_PROXIES;
-            let response;
             const proxyUrl = corsProxies[retries % corsProxies.length];
-            let proxiedUrl;
+            const proxiedUrl = proxyUrl.includes("codetabs.com") || proxyUrl.includes("thingproxy.freeboard.io")
+              ? proxyUrl + encodeURIComponent(API_ENDPOINTS.SUPERBOLT_API)
+              : proxyUrl + API_ENDPOINTS.SUPERBOLT_API;
 
-            if (proxyUrl.includes("codetabs.com")) {
-              proxiedUrl =
-                proxyUrl + encodeURIComponent(API_ENDPOINTS.SUPERBOLT_API);
-            } else if (proxyUrl.includes("thingproxy.freeboard.io")) {
-              proxiedUrl =
-                proxyUrl + encodeURIComponent(API_ENDPOINTS.SUPERBOLT_API);
-            } else {
-              proxiedUrl = proxyUrl + API_ENDPOINTS.SUPERBOLT_API;
-            }
-
-            response = await fetch(proxiedUrl, {
+            const response = await fetch(proxiedUrl, {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                query: query,
-                variables: variables,
-              }),
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ query, variables }),
               signal: controller.signal,
             });
-
-            // console.log(
-            //   `[DEBUG] Neutron API response status: ${response.status} ${response.statusText}`,
-            // );
 
             clearTimeout(timeoutId);
 
             if (response.ok) {
               const data = await response.json();
-              // console.log(
-              //   `[DEBUG] Neutron GraphQL response for ${address}:`,
-              //   data,
-              // );
 
               if (data.errors) {
-                console.error(
-                  `[ERROR] GraphQL errors for Neutron NFTs:`,
-                  data.errors,
-                );
+                console.error(`[ERROR] GraphQL errors for Neutron NFTs:`, data.errors);
                 break;
               }
 
               const nftSearches = data.data?.nft_searches || [];
-              // console.log(
-              //   `[DEBUG] Found ${nftSearches.length} Neutron NFT searches for ${address}`,
-              // );
 
-              const transformedNFTs = nftSearches.map((search) => {
+              nftSearches.forEach((search) => {
                 const nft = search.nft;
                 const collection = nft.collection;
                 const auction = nft.auction;
 
-                // Prices are already in NTRN, no conversion needed
                 const floorAmountNtrn = collection.floor_price_in?.amount
                   ? parseFloat(collection.floor_price_in.amount)
                   : 0;
@@ -1859,7 +1799,6 @@ const _fetchNeutronNFTs = async (addresses) => {
                   ? parseFloat(collection.floor_price_in.amount_usd)
                   : 0;
 
-                // Handle listing price if NFT is listed
                 let listPrice = null;
                 const isListed = auction !== null;
 
@@ -1877,49 +1816,18 @@ const _fetchNeutronNFTs = async (addresses) => {
                   };
                 }
 
-                // Process image URL - handle both IPFS and HTTP URLs
                 let imageUrl = nft.image;
-                if (imageUrl) {
-                  if (imageUrl.startsWith("ipfs://")) {
-                    const ipfsHash = imageUrl.replace("ipfs://", "");
-
-                    // Check if the URL ends with a common image extension
-                    const imageExtensions = [
-                      ".png",
-                      ".jpg",
-                      ".jpeg",
-                      ".gif",
-                      ".webp",
-                      ".svg",
-                    ];
-                    const hasImageExtension = imageExtensions.some((ext) =>
-                      ipfsHash.toLowerCase().endsWith(ext),
-                    );
-
-                    if (hasImageExtension) {
-                      // Use ipfs.io gateway for image files
-                      imageUrl = `${API_ENDPOINTS.IPFS_GATEWAY_PRIMARY}${ipfsHash}`;
-                      // console.log(
-                      //   `[DEBUG] Converted IPFS image URL: ${nft.image} -> ${imageUrl}`,
-                      // );
-                    } else {
-                      // Use nft-storage CDN for other files
-                      imageUrl = `${API_ENDPOINTS.IPFS_GATEWAY_NFT_STORAGE}${ipfsHash}_0`;
-                      // console.log(
-                      //   `[DEBUG] Converted IPFS URL: ${nft.image} -> ${imageUrl}`,
-                      // );
-                    }
-                  } else if (
-                    imageUrl.startsWith("https://ipfs.superbolt.wtf/")
-                  ) {
-                    // Keep Superbolt IPFS URLs as they are - they should work
-                    imageUrl = imageUrl;
-                  }
+                if (imageUrl?.startsWith("ipfs://")) {
+                  const ipfsHash = imageUrl.replace("ipfs://", "");
+                  const exts = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"];
+                  const hasExt = exts.some((ext) => ipfsHash.toLowerCase().endsWith(ext));
+                  imageUrl = hasExt
+                    ? `${API_ENDPOINTS.IPFS_GATEWAY_PRIMARY}${ipfsHash}`
+                    : `${API_ENDPOINTS.IPFS_GATEWAY_NFT_STORAGE}${ipfsHash}_0`;
                 }
 
-                // Process traits - handle both traits and attributes arrays
                 const processedTraits = [];
-                if (nft.trait && Array.isArray(nft.trait)) {
+                if (Array.isArray(nft.trait)) {
                   processedTraits.push(
                     ...nft.trait.map((trait) => ({
                       trait_type: trait.trait_type,
@@ -1931,20 +1839,8 @@ const _fetchNeutronNFTs = async (addresses) => {
                     })),
                   );
                 }
-                if (nft.attributes && Array.isArray(nft.attributes)) {
-                  processedTraits.push(
-                    ...nft.attributes.map((attr) => ({
-                      trait_type: attr.trait_type,
-                      value: attr.value,
-                      name: attr.trait_type,
-                      rarity: attr.trait_stats?.rarity
-                        ? `${(attr.trait_stats.rarity * 100).toFixed(2)}%`
-                        : undefined,
-                    })),
-                  );
-                }
 
-                return {
+                regularNFTs.push({
                   name: nft.name || `NFT #${nft.nft_id}`,
                   tokenId: nft.nft_id?.toString() || "unknown",
                   chain: "neutron",
@@ -1963,20 +1859,12 @@ const _fetchNeutronNFTs = async (addresses) => {
                   },
                   sortUsd: listPrice ? listPrice.amountUsd : floorAmountUsd,
                   daoStaked: false,
-                  sourceAddress: address, // Assign the address this NFT belongs to
-                };
+                  sourceAddress: address,
+                });
               });
 
-              // console.log(
-              //   `[DEBUG] Transformed ${transformedNFTs.length} Neutron NFTs for ${address}`,
-              // );
-              regularNFTs.push(...transformedNFTs);
-              break; // Success, exit retry loop
-            } else if (
-              response.status === 408 ||
-              response.status === 429 ||
-              response.status >= 500
-            ) {
+              break; // success
+            } else {
               retries++;
               if (retries <= maxRetries) {
                 const retryDelay = Math.min(
@@ -1991,9 +1879,6 @@ const _fetchNeutronNFTs = async (addresses) => {
               }
             }
 
-            console.warn(
-              `Failed to fetch Neutron NFTs for ${address}: ${response.status} ${response.statusText}`,
-            );
             break;
           } catch (error) {
             retries++;
@@ -2009,38 +1894,28 @@ const _fetchNeutronNFTs = async (addresses) => {
               await delay(retryDelay);
               continue;
             }
-
-            console.error(`Error fetching Neutron NFTs for ${address}:`, {
-              error: error.message,
-              name: error.name,
-              stack: error.stack,
-            });
+            console.error(`Error fetching Neutron NFTs for ${address}:`, error);
             break;
           }
         }
-      } catch (error) {
-        console.error(`Error fetching Neutron NFTs for ${address}:`, {
-          error: error.message,
-          name: error.name,
-          stack: error.stack,
-        });
+      } catch (err) {
+        console.error(`Error in regular NFT fetch for ${address}:`, err);
       }
     }
 
-    // Combine staked and regular NFTs with deduplication
+    //
+    // === MERGE + DEDUPLICATE ===
+    //
     const uniqueNFTs = new Map();
 
-    // Add regular NFTs first
     regularNFTs.forEach((nft) => {
       const key = `${nft.contract}-${nft.tokenId}`;
       uniqueNFTs.set(key, nft);
     });
 
-    // Add staked NFTs - properly merge or add them
     stakedNFTs.forEach((nft) => {
       const key = `${nft.contract}-${nft.tokenId}`;
       if (uniqueNFTs.has(key)) {
-        // If NFT exists in wallet, mark it as both staked
         const existingNFT = uniqueNFTs.get(key);
         uniqueNFTs.set(key, {
           ...existingNFT,
@@ -2049,15 +1924,12 @@ const _fetchNeutronNFTs = async (addresses) => {
           daoAddress: nft.daoAddress,
         });
       } else {
-        // If NFT is only staked (not in wallet), add it as staked-only
         uniqueNFTs.set(key, nft);
       }
     });
 
     const finalNFTsArray = Array.from(uniqueNFTs.values());
-    console.log(
-      `[DEBUG] Total unique Neutron NFTs after deduplication: ${finalNFTsArray.length}`,
-    );
+    console.log(`[DEBUG] Total unique Neutron NFTs after deduplication: ${finalNFTsArray.length}`);
 
     return finalNFTsArray;
   } catch (error) {
@@ -2065,6 +1937,7 @@ const _fetchNeutronNFTs = async (addresses) => {
     return [];
   }
 };
+
 
 // Fetch Neutron NFTs using GraphQL (with caching)
 export const fetchNeutronNFTs = async (addresses) => {
@@ -2081,113 +1954,96 @@ const _fetchInitiaNFTs = async (address, initPrice = 0.428077) => {
     );
 
     if (!response.ok) {
-      console.warn(
-        `[WARNING] HTTP error for ${address}! status: ${response.status}`,
-      );
+      console.warn(`[WARNING] HTTP error for ${address}! status: ${response.status}`);
       return [];
     }
 
     const data = await response.json();
-    // console.log(`[DEBUG] Initia response for ${address}:`, data);
 
     if (!data || !data.tokens || !Array.isArray(data.tokens)) {
       console.warn(`[WARNING] No valid tokens data for ${address}`);
       return [];
     }
 
-    const initiaNFTs = [];
+    // Limit concurrency for trait fetching
+    const limit = pLimit(20); // max 20 concurrent fetches
 
-    for (const token of data.tokens) {
-      try {
-        // console.log(
-        //   `[DEBUG] Initia token details for ${token.tokenId}:`,
-        //   token,
-        // );
+    const results = await Promise.allSettled(
+      data.tokens.map((token) =>
+        limit(async () => {
+          try {
+            const collectionFloor = token.collection?.floorPrice;
+            let floorAmountMicroInit = 0;
+            let floorAmountInit = 0;
+            let floorAmountUsd = 0;
 
-        const collectionFloor = token.collection?.floorPrice;
-        let floorAmountMicroInit = 0;
-        let floorAmountInit = 0;
-        let floorAmountUsd = 0;
+            if (collectionFloor) {
+              floorAmountMicroInit = parseInt(collectionFloor.amount) || 0;
+              floorAmountInit = floorAmountMicroInit / 1_000_000;
+              floorAmountUsd = floorAmountInit * initPrice;
+            }
 
-        if (collectionFloor) {
-          floorAmountMicroInit = parseInt(collectionFloor.amount) || 0;
-          floorAmountInit = floorAmountMicroInit / 1000000; // Convert from micro-INIT to INIT
-          floorAmountUsd = floorAmountInit * initPrice;
-        }
+            let listPrice = null;
+            const isListed = token.isEscrowed || false;
 
-        // console.log(`[DEBUG] Floor price data for ${token.tokenId}:`, {
-        //   collectionFloor,
-        //   floorAmountMicroInit,
-        //   floorAmountInit,
-        //   floorAmountUsd,
-        //   initPrice,
-        // });
+            if (isListed && token.price) {
+              const listAmountMicroInit = parseInt(token.price.amount) || 0;
+              const listAmountInit = listAmountMicroInit / 1_000_000;
+              const listAmountUsd = listAmountInit * initPrice;
 
-        let listPrice = null;
-        const isListed = token.isEscrowed || false;
+              listPrice = {
+                amount: listAmountInit,
+                denom: token.price.denom,
+                symbol: token.price.symbol,
+                amountUsd: listAmountUsd,
+              };
+            }
 
-        if (isListed && token.price) {
-          const listAmountMicroInit = parseInt(token.price.amount) || 0;
-          const listAmountInit = listAmountMicroInit / 1000000;
-          const listAmountUsd = listAmountInit * initPrice;
+            // Fetch traits with concurrency limit
+            let traits = [];
+            try {
+              traits = await fetchInitiaSingleNFTTraits(
+                token.collection?.contractAddress,
+                token.tokenId,
+                address,
+              );
+            } catch (traitsError) {
+              console.error(`[ERROR] Failed to fetch traits for ${token.tokenId}:`, traitsError);
+            }
 
-          listPrice = {
-            amount: listAmountInit,
-            denom: token.price.denom,
-            symbol: token.price.symbol,
-            amountUsd: listAmountUsd,
-          };
-        }
+            return {
+              name: token.name || `Token #${token.tokenId}`,
+              tokenId: token.tokenId?.toString() || "unknown",
+              chain: "initia",
+              contract: token.collection?.contractAddress || "unknown-contract",
+              collection: token.collection?.name || "Unknown Collection",
+              image: token.media?.visualAssets?.md?.url,
+              listed: isListed,
+              listPrice,
+              rarity: token.rarityRank || null,
+              traits,
+              floor: {
+                amount: floorAmountInit,
+                amountUsd: floorAmountUsd,
+                denom:
+                  "l2/fb936ffef4eb4019d82941992cc09ae2788ce7197fcb08cb00c4fe6f5e79184e",
+                symbol: "INIT",
+              },
+              sortUsd: listPrice ? listPrice.amountUsd : floorAmountUsd,
+              daoStaked: false,
+              sourceAddress: address,
+            };
+          } catch (tokenError) {
+            console.error(`[ERROR] Error processing Initia token ${token.tokenId}:`, tokenError);
+            return null;
+          }
+        })
+      )
+    );
 
-        // Fetch traits for this NFT
-        let traits = [];
-        try {
-          traits = await fetchInitiaSingleNFTTraits(
-            token.collection?.contractAddress,
-            token.tokenId,
-            address,
-          );
-        } catch (traitsError) {
-          console.error(
-            `[ERROR] Failed to fetch traits for ${token.tokenId}:`,
-            traitsError,
-          );
-        }
-
-        const transformedNFT = {
-          name: token.name || `Token #${token.tokenId}`,
-          tokenId: token.tokenId?.toString() || "unknown",
-          chain: "initia",
-          contract: token.collection?.contractAddress || "unknown-contract",
-          collection: token.collection?.name || "Unknown Collection",
-          image: token.media.visualAssets.md.url, // Image will be processed by processImageUrl in the component
-          listed: isListed,
-          listPrice,
-          rarity: token.rarityRank || null,
-          traits: traits,
-          floor: {
-            amount: floorAmountInit,
-            amountUsd: floorAmountUsd,
-            denom:
-              "l2/fb936ffef4eb4019d82941992cc09ae2788ce7197fcb08cb00c4fe6f5e79184e",
-            symbol: "INIT",
-          },
-          sortUsd: listPrice ? listPrice.amountUsd : floorAmountUsd,
-          daoStaked: false,
-          sourceAddress: address,
-        };
-
-        initiaNFTs.push(transformedNFT);
-        // console.log(
-        //   `[DEBUG] ✓ Added Initia NFT ${token.tokenId} from ${token.collection?.name}`,
-        // );
-      } catch (tokenError) {
-        console.error(
-          `[ERROR] Error processing Initia token ${token.tokenId}:`,
-          tokenError,
-        );
-      }
-    }
+    const initiaNFTs = results
+      .filter((res) => res.status === "fulfilled" && res.value)
+      .map((res) => res.value);
 
     console.log(`[DEBUG] Found ${initiaNFTs.length} NFTs for initia`);
     return initiaNFTs;
@@ -2196,6 +2052,7 @@ const _fetchInitiaNFTs = async (address, initPrice = 0.428077) => {
     return [];
   }
 };
+
 
 // Fetch Initia NFTs using Intergaze API (with caching)
 export const fetchInitiaNFTs = async (address, initPrice = 0.428077) => {
@@ -2340,80 +2197,89 @@ const _fetchStargazeNFTs = async (addresses) => {
     //   `[DEBUG] Starting staked NFTs fetch for ${Object.keys(stargazeDAOs).length} Stargaze DAOs`,
     // );
 
-    for (const [daoName, daoConfig] of Object.entries(stargazeDAOs)) {
-      try {
-        // console.log(
-        //   `[DEBUG] Fetching staked NFTs for DAO: ${daoName}, contract: ${daoConfig.contract}`,
-        // );
+    const daoResults = await Promise.allSettled(
+      Object.entries(stargazeDAOs).map(([daoName, daoConfig]) =>
+        limit(async () => {
+          try {
+            let allStakedTokenIds = [];
 
-        let allStakedTokenIds = [];
-        for (const address of addresses) {
-          // console.log(
-          //   `[DEBUG] Fetching staked NFTs for Stargaze address: ${address}`,
-          // );
-          const stakedTokenIds = await fetchStakedNFTs(
-            "stargaze-1",
-            daoConfig.contract,
-            address,
-          );
-          if (Array.isArray(stakedTokenIds)) {
-            allStakedTokenIds.push(...stakedTokenIds);
-          }
-        }
+            // Limit concurrent fetches per address
+            const addressResults = await Promise.allSettled(
+              addresses.map((address) =>
+                limit(async () => {
+                  try {
+                    const ids = await fetchStakedNFTs("stargaze-1", daoConfig.contract, address);
+                    return Array.isArray(ids) ? ids : [];
+                  } catch (error) {
+                    console.error(
+                      `[ERROR] ✗ Failed to fetch staked NFTs for Stargaze address ${address}:`,
+                      error,
+                    );
+                    return [];
+                  }
+                })
+              )
+            );
 
-        // Remove duplicates
-        const stakedTokenIds = [...new Set(allStakedTokenIds)];
-        // console.log(
-        //   `[DEBUG] Raw staked response for ${daoName}:`,
-        //   stakedTokenIds,
-        // );
-
-        // Fetch detailed NFT data for each staked token ID
-        if (Array.isArray(stakedTokenIds) && stakedTokenIds.length > 0) {
-          // console.log(
-          //   `[DEBUG] === PROCESSING ${stakedTokenIds.length} STAKED NFTs FOR ${daoName} ===`,
-          // );
-
-          for (let i = 0; i < stakedTokenIds.length; i++) {
-            const tokenId = stakedTokenIds[i];
-            try {
-              // console.log(
-              //   `[DEBUG] [${i + 1}/${stakedTokenIds.length}] Fetching staked NFT ${tokenId} from collection ${daoConfig.collection}`,
-              // );
-              const nftData = await fetchStargazeSingleNFT(
-                daoConfig.collection,
-                tokenId.toString(),
-              );
-
-              if (nftData) {
-                const stakedNft = {
-                  ...nftData,
-                  daoStaked: true,
-                  daoName: daoName,
-                  daoAddress: daoConfig.DAO,
-                };
-                stakedNFTs.push(stakedNft);
-                // console.log(
-                //   `[DEBUG] ✓ Successfully added staked NFT ${tokenId} from ${daoName}. Total staked so far: ${stakedNFTs.length}`,
-                // );
+            addressResults.forEach((res) => {
+              if (res.status === "fulfilled" && res.value.length > 0) {
+                allStakedTokenIds.push(...res.value);
               }
-            } catch (error) {
-              console.error(
-                `[ERROR] ✗ Failed to fetch staked NFT ${tokenId} from ${daoName}:`,
-                error,
+            });
+
+            const stakedTokenIds = [...new Set(allStakedTokenIds)];
+
+            if (stakedTokenIds.length > 0) {
+              // Limit concurrent NFT fetches
+              const nftResults = await Promise.allSettled(
+                stakedTokenIds.map((tokenId) =>
+                  limit(async () => {
+                    try {
+                      const nftData = await fetchStargazeSingleNFT(
+                        daoConfig.collection,
+                        tokenId.toString()
+                      );
+                      if (nftData) {
+                        return {
+                          ...nftData,
+                          daoStaked: true,
+                          daoName,
+                          daoAddress: daoConfig.DAO,
+                        };
+                      }
+                      return null;
+                    } catch (error) {
+                      console.error(
+                        `[ERROR] ✗ Failed to fetch staked NFT ${tokenId} from ${daoName}:`,
+                        error,
+                      );
+                      return null;
+                    }
+                  })
+                )
               );
+
+              nftResults.forEach((res) => {
+                if (res.status === "fulfilled" && res.value) {
+                  stakedNFTs.push(res.value);
+                }
+              });
             }
+          } catch (error) {
+            console.error(`[ERROR] Failed to fetch staked NFTs from ${daoName}:`, error);
           }
-        } else {
-          // console.log(`[DEBUG] No staked NFTs found for ${daoName}`);
-        }
-      } catch (error) {
-        console.error(
-          `[ERROR] Failed to fetch staked NFTs from ${daoName}:`,
-          error,
-        );
+        })
+      )
+    );
+
+    // Optionally inspect DAO-level results
+    daoResults.forEach((res, idx) => {
+      if (res.status === "rejected") {
+        const daoName = Object.keys(stargazeDAOs)[idx];
+        console.error(`[ERROR] DAO ${daoName} failed:`, res.reason);
       }
-    }
+    });
+
 
     // console.log(`[DEBUG] === STAKED NFT FETCH COMPLETE ===`);
     // console.log(`[DEBUG] Total staked NFTs collected: ${stakedNFTs.length}`);
@@ -2478,6 +2344,7 @@ const _fetchStargazeNFTs = async (addresses) => {
             media {
               visualAssets {
                 md {
+                  type
                   url
                 }
               }
@@ -2565,10 +2432,19 @@ const _fetchStargazeNFTs = async (addresses) => {
           }
 
           // Process image URL
-          let imageUrl = token.imageUrl;
-          if (imageUrl) {
+          let baseImageUrl = token.imageUrl;
+          let lightImageUrl = token.media.visualAssets.md.url;
+          let finalImageUrl = null;
+          let imageType = token.media.visualAssets.md.type;
+          if (lightImageUrl && imageType) {
+            const isVideoToGif = lightImageUrl.toLowerCase().includes("f:mp4");
+            if (imageType === "video" || isVideoToGif) {
+              finalImageUrl = baseImageUrl;
+            } else {
+              finalImageUrl = lightImageUrl;
+            }
             // Check if it's a GIF
-            // const isGif = imageUrl.toLowerCase().includes(".gif");
+
 
             // // Handle Stargaze image service URLs with IPFS for GIFs
             // if (
@@ -2585,12 +2461,12 @@ const _fetchStargazeNFTs = async (addresses) => {
             // }
 
             // Handle generic IPFS URLs
-            if (imageUrl.startsWith("ipfs://")) {
-              imageUrl = imageUrl.replace(
-                "ipfs://",
-                API_ENDPOINTS.IPFS_GATEWAY_PRIMARY,
-              );
-            }
+            // if (imageUrl.startsWith("ipfs://")) {
+            //   imageUrl = imageUrl.replace(
+            //     "ipfs://",
+            //     API_ENDPOINTS.IPFS_GATEWAY_PRIMARY,
+            //   );
+            // }
           }
 
           return {
@@ -2599,7 +2475,7 @@ const _fetchStargazeNFTs = async (addresses) => {
             chain: "stargaze",
             contract: token.collection?.contractAddress || "unknown-contract",
             collection: token.collection?.name || "Unknown Collection",
-            image: imageUrl,
+            image: finalImageUrl,
             listed: token.isEscrowed,
             listPrice,
             rarity: token.rarityOrder,
@@ -2650,8 +2526,17 @@ const _fetchStargazeNFTs = async (addresses) => {
       }
 
       // Process image URL
-      let imageUrl = token.imageUrl;
-      if (imageUrl) {
+      let baseImageUrl = token.imageUrl;
+      let lightImageUrl = token.media.visualAssets.md.url;
+      let finalImageUrl = null;
+      let imageType = token.media.visualAssets.md.type;
+      if (lightImageUrl && imageType) {
+        const isVideoToGif = lightImageUrl.toLowerCase().includes("f:mp4");
+        if (imageType === "video" || isVideoToGif) {
+          finalImageUrl = baseImageUrl;
+        } else {
+          finalImageUrl = lightImageUrl;
+        }
         // Check if it's a GIF
         // const isGif = imageUrl.toLowerCase().includes(".gif");
 
@@ -2668,12 +2553,12 @@ const _fetchStargazeNFTs = async (addresses) => {
         // }
 
         // Handle generic IPFS URLs
-        if (imageUrl.startsWith("ipfs://")) {
-          imageUrl = imageUrl.replace(
-            "ipfs://",
-            API_ENDPOINTS.IPFS_GATEWAY_PRIMARY,
-          );
-        }
+        // if (imageUrl.startsWith("ipfs://")) {
+        //   imageUrl = imageUrl.replace(
+        //     "ipfs://",
+        //     API_ENDPOINTS.IPFS_GATEWAY_PRIMARY,
+        //   );
+        // }
       }
 
       return {
@@ -2682,7 +2567,7 @@ const _fetchStargazeNFTs = async (addresses) => {
         chain: "stargaze",
         contract: token.collection?.contractAddress || "unknown-contract",
         collection: token.collection?.name || "Unknown Collection",
-        image: imageUrl,
+        image: finalImageUrl,
         listed: token.isEscrowed,
         listPrice,
         rarity: token.rarityOrder,
@@ -2948,133 +2833,113 @@ const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
         // );
 
         if (allStakedNfts.length > 0) {
-          // Process staked NFTs
-          for (const nft of allStakedNfts) {
-            try {
-              // Get collection floor from pre-fetched cache or fetch if not already cached
-              let collectionFloor = collectionFloors.get(
-                nft.collection.contract,
-              );
-
-              if (!collectionFloor) {
-                // console.log(
-                //   `[DEBUG] Fetching floor for uncached collection: ${nft.collection.contract}`,
-                // );
-                collectionFloor = await fetchOsmosisCollectionFloor(
-                  nft.collection.contract,
-                );
-                collectionFloors.set(nft.collection.contract, collectionFloor);
-              }
-
-              // Fetch metadata using token_uri from staked API response
-              let metadata = null;
-              if (nft.token_uri) {
-                metadata = await fetchOsmosisNFTMetadata(
-                  nft.nft_token_id,
-                  nft.collection.contract,
-                  nft.token_uri,
-                  true, // Use gateway priority for staked NFTs
-                );
-              } else {
-                // console.log(
-                //   `[DEBUG] No token_uri for staked NFT ${nft.nft_token_id}, falling back to BackboneLabs API`,
-                // );
-                // Fallback to BackboneLabs API for metadata when token_uri is null
-                metadata = await fetchListedNFTMetadata(
-                  nft.collection.contract,
-                  nft.nft_token_id,
-                  "osmosis",
-                );
-              }
-
-              // Process image URL
-              let processedImageUrl =
-                nft.cf_url || nft.image_url || metadata?.image;
-              if (
-                processedImageUrl &&
-                processedImageUrl.startsWith("ipfs://")
-              ) {
-                processedImageUrl = processedImageUrl.replace(
-                  "ipfs://",
-                  API_ENDPOINTS.IPFS_GATEWAY_PRIMARY,
-                );
-              }
-
-              // Calculate floor price
-              const floorPriceBosmo = collectionFloor
-                ? parseFloat(collectionFloor.price || 0)
-                : 0;
-              const floorPriceUsd =
-                bosmoPrice && floorPriceBosmo > 0
-                  ? floorPriceBosmo * bosmoPrice
-                  : 0;
-
-              // Get collection name
-              const getCollectionInfo = (contractAddress) => {
-                for (const [daoName, daoConfig] of Object.entries(
-                  osmosisDAOs || {},
-                )) {
-                  if (daoConfig.collection === contractAddress) {
-                    return {
-                      name: daoName.replace(" DAO", ""),
-                      daoName: daoName,
-                      daoAddress: daoConfig.DAO,
-                    };
-                  }
+          // Prepare all promises for parallel processing with concurrency limit
+          const stakedPromises = allStakedNfts.map((nft) =>
+            limit(async () => {
+              try {
+                // Get collection floor from cache or fetch
+                let collectionFloor = collectionFloors.get(nft.collection.contract);
+                if (!collectionFloor) {
+                  collectionFloor = await fetchOsmosisCollectionFloor(nft.collection.contract);
+                  collectionFloors.set(nft.collection.contract, collectionFloor);
                 }
-                return {
-                  name: nft.collection.name || "Unknown Collection",
-                  daoName: null,
-                  daoAddress: null,
+
+                // Fetch metadata
+                let metadata = null;
+                if (nft.token_uri) {
+                  metadata = await fetchOsmosisNFTMetadata(
+                    nft.nft_token_id,
+                    nft.collection.contract,
+                    nft.token_uri,
+                    true,
+                  );
+                } else {
+                  metadata = await fetchListedNFTMetadata(
+                    nft.collection.contract,
+                    nft.nft_token_id,
+                    "osmosis",
+                  );
+                }
+
+                // Process image URL
+                let processedImageUrl = nft.cf_url || nft.image_url || metadata?.image;
+                if (processedImageUrl && processedImageUrl.startsWith("ipfs://")) {
+                  processedImageUrl = processedImageUrl.replace(
+                    "ipfs://",
+                    API_ENDPOINTS.IPFS_GATEWAY_PRIMARY,
+                  );
+                }
+
+                // Calculate floor price
+                const floorPriceBosmo = collectionFloor ? parseFloat(collectionFloor.price || 0) : 0;
+                const floorPriceUsd = bosmoPrice && floorPriceBosmo > 0 ? floorPriceBosmo * bosmoPrice : 0;
+
+                // Get collection info
+                const getCollectionInfo = (contractAddress) => {
+                  for (const [daoName, daoConfig] of Object.entries(osmosisDAOs || {})) {
+                    if (daoConfig.collection === contractAddress) {
+                      return {
+                        name: daoName.replace(" DAO", ""),
+                        daoName: daoName,
+                        daoAddress: daoConfig.DAO,
+                      };
+                    }
+                  }
+                  return {
+                    name: nft.collection.name || "Unknown Collection",
+                    daoName: null,
+                    daoAddress: null,
+                  };
                 };
-              };
+                const collectionInfo = getCollectionInfo(nft.collection.contract);
 
-              const collectionInfo = getCollectionInfo(nft.collection.contract);
+                // Process traits
+                const rawTraits = metadata?.attributes || metadata?.traits || [];
+                const processedTraits = rawTraits.map((trait) => ({
+                  name: trait.trait_type || trait.name,
+                  value: trait.value,
+                  rarity: undefined,
+                }));
 
-              // Process traits
-              const rawTraits = metadata?.attributes || metadata?.traits || [];
-              const processedTraits = rawTraits.map((trait) => ({
-                name: trait.trait_type || trait.name,
-                value: trait.value,
-                rarity: undefined,
-              }));
+                return {
+                  name: nft.nft_name || metadata?.name || `NFT #${nft.nft_token_id}`,
+                  tokenId: nft.nft_token_id.toString(),
+                  chain: "osmosis",
+                  contract: nft.collection.contract,
+                  collection: collectionInfo.name,
+                  image: processedImageUrl,
+                  listed: false,
+                  listPrice: null,
+                  rarity: nft.rank || null,
+                  traits: processedTraits,
+                  floor: {
+                    amount: floorPriceBosmo,
+                    amountUsd: floorPriceUsd,
+                    denom:
+                      "factory/osmo1s3l0lcqc7tu0vpj6wdjz9wqpxv8nk6eraevje4fuwkyjnwuy82qsx3lduv/boneOsmo",
+                    symbol: "bOSMO",
+                  },
+                  sortUsd: floorPriceUsd,
+                  staked: true,
+                  daoStaked: true,
+                  daoName: collectionInfo.daoName,
+                  daoAddress: collectionInfo.daoAddress,
+                  sourceAddress: address,
+                };
+              } catch (error) {
+                console.error(`[ERROR] Failed to process staked NFT ${nft.nft_token_id}:`, error);
+                return null;
+              }
+            }),
+          );
 
-              const nftData = {
-                name:
-                  nft.nft_name || metadata?.name || `NFT #${nft.nft_token_id}`,
-                tokenId: nft.nft_token_id.toString(),
-                chain: "osmosis",
-                contract: nft.collection.contract,
-                collection: collectionInfo.name,
-                image: processedImageUrl,
-                listed: false,
-                listPrice: null,
-                rarity: nft.rank || null,
-                traits: processedTraits,
-                floor: {
-                  amount: floorPriceBosmo,
-                  amountUsd: floorPriceUsd,
-                  denom:
-                    "factory/osmo1s3l0lcqc7tu0vpj6wdjz9wqpxv8nk6eraevje4fuwkyjnwuy82qsx3lduv/boneOsmo",
-                  symbol: "bOSMO",
-                },
-                sortUsd: floorPriceUsd,
-                staked: true, // Mark as staked
-                daoStaked: true, // Keep for compatibility
-                daoName: collectionInfo.daoName,
-                daoAddress: collectionInfo.daoAddress,
-                sourceAddress: address,
-              };
+          // Wait for all staked NFT processing
+          const stakedResults = await Promise.all(stakedPromises);
 
-              stakedNFTs.push(nftData);
-              // console.log(`[DEBUG] ✓ Added staked NFT ${nft.nft_token_id}`);
-            } catch (error) {
-              console.error(
-                `[ERROR] Failed to process staked NFT ${nft.nft_token_id}:`,
-                error,
-              );
-            }
-          }
+          // Add successful results to stakedNFTs
+          stakedResults.forEach((nftData) => {
+            if (nftData) stakedNFTs.push(nftData);
+          });
         }
       } catch (error) {
         console.error(
@@ -3162,107 +3027,92 @@ const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
         // );
 
         if (allNotListedNfts.length > 0) {
-          // Process not listed NFTs with MyGateway priority
-          for (const nft of allNotListedNfts) {
-            try {
-              // Get collection floor from pre-fetched cache or fetch if not already cached
-              let collectionFloor = collectionFloors.get(
-                nft.collection.contract,
-              );
-
-              if (!collectionFloor) {
-                // console.log(
-                //   `[DEBUG] Fetching floor for uncached collection: ${nft.collection.contract}`,
-                // );
-                collectionFloor = await fetchOsmosisCollectionFloor(
-                  nft.collection.contract,
-                );
-                collectionFloors.set(nft.collection.contract, collectionFloor);
-              }
-
-              // Fetch metadata with MyGateway priority
-              const metadata = await fetchOsmosisNFTMetadata(
-                nft.nft_token_id,
-                nft.collection.contract,
-                nft.token_uri,
-                true, // Use MyGateway for not listed NFTs
-              );
-
-              // Process image URL
-              let processedImageUrl =
-                nft.cf_url || nft.image_url || metadata?.image_url;
-              if (
-                processedImageUrl &&
-                processedImageUrl.startsWith("ipfs://")
-              ) {
-                processedImageUrl = processedImageUrl.replace(
-                  "ipfs://",
-                  API_ENDPOINTS.IPFS_GATEWAY_PRIMARY,
-                );
-              }
-
-              // Calculate floor price
-              const floorPriceBosmo = collectionFloor
-                ? parseFloat(collectionFloor.price || 0)
-                : 0;
-              const floorPriceUsd =
-                bosmoPrice && floorPriceBosmo > 0
-                  ? floorPriceBosmo * bosmoPrice
-                  : 0;
-
-              // Get collection name
-              const getCollectionName = (contractAddress) => {
-                for (const [daoName, daoConfig] of Object.entries(
-                  osmosisDAOs || {},
-                )) {
-                  if (daoConfig.collection === contractAddress) {
-                    return daoName.replace(" DAO", "");
-                  }
+          // Prepare promises for parallel processing
+          const notListedPromises = allNotListedNfts.map((nft) =>
+            limit(async () => {
+              try {
+                // Get collection floor from cache or fetch
+                let collectionFloor = collectionFloors.get(nft.collection.contract);
+                if (!collectionFloor) {
+                  collectionFloor = await fetchOsmosisCollectionFloor(nft.collection.contract);
+                  collectionFloors.set(nft.collection.contract, collectionFloor);
                 }
-                return nft.collection.name || "Unknown Collection";
-              };
 
-              // Process traits
-              const rawTraits = metadata?.attributes || metadata?.traits || [];
-              const processedTraits = rawTraits.map((trait) => ({
-                name: trait.trait_type || trait.name,
-                value: trait.value,
-                rarity: undefined,
-              }));
+                // Fetch metadata with MyGateway priority
+                const metadata = await fetchOsmosisNFTMetadata(
+                  nft.nft_token_id,
+                  nft.collection.contract,
+                  nft.token_uri,
+                  true,
+                );
 
-              const nftData = {
-                name:
-                  nft.nft_name || metadata?.name || `NFT #${nft.nft_token_id}`,
-                tokenId: nft.nft_token_id.toString(),
-                chain: "osmosis",
-                contract: nft.collection.contract,
-                collection: getCollectionName(nft.collection.contract),
-                image: processedImageUrl,
-                listed: false,
-                listPrice: null,
-                rarity: nft.rank || null,
-                traits: processedTraits,
-                floor: {
-                  amount: floorPriceBosmo,
-                  amountUsd: floorPriceUsd,
-                  denom:
-                    "factory/osmo1s3l0lcqc7tu0vpj6wdjz9wqpxv8nk6eraevje4fuwkyjnwuy82qsx3lduv/boneOsmo",
-                  symbol: "bOSMO",
-                },
-                sortUsd: floorPriceUsd,
-                daoStaked: false,
-                sourceAddress: address,
-              };
+                // Process image URL
+                let processedImageUrl = nft.cf_url || nft.image_url || metadata?.image_url;
+                if (processedImageUrl && processedImageUrl.startsWith("ipfs://")) {
+                  processedImageUrl = processedImageUrl.replace(
+                    "ipfs://",
+                    API_ENDPOINTS.IPFS_GATEWAY_PRIMARY,
+                  );
+                }
 
-              walletNFTs.push(nftData);
-              // console.log(`[DEBUG] ✓ Added not listed NFT ${nft.nft_token_id}`);
-            } catch (error) {
-              console.error(
-                `[ERROR] Failed to process not listed NFT ${nft.nft_token_id}:`,
-                error,
-              );
-            }
-          }
+                // Calculate floor price
+                const floorPriceBosmo = collectionFloor ? parseFloat(collectionFloor.price || 0) : 0;
+                const floorPriceUsd = bosmoPrice && floorPriceBosmo > 0 ? floorPriceBosmo * bosmoPrice : 0;
+
+                // Get collection name
+                const getCollectionName = (contractAddress) => {
+                  for (const [daoName, daoConfig] of Object.entries(osmosisDAOs || {})) {
+                    if (daoConfig.collection === contractAddress) {
+                      return daoName.replace(" DAO", "");
+                    }
+                  }
+                  return nft.collection.name || "Unknown Collection";
+                };
+
+                // Process traits
+                const rawTraits = metadata?.attributes || metadata?.traits || [];
+                const processedTraits = rawTraits.map((trait) => ({
+                  name: trait.trait_type || trait.name,
+                  value: trait.value,
+                  rarity: undefined,
+                }));
+
+                return {
+                  name: nft.nft_name || metadata?.name || `NFT #${nft.nft_token_id}`,
+                  tokenId: nft.nft_token_id.toString(),
+                  chain: "osmosis",
+                  contract: nft.collection.contract,
+                  collection: getCollectionName(nft.collection.contract),
+                  image: processedImageUrl,
+                  listed: false,
+                  listPrice: null,
+                  rarity: nft.rank || null,
+                  traits: processedTraits,
+                  floor: {
+                    amount: floorPriceBosmo,
+                    amountUsd: floorPriceUsd,
+                    denom:
+                      "factory/osmo1s3l0lcqc7tu0vpj6wdjz9wqpxv8nk6eraevje4fuwkyjnwuy82qsx3lduv/boneOsmo",
+                    symbol: "bOSMO",
+                  },
+                  sortUsd: floorPriceUsd,
+                  daoStaked: false,
+                  sourceAddress: address,
+                };
+              } catch (error) {
+                console.error(`[ERROR] Failed to process not listed NFT ${nft.nft_token_id}:`, error);
+                return null;
+              }
+            }),
+          );
+
+          // Wait for all parallel processing
+          const notListedResults = await Promise.all(notListedPromises);
+
+          // Push successful ones
+          notListedResults.forEach((nftData) => {
+            if (nftData) walletNFTs.push(nftData);
+          });
         }
       } catch (error) {
         console.error(
@@ -3338,131 +3188,116 @@ const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
         // );
 
         if (allListedNfts.length > 0) {
-          // Process listed NFTs with BackboneLabs API priority (for listing prices and metadata)
-          for (const nft of allListedNfts) {
-            try {
-              // Get collection floor from pre-fetched cache or fetch if not already cached
-              let collectionFloor = collectionFloors.get(
-                nft.collection.contract,
-              );
+          const listedPromises = allListedNfts.map((nft) =>
+            limit(async () => {
+              try {
+                // Get collection floor from cache or fetch
+                let collectionFloor = collectionFloors.get(nft.collection.contract);
+                if (!collectionFloor) {
+                  collectionFloor = await fetchOsmosisCollectionFloor(nft.collection.contract);
+                  collectionFloors.set(nft.collection.contract, collectionFloor);
+                }
 
-              if (!collectionFloor) {
-                // console.log(
-                //   `[DEBUG] Fetching floor for uncached collection: ${nft.collection.contract}`,
-                // );
-                collectionFloor = await fetchOsmosisCollectionFloor(
+                // Fetch metadata from BackboneLabs API for listed NFTs
+                const metadata = await fetchListedNFTMetadata(
                   nft.collection.contract,
+                  nft.nft_token_id,
+                  "osmosis",
                 );
-                collectionFloors.set(nft.collection.contract, collectionFloor);
-              }
 
-              // Fetch metadata from BackboneLabs API for listed NFTs
-              const metadata = await fetchListedNFTMetadata(
-                nft.collection.contract,
-                nft.nft_token_id,
-                "osmosis",
-              );
+                // Process image URL
+                let processedImageUrl = nft.cf_url || nft.image_url || metadata?.image_url;
+                if (processedImageUrl && processedImageUrl.startsWith("ipfs://")) {
+                  processedImageUrl = processedImageUrl.replace(
+                    "ipfs://",
+                    API_ENDPOINTS.IPFS_GATEWAY_PRIMARY,
+                  );
+                }
 
-              // Process image URL
-              let processedImageUrl =
-                nft.cf_url || nft.image_url || metadata?.image_url;
-              if (
-                processedImageUrl &&
-                processedImageUrl.startsWith("ipfs://")
-              ) {
-                processedImageUrl = processedImageUrl.replace(
-                  "ipfs://",
-                  API_ENDPOINTS.IPFS_GATEWAY_PRIMARY,
-                );
-              }
+                // Process list price from auction data
+                let listPrice = null;
+                if (nft.auction && nft.auction.reserve_price) {
+                  const priceAmount = parseFloat(nft.auction.reserve_price) / 1_000_000;
+                  const priceUsd = bosmoPrice && priceAmount > 0 ? priceAmount * bosmoPrice : 0;
 
-              // Process list price from auction data
-              let listPrice = null;
-              if (nft.auction && nft.auction.reserve_price) {
-                const priceAmount =
-                  parseFloat(nft.auction.reserve_price) / 1000000;
-                const priceUsd =
-                  bosmoPrice && priceAmount > 0 ? priceAmount * bosmoPrice : 0;
+                  listPrice = {
+                    amount: priceAmount,
+                    denom:
+                      nft.auction.denom ||
+                      "factory/osmo1s3l0lcqc7tu0vpj6wdjz9wqpxv8nk6eraevje4fuwkyjnwuy82qsx3lduv/boneOsmo",
+                    symbol: "bOSMO",
+                    amountUsd: priceUsd,
+                  };
+                }
 
-                listPrice = {
-                  amount: priceAmount,
-                  denom:
-                    nft.auction.denom ||
-                    "factory/osmo1s3l0lcqc7tu0vpj6wdjz9wqpxv8nk6eraevje4fuwkyjnwuy82qsx3lduv/boneOsmo",
-                  symbol: "bOSMO",
-                  amountUsd: priceUsd,
-                };
-              }
-
-              // Calculate floor price
-              const floorPriceBosmo = collectionFloor
-                ? parseFloat(collectionFloor.price || 0)
-                : listPrice
-                  ? listPrice.amount
-                  : 0;
-              const floorPriceUsd =
-                bosmoPrice && floorPriceBosmo > 0
-                  ? floorPriceBosmo * bosmoPrice
+                // Calculate floor price
+                const floorPriceBosmo = collectionFloor
+                  ? parseFloat(collectionFloor.price || 0)
                   : listPrice
-                    ? listPrice.amountUsd
+                    ? listPrice.amount
                     : 0;
 
-              // Get collection name
-              const getCollectionName = (contractAddress) => {
-                for (const [daoName, daoConfig] of Object.entries(
-                  osmosisDAOs || {},
-                )) {
-                  if (daoConfig.collection === contractAddress) {
-                    return daoName.replace(" DAO", "");
+                const floorPriceUsd =
+                  bosmoPrice && floorPriceBosmo > 0
+                    ? floorPriceBosmo * bosmoPrice
+                    : listPrice
+                      ? listPrice.amountUsd
+                      : 0;
+
+                // Get collection name
+                const getCollectionName = (contractAddress) => {
+                  for (const [daoName, daoConfig] of Object.entries(osmosisDAOs || {})) {
+                    if (daoConfig.collection === contractAddress) {
+                      return daoName.replace(" DAO", "");
+                    }
                   }
-                }
-                return nft.collection.name || "Unknown Collection";
-              };
+                  return nft.collection.name || "Unknown Collection";
+                };
 
-              // Process traits
-              const rawTraits = metadata?.attributes || metadata?.traits || [];
-              const processedTraits = rawTraits.map((trait) => ({
-                name: trait.trait_type || trait.name,
-                value: trait.value,
-                rarity: undefined,
-              }));
+                // Process traits
+                const rawTraits = metadata?.attributes || metadata?.traits || [];
+                const processedTraits = rawTraits.map((trait) => ({
+                  name: trait.trait_type || trait.name,
+                  value: trait.value,
+                  rarity: undefined,
+                }));
 
-              const nftData = {
-                name:
-                  nft.nft_name || metadata?.name || `NFT #${nft.nft_token_id}`,
-                tokenId: nft.nft_token_id.toString(),
-                chain: "osmosis",
-                contract: nft.collection.contract,
-                collection: getCollectionName(nft.collection.contract),
-                image: processedImageUrl,
-                listed: true,
-                listPrice: listPrice,
-                rarity: nft.rank || null,
-                traits: processedTraits,
-                floor: {
-                  amount: floorPriceBosmo,
-                  amountUsd: floorPriceUsd,
-                  denom:
-                    "factory/osmo1s3l0lcqc7tu0vpj6wdjz9wqpxv8nk6eraevje4fuwkyjnwuy82qsx3lduv/boneOsmo",
-                  symbol: "bOSMO",
-                },
-                sortUsd: listPrice ? listPrice.amountUsd : floorPriceUsd,
-                daoStaked: false,
-                sourceAddress: address,
-              };
+                return {
+                  name: nft.nft_name || metadata?.name || `NFT #${nft.nft_token_id}`,
+                  tokenId: nft.nft_token_id.toString(),
+                  chain: "osmosis",
+                  contract: nft.collection.contract,
+                  collection: getCollectionName(nft.collection.contract),
+                  image: processedImageUrl,
+                  listed: true,
+                  listPrice,
+                  rarity: nft.rank || null,
+                  traits: processedTraits,
+                  floor: {
+                    amount: floorPriceBosmo,
+                    amountUsd: floorPriceUsd,
+                    denom:
+                      "factory/osmo1s3l0lcqc7tu0vpj6wdjz9wqpxv8nk6eraevje4fuwkyjnwuy82qsx3lduv/boneOsmo",
+                    symbol: "bOSMO",
+                  },
+                  sortUsd: listPrice ? listPrice.amountUsd : floorPriceUsd,
+                  daoStaked: false,
+                  sourceAddress: address,
+                };
+              } catch (error) {
+                console.error(`[ERROR] Failed to process listed NFT ${nft.nft_token_id}:`, error);
+                return null;
+              }
+            }),
+          );
 
-              walletNFTs.push(nftData);
-              // console.log(
-              //   `[DEBUG] ✓ Added listed NFT ${nft.nft_token_id} (${listPrice?.amount || 0} bOSMO)`,
-              // );
-            } catch (error) {
-              console.error(
-                `[ERROR] Failed to process listed NFT ${nft.nft_token_id}:`,
-                error,
-              );
-            }
-          }
+          const listedResults = await Promise.all(listedPromises);
+
+          listedResults.forEach((nftData) => {
+            if (nftData) walletNFTs.push(nftData);
+          });
         }
+
       } catch (error) {
         console.error(
           `[ERROR] Failed to fetch listed NFTs for ${address}:`,
@@ -3611,10 +3446,6 @@ const _fetchInjectiveNFTs = async (addresses, injPrice = 1.0) => {
             let tokenUriPattern = null;
             if (stakedTokenIds.length > 0) {
               try {
-                // console.log(
-                //   `[DEBUG] Getting token_uri pattern from first staked NFT ${stakedTokenIds[0]} for ${daoName}`,
-                // );
-
                 const query = {
                   nft_info: {
                     token_id: stakedTokenIds[0].toString(),
@@ -3627,9 +3458,7 @@ const _fetchInjectiveNFTs = async (addresses, injPrice = 1.0) => {
 
                 const contractResponse = await fetch(contractQueryUrl, {
                   method: "GET",
-                  headers: {
-                    Accept: "application/json",
-                  },
+                  headers: { Accept: "application/json" },
                 });
 
                 if (contractResponse.ok) {
@@ -3637,144 +3466,114 @@ const _fetchInjectiveNFTs = async (addresses, injPrice = 1.0) => {
                   const tokenUri = contractData.data?.token_uri;
 
                   if (tokenUri) {
-                    // Replace the actual token ID with a placeholder to create the pattern
                     tokenUriPattern = tokenUri.replace(
                       stakedTokenIds[0].toString(),
                       "{tokenId}",
                     );
-                    // console.log(
-                    //   `[DEBUG] ✓ Extracted token_uri pattern for ${daoName}: ${tokenUriPattern}`,
-                    // );
                   } else {
-                    console.warn(
-                      `[WARNING] No token_uri found in contract response for ${daoName}`,
-                    );
+                    console.warn(`[WARNING] No token_uri found in contract response for ${daoName}`);
                   }
                 } else {
-                  console.warn(
-                    `[WARNING] Failed to query contract for token_uri: ${contractResponse.status}`,
-                  );
+                  console.warn(`[WARNING] Failed to query contract for token_uri: ${contractResponse.status}`);
                 }
               } catch (error) {
-                console.error(
-                  `[ERROR] Failed to get token_uri pattern for ${daoName}:`,
-                  error,
-                );
+                console.error(`[ERROR] Failed to get token_uri pattern for ${daoName}:`, error);
               }
             }
 
             // Fallback to configured metadata_url if contract query failed
             const metadataUrlToUse = tokenUriPattern || daoConfig.metadata_url;
-
             if (!metadataUrlToUse) {
-              console.warn(
-                `[WARNING] No metadata URL available for ${daoName}, skipping staked NFTs`,
-              );
+              console.warn(`[WARNING] No metadata URL available for ${daoName}, skipping staked NFTs`);
               continue;
             }
 
-            for (let i = 0; i < stakedTokenIds.length; i++) {
-              const tokenId = stakedTokenIds[i];
-              const nftKey = `${daoConfig.collection}-${tokenId}`;
+            // Parallelize with concurrency limit
+            const stakedResults = await Promise.allSettled(
+              stakedTokenIds.map((tokenId) =>
+                limit(async () => {
+                  const nftKey = `${daoConfig.collection}-${tokenId}`;
 
-              // Skip if we already processed this NFT
-              if (processedStakedNFTs.has(nftKey)) {
-                // console.log(
-                //   `[DEBUG] Skipping already processed staked NFT ${nftKey}`,
-                // );
-                continue;
-              }
+                  if (processedStakedNFTs.has(nftKey)) return null;
 
-              try {
-                // console.log(
-                //   `[DEBUG] [${i + 1}/${stakedTokenIds.length}] Processing staked NFT ${tokenId}`,
-                // );
-
-                const nftApiData = await fetchInjectiveSingleNFT(
-                  daoConfig.collection,
-                  tokenId,
-                  metadataUrlToUse,
-                );
-
-                if (nftApiData) {
-                  // Process image URL
-                  let processedImageUrl =
-                    nftApiData.image_url ||
-                    nftApiData.cf_url ||
-                    nftApiData.image;
-                  if (
-                    processedImageUrl &&
-                    processedImageUrl.startsWith("ipfs://")
-                  ) {
-                    processedImageUrl = processedImageUrl.replace(
-                      "ipfs://",
-                      API_ENDPOINTS.IPFS_GATEWAY_PRIMARY,
+                  try {
+                    const nftApiData = await fetchInjectiveSingleNFT(
+                      daoConfig.collection,
+                      tokenId,
+                      metadataUrlToUse,
                     );
-                  }
 
-                  // Calculate floor price in INJ and USD
-                  const floorPriceInj = collectionFloor
-                    ? parseFloat(collectionFloor.price || 0)
-                    : 0;
-                  const floorPriceUsd =
-                    injPrice && floorPriceInj > 0
-                      ? floorPriceInj * injPrice
+                    if (!nftApiData) return null;
+
+                    // Process image URL
+                    let processedImageUrl =
+                      nftApiData.image_url || nftApiData.cf_url || nftApiData.image;
+                    if (processedImageUrl?.startsWith("ipfs://")) {
+                      processedImageUrl = processedImageUrl.replace(
+                        "ipfs://",
+                        API_ENDPOINTS.IPFS_GATEWAY_PRIMARY,
+                      );
+                    }
+
+                    // Calculate floor price in INJ and USD
+                    const floorPriceInj = collectionFloor
+                      ? parseFloat(collectionFloor.price || 0)
                       : 0;
+                    const floorPriceUsd =
+                      injPrice && floorPriceInj > 0 ? floorPriceInj * injPrice : 0;
 
-                  // Process traits
-                  const processedTraits = (
-                    nftApiData.traits ||
-                    nftApiData.attributes ||
-                    []
-                  ).map((trait) => ({
-                    name: trait.trait_type || trait.name,
-                    value: trait.value,
-                    rarity: undefined,
-                  }));
+                    // Traits
+                    const processedTraits = (
+                      nftApiData.traits || nftApiData.attributes || []
+                    ).map((trait) => ({
+                      name: trait.trait_type || trait.name,
+                      value: trait.value,
+                      rarity: undefined,
+                    }));
 
-                  const nftData = {
-                    name:
-                      nftApiData.name ||
-                      `${daoName.replace(" DAO", "")} #${tokenId}`,
-                    tokenId: tokenId.toString(),
-                    chain: "injective",
-                    contract: daoConfig.collection,
-                    collection:
-                      nftApiData.collection?.name ||
-                      daoName.replace(" DAO", ""),
-                    image: processedImageUrl,
-                    listed: false,
-                    listPrice: null,
-                    rarity: nftApiData.rank || null,
-                    traits: processedTraits,
-                    floor: {
-                      amount: floorPriceInj,
-                      amountUsd: floorPriceUsd,
-                      denom:
-                        "factory/inj1xtel2knkt8hmc9dnzpjz6kdmacgcfmlv5f308w/ninja",
-                      symbol: "bINJ",
-                    },
-                    sortUsd: floorPriceUsd,
-                    daoStaked: true,
-                    daoName: daoName,
-                    daoAddress: daoConfig.DAO,
-                    sourceAddress: addresses[0],
-                  };
+                    const nftData = {
+                      name: nftApiData.name || `${daoName.replace(" DAO", "")} #${tokenId}`,
+                      tokenId: tokenId.toString(),
+                      chain: "injective",
+                      contract: daoConfig.collection,
+                      collection:
+                        nftApiData.collection?.name || daoName.replace(" DAO", ""),
+                      image: processedImageUrl,
+                      listed: false,
+                      listPrice: null,
+                      rarity: nftApiData.rank || null,
+                      traits: processedTraits,
+                      floor: {
+                        amount: floorPriceInj,
+                        amountUsd: floorPriceUsd,
+                        denom:
+                          "factory/inj1xtel2knkt8hmc9dnzpjz6kdmacgcfmlv5f308w/ninja",
+                        symbol: "bINJ",
+                      },
+                      sortUsd: floorPriceUsd,
+                      daoStaked: true,
+                      daoName: daoName,
+                      daoAddress: daoConfig.DAO,
+                      sourceAddress: addresses[0],
+                    };
 
-                  stakedNFTs.push(nftData);
-                  processedStakedNFTs.add(nftKey);
-                  // console.log(
-                  //   `[DEBUG] ✓ Added staked NFT ${tokenId} from ${daoName}`,
-                  // );
-                }
-              } catch (error) {
-                console.error(
-                  `[ERROR] Failed to process staked NFT ${tokenId}:`,
-                  error,
-                );
+                    processedStakedNFTs.add(nftKey);
+                    return nftData;
+                  } catch (error) {
+                    console.error(`[ERROR] Failed to process staked NFT ${tokenId}:`, error);
+                    return null;
+                  }
+                }),
+              ),
+            );
+
+            stakedResults.forEach((res) => {
+              if (res.status === "fulfilled" && res.value) {
+                stakedNFTs.push(res.value);
               }
-            }
+            });
           }
+
         } catch (error) {
           console.error(
             `[ERROR] Failed to fetch staked NFTs from ${daoName}:`,
@@ -3891,104 +3690,104 @@ const _fetchInjectiveNFTs = async (addresses, injPrice = 1.0) => {
 
         if (allNotListedNfts.length > 0) {
           // Process not listed NFTs
-          for (const nft of allNotListedNfts) {
-            try {
-              // Get collection floor from pre-fetched cache or fetch if not already cached
-              let collectionFloor = collectionFloors.get(
-                nft.collection.contract,
-              );
+          await Promise.all(
+            allNotListedNfts.map((nft) =>
+              limit(async () => {
+                try {
+                  // Get collection floor from pre-fetched cache or fetch if not already cached
+                  let collectionFloor = collectionFloors.get(nft.collection.contract);
 
-              if (!collectionFloor) {
-                // console.log(
-                //   `[DEBUG] Fetching floor for uncached Injective collection: ${nft.collection.contract}`,
-                // );
-                collectionFloor = await fetchInjectiveCollectionFloor(
-                  nft.collection.contract,
-                );
-                collectionFloors.set(nft.collection.contract, collectionFloor);
-              }
-
-              // Fetch metadata from BackboneLabs API for not listed NFTs (same as listed NFTs)
-              const metadata = await fetchListedNFTMetadata(
-                nft.collection.contract,
-                nft.nft_token_id,
-                "injective",
-              );
-
-              // Process image URL
-              let processedImageUrl =
-                nft.cf_url || nft.image_url || metadata?.image_url;
-              if (
-                processedImageUrl &&
-                processedImageUrl.startsWith("ipfs://")
-              ) {
-                processedImageUrl = processedImageUrl.replace(
-                  "ipfs://",
-                  API_ENDPOINTS.IPFS_GATEWAY_PRIMARY,
-                );
-              }
-
-              // Calculate floor price
-              const floorPriceInj = collectionFloor
-                ? parseFloat(collectionFloor.price || 0)
-                : 0;
-              const floorPriceUsd =
-                injPrice && floorPriceInj > 0 ? floorPriceInj * injPrice : 0;
-
-              // Get collection name
-              const getCollectionName = (contractAddress) => {
-                for (const [daoName, daoConfig] of Object.entries(
-                  injectiveDAOs || {},
-                )) {
-                  if (daoConfig.collection === contractAddress) {
-                    return daoName.replace(" DAO", "");
+                  if (!collectionFloor) {
+                    // console.log(
+                    //   `[DEBUG] Fetching floor for uncached Injective collection: ${nft.collection.contract}`,
+                    // );
+                    collectionFloor = await fetchInjectiveCollectionFloor(
+                      nft.collection.contract,
+                    );
+                    collectionFloors.set(nft.collection.contract, collectionFloor);
                   }
+
+                  // Fetch metadata from BackboneLabs API for not listed NFTs (same as listed NFTs)
+                  const metadata = await fetchListedNFTMetadata(
+                    nft.collection.contract,
+                    nft.nft_token_id,
+                    "injective",
+                  );
+
+                  // Process image URL
+                  let processedImageUrl =
+                    nft.cf_url || nft.image_url || metadata?.image_url;
+                  if (processedImageUrl && processedImageUrl.startsWith("ipfs://")) {
+                    processedImageUrl = processedImageUrl.replace(
+                      "ipfs://",
+                      API_ENDPOINTS.IPFS_GATEWAY_PRIMARY,
+                    );
+                  }
+
+                  // Calculate floor price
+                  const floorPriceInj = collectionFloor
+                    ? parseFloat(collectionFloor.price || 0)
+                    : 0;
+                  const floorPriceUsd =
+                    injPrice && floorPriceInj > 0 ? floorPriceInj * injPrice : 0;
+
+                  // Get collection name
+                  const getCollectionName = (contractAddress) => {
+                    for (const [daoName, daoConfig] of Object.entries(
+                      injectiveDAOs || {},
+                    )) {
+                      if (daoConfig.collection === contractAddress) {
+                        return daoName.replace(" DAO", "");
+                      }
+                    }
+                    return nft.collection.name || "Unknown Collection";
+                  };
+
+                  // Process traits
+                  const rawTraits = metadata?.attributes || metadata?.traits || [];
+                  const processedTraits = rawTraits.map((trait) => ({
+                    name: trait.trait_type || trait.name,
+                    value: trait.value,
+                    rarity: undefined,
+                  }));
+
+                  const nftData = {
+                    name:
+                      nft.nft_name || metadata?.name || `NFT #${nft.nft_token_id}`,
+                    tokenId: nft.nft_token_id.toString(),
+                    chain: "injective",
+                    contract: nft.collection.contract,
+                    collection: getCollectionName(nft.collection.contract),
+                    image: processedImageUrl,
+                    listed: false,
+                    listPrice: null,
+                    rarity: nft.rank || null,
+                    traits: processedTraits,
+                    floor: {
+                      amount: floorPriceInj,
+                      amountUsd: floorPriceUsd,
+                      denom:
+                        "factory/inj1xtel2knkt8hmc9dnzpjz6kdmacgcfmlv5f308w/ninja",
+                      symbol: "bINJ",
+                    },
+                    sortUsd: floorPriceUsd,
+                    daoStaked: false,
+                    sourceAddress: address,
+                  };
+
+                  walletNFTs.push(nftData);
+                  // console.log(`[DEBUG] ✓ Added not listed NFT ${nft.nft_token_id}`);
+                } catch (error) {
+                  console.error(
+                    `[ERROR] Failed to process not listed NFT ${nft.nft_token_id}:`,
+                    error,
+                  );
                 }
-                return nft.collection.name || "Unknown Collection";
-              };
-
-              // Process traits
-              const rawTraits = metadata?.attributes || metadata?.traits || [];
-              const processedTraits = rawTraits.map((trait) => ({
-                name: trait.trait_type || trait.name,
-                value: trait.value,
-                rarity: undefined,
-              }));
-
-              const nftData = {
-                name:
-                  nft.nft_name || metadata?.name || `NFT #${nft.nft_token_id}`,
-                tokenId: nft.nft_token_id.toString(),
-                chain: "injective",
-                contract: nft.collection.contract,
-                collection: getCollectionName(nft.collection.contract),
-                image: processedImageUrl,
-                listed: false,
-                listPrice: null,
-                rarity: nft.rank || null,
-                traits: processedTraits,
-                floor: {
-                  amount: floorPriceInj,
-                  amountUsd: floorPriceUsd,
-                  denom:
-                    "factory/inj1xtel2knkt8hmc9dnzpjz6kdmacgcfmlv5f308w/ninja",
-                  symbol: "bINJ",
-                },
-                sortUsd: floorPriceUsd,
-                daoStaked: false,
-                sourceAddress: address,
-              };
-
-              walletNFTs.push(nftData);
-              // console.log(`[DEBUG] ✓ Added not listed NFT ${nft.nft_token_id}`);
-            } catch (error) {
-              console.error(
-                `[ERROR] Failed to process not listed NFT ${nft.nft_token_id}:`,
-                error,
-              );
-            }
-          }
+              }),
+            ),
+          );
         }
+
       } catch (error) {
         console.error(
           `[ERROR] Failed to fetch not listed NFTs for ${address}:`,
@@ -4089,130 +3888,129 @@ const _fetchInjectiveNFTs = async (addresses, injPrice = 1.0) => {
 
         if (allListedNfts.length > 0) {
           // Process listed NFTs
-          for (const nft of allListedNfts) {
-            try {
-              // Get collection floor from pre-fetched cache or fetch if not already cached
-              let collectionFloor = collectionFloors.get(
-                nft.collection.contract,
-              );
+          await Promise.all(
+            allListedNfts.map((nft) =>
+              limit(async () => {
+                try {
+                  // Get collection floor from pre-fetched cache or fetch if not already cached
+                  let collectionFloor = collectionFloors.get(nft.collection.contract);
 
-              if (!collectionFloor) {
-                // console.log(
-                //   `[DEBUG] Fetching floor for uncached Injective collection: ${nft.collection.contract}`,
-                // );
-                collectionFloor = await fetchInjectiveCollectionFloor(
-                  nft.collection.contract,
-                );
-                collectionFloors.set(nft.collection.contract, collectionFloor);
-              }
-
-              // Fetch metadata from BackboneLabs API for listed NFTs
-              const metadata = await fetchListedNFTMetadata(
-                nft.collection.contract,
-                nft.nft_token_id,
-                "injective",
-              );
-
-              // Process image URL
-              let processedImageUrl =
-                nft.cf_url || nft.image_url || metadata?.image_url;
-              if (
-                processedImageUrl &&
-                processedImageUrl.startsWith("ipfs://")
-              ) {
-                processedImageUrl = processedImageUrl.replace(
-                  "ipfs://",
-                  API_ENDPOINTS.IPFS_GATEWAY_PRIMARY,
-                );
-              }
-
-              // Process list price from auction data
-              let listPrice = null;
-              if (nft.auction && nft.auction.reserve_price) {
-                const priceAmount =
-                  parseFloat(nft.auction.reserve_price) / 1000000000000000000; // Convert from Wei to INJ
-                const priceUsd =
-                  injPrice && priceAmount > 0 ? priceAmount * injPrice : 0;
-
-                listPrice = {
-                  amount: priceAmount,
-                  denom:
-                    nft.auction.denom ||
-                    "factory/inj1xtel2knkt8hmc9dnzpjz6kdmacgcfmlv5f308w/ninja",
-                  symbol: "bINJ",
-                  amountUsd: priceUsd,
-                };
-              }
-
-              // Calculate floor price
-              const floorPriceInj = collectionFloor
-                ? parseFloat(collectionFloor.price || 0)
-                : listPrice
-                  ? listPrice.amount
-                  : 0;
-              const floorPriceUsd =
-                injPrice && floorPriceInj > 0
-                  ? floorPriceInj * injPrice
-                  : listPrice
-                    ? listPrice.amountUsd
-                    : 0;
-
-              // Get collection name
-              const getCollectionName = (contractAddress) => {
-                for (const [daoName, daoConfig] of Object.entries(
-                  injectiveDAOs || {},
-                )) {
-                  if (daoConfig.collection === contractAddress) {
-                    return daoName.replace(" DAO", "");
+                  if (!collectionFloor) {
+                    // console.log(
+                    //   `[DEBUG] Fetching floor for uncached Injective collection: ${nft.collection.contract}`,
+                    // );
+                    collectionFloor = await fetchInjectiveCollectionFloor(
+                      nft.collection.contract,
+                    );
+                    collectionFloors.set(nft.collection.contract, collectionFloor);
                   }
+
+                  // Fetch metadata from BackboneLabs API for listed NFTs
+                  const metadata = await fetchListedNFTMetadata(
+                    nft.collection.contract,
+                    nft.nft_token_id,
+                    "injective",
+                  );
+
+                  // Process image URL
+                  let processedImageUrl =
+                    nft.cf_url || nft.image_url || metadata?.image_url;
+                  if (processedImageUrl && processedImageUrl.startsWith("ipfs://")) {
+                    processedImageUrl = processedImageUrl.replace(
+                      "ipfs://",
+                      API_ENDPOINTS.IPFS_GATEWAY_PRIMARY,
+                    );
+                  }
+
+                  // Process list price from auction data
+                  let listPrice = null;
+                  if (nft.auction && nft.auction.reserve_price) {
+                    const priceAmount =
+                      parseFloat(nft.auction.reserve_price) / 1000000000000000000; // Convert from Wei to INJ
+                    const priceUsd =
+                      injPrice && priceAmount > 0 ? priceAmount * injPrice : 0;
+
+                    listPrice = {
+                      amount: priceAmount,
+                      denom:
+                        nft.auction.denom ||
+                        "factory/inj1xtel2knkt8hmc9dnzpjz6kdmacgcfmlv5f308w/ninja",
+                      symbol: "bINJ",
+                      amountUsd: priceUsd,
+                    };
+                  }
+
+                  // Calculate floor price
+                  const floorPriceInj = collectionFloor
+                    ? parseFloat(collectionFloor.price || 0)
+                    : listPrice
+                      ? listPrice.amount
+                      : 0;
+                  const floorPriceUsd =
+                    injPrice && floorPriceInj > 0
+                      ? floorPriceInj * injPrice
+                      : listPrice
+                        ? listPrice.amountUsd
+                        : 0;
+
+                  // Get collection name
+                  const getCollectionName = (contractAddress) => {
+                    for (const [daoName, daoConfig] of Object.entries(
+                      injectiveDAOs || {},
+                    )) {
+                      if (daoConfig.collection === contractAddress) {
+                        return daoName.replace(" DAO", "");
+                      }
+                    }
+                    return nft.collection.name || "Unknown Collection";
+                  };
+
+                  // Process traits
+                  const rawTraits = metadata?.attributes || metadata?.traits || [];
+                  const processedTraits = rawTraits.map((trait) => ({
+                    name: trait.trait_type || trait.name,
+                    value: trait.value,
+                    rarity: undefined,
+                  }));
+
+                  const nftData = {
+                    name: nft.nft_name || metadata?.name || `NFT #${nft.nft_token_id}`,
+                    tokenId: nft.nft_token_id.toString(),
+                    chain: "injective",
+                    contract: nft.collection.contract,
+                    collection: getCollectionName(nft.collection.contract),
+                    image: processedImageUrl,
+                    listed: true,
+                    listPrice: listPrice,
+                    rarity: nft.rank || null,
+                    traits: processedTraits,
+                    floor: {
+                      amount: floorPriceInj,
+                      amountUsd: floorPriceUsd,
+                      denom:
+                        "factory/inj1xtel2knkt8hmc9dnzpjz6kdmacgcfmlv5f308w/ninja",
+                      symbol: "bINJ",
+                    },
+                    sortUsd: listPrice ? listPrice.amountUsd : floorPriceUsd,
+                    daoStaked: false,
+                    sourceAddress: address,
+                  };
+
+                  walletNFTs.push(nftData);
+                  // console.log(
+                  //   `[DEBUG] ✓ Added listed NFT ${nft.nft_token_id} (${listPrice?.amount || 0} INJ)`,
+                  // );
+                } catch (error) {
+                  console.error(
+                    `[ERROR] Failed to process listed NFT ${nft.nft_token_id}:`,
+                    error,
+                  );
                 }
-                return nft.collection.name || "Unknown Collection";
-              };
-
-              // Process traits
-              const rawTraits = metadata?.attributes || metadata?.traits || [];
-              const processedTraits = rawTraits.map((trait) => ({
-                name: trait.trait_type || trait.name,
-                value: trait.value,
-                rarity: undefined,
-              }));
-
-              const nftData = {
-                name:
-                  nft.nft_name || metadata?.name || `NFT #${nft.nft_token_id}`,
-                tokenId: nft.nft_token_id.toString(),
-                chain: "injective",
-                contract: nft.collection.contract,
-                collection: getCollectionName(nft.collection.contract),
-                image: processedImageUrl,
-                listed: true,
-                listPrice: listPrice,
-                rarity: nft.rank || null,
-                traits: processedTraits,
-                floor: {
-                  amount: floorPriceInj,
-                  amountUsd: floorPriceUsd,
-                  denom:
-                    "factory/inj1xtel2knkt8hmc9dnzpjz6kdmacgcfmlv5f308w/ninja",
-                  symbol: "bINJ",
-                },
-                sortUsd: listPrice ? listPrice.amountUsd : floorPriceUsd,
-                daoStaked: false,
-                sourceAddress: address,
-              };
-
-              walletNFTs.push(nftData);
-              // console.log(
-              //   `[DEBUG] ✓ Added listed NFT ${nft.nft_token_id} (${listPrice?.amount || 0} INJ)`,
-              // );
-            } catch (error) {
-              console.error(
-                `[ERROR] Failed to process listed NFT ${nft.nft_token_id}:`,
-                error,
-              );
-            }
-          }
+              }),
+            ),
+          );
         }
+
       } catch (error) {
         console.error(
           `[ERROR] Failed to fetch listed NFTs for ${address}:`,
@@ -4798,34 +4596,27 @@ const _fetchCosmosHubNFTs = async (addresses) => {
             //   `[DEBUG] === PROCESSING ${stakedTokenIds.length} STAKED NFTs FOR ${daoName} ===`,
             // );
 
-            for (let i = 0; i < stakedTokenIds.length; i++) {
-              const tokenId = stakedTokenIds[i];
-              try {
-                // console.log(
-                //   `[DEBUG] [${i + 1}/${stakedTokenIds.length}] Fetching staked NFT ${tokenId} from collection ${daoConfig.collection}`,
-                // );
-                const nftData = await fetchCosmosHubSingleNFT(
-                  daoConfig.collection,
-                  tokenId.toString(),
-                );
-
-                if (nftData) {
-                  // Get collection name from config
-                  const collectionEntry = Object.entries(
-                    collectionsConfig.Collections || {},
-                  ).find(
-                    ([name, contracts]) =>
-                      (typeof contracts === "string" &&
-                        contracts === daoConfig.collection) ||
-                      (typeof contracts === "object" &&
-                        contracts["cosmoshub-4"] === daoConfig.collection),
+            const stakedNftPromises = stakedTokenIds.map((tokenId) =>
+              limit(async () => {
+                try {
+                  const nftData = await fetchCosmosHubSingleNFT(
+                    daoConfig.collection,
+                    tokenId.toString()
                   );
 
-                  const collectionName =
-                    collectionEntry?.[0] || daoName.replace(" DAO", "");
+                  if (!nftData) return null;
+
+                  // Determine collection name
+                  const collectionEntry = Object.entries(collectionsConfig.Collections || {}).find(
+                    ([name, contracts]) =>
+                      (typeof contracts === "string" && contracts === daoConfig.collection) ||
+                      (typeof contracts === "object" && contracts["cosmoshub-4"] === daoConfig.collection)
+                  );
+
+                  const collectionName = collectionEntry?.[0] || daoName.replace(" DAO", "");
                   const collectionData = collectionEntry?.[1];
 
-                  // Get floor price from Stargaze if available
+                  // Default floor price
                   let floorPrice = {
                     amount: 0,
                     amountUsd: 0,
@@ -4833,39 +4624,41 @@ const _fetchCosmosHubNFTs = async (addresses) => {
                     symbol: "ATOM",
                   };
 
-                  if (
-                    typeof collectionData === "object" &&
-                    collectionData["stargaze-1"]
-                  ) {
+                  // Fetch Stargaze floor price if available
+                  if (typeof collectionData === "object" && collectionData["stargaze-1"]) {
                     try {
-                      const stargazeFloor = await fetchStargazeCollectionFloor(
-                        collectionData["stargaze-1"],
-                      );
+                      const stargazeFloor = await fetchStargazeCollectionFloor(collectionData["stargaze-1"]);
                       if (stargazeFloor) {
                         floorPrice = {
-                          amount: parseFloat(stargazeFloor.amount) / 1000000, // Convert from micro-STARS to STARS
+                          amount: parseFloat(stargazeFloor.amount) / 1_000_000,
                           amountUsd: parseFloat(stargazeFloor.amountUsd) || 0,
                           denom: stargazeFloor.denom,
                           symbol: stargazeFloor.symbol,
-                          isStargaze: true, // Flag to indicate this is from Stargaze
+                          isStargaze: true,
                         };
                       }
                     } catch (error) {
                       console.error(
                         `[ERROR] Failed to fetch Stargaze floor price for staked ${collectionName}:`,
-                        error,
+                        error
                       );
                     }
                   }
 
-                  const stakedNft = {
+                  let imageUrl = nftData.image;
+                  if (imageUrl && imageUrl.includes('ipfs.io/ipfs/')) {
+                    const ipfsPath = imageUrl.split('/ipfs/')[1];
+                    imageUrl = `https://gateway.pinata.cloud/ipfs/${ipfsPath}`;
+                  }
+
+                  return {
                     name: nftData.name,
                     tokenId: nftData.tokenId,
                     chain: "cosmoshub",
                     contract: daoConfig.collection,
                     collection: collectionName,
-                    image: nftData.image,
-                    listed: false, // No marketplace on Cosmos Hub
+                    image: imageUrl,
+                    listed: false,
                     listPrice: null,
                     rarity: null,
                     traits: nftData.traits || [],
@@ -4874,20 +4667,24 @@ const _fetchCosmosHubNFTs = async (addresses) => {
                     daoStaked: true,
                     daoName: daoName,
                     daoAddress: daoConfig.DAO,
-                    sourceAddress: addresses[0], // Associate with first address for staked NFTs
+                    sourceAddress: addresses[0],
                   };
-                  stakedNFTs.push(stakedNft);
-                  // console.log(
-                  //   `[DEBUG] ✓ Successfully added staked NFT ${tokenId} from ${daoName}. Total staked so far: ${stakedNFTs.length}`,
-                  // );
+                } catch (error) {
+                  console.error(`[ERROR] ✗ Failed to fetch staked NFT ${tokenId} from ${daoName}:`, error);
+                  return null;
                 }
-              } catch (error) {
-                console.error(
-                  `[ERROR] ✗ Failed to fetch staked NFT ${tokenId} from ${daoName}:`,
-                  error,
-                );
+              })
+            );
+
+            // Wait for all limited parallel fetches
+            const stakedNFTResults = await Promise.allSettled(stakedNftPromises);
+
+            // Push fulfilled results into stakedNFTs
+            stakedNFTResults.forEach((res) => {
+              if (res.status === "fulfilled" && res.value) {
+                stakedNFTs.push(res.value);
               }
-            }
+            });
           } else {
             // console.log(`[DEBUG] No staked NFTs found for ${daoName}`);
           }
@@ -5055,46 +4852,46 @@ const _fetchCosmosHubNFTs = async (addresses) => {
             }
 
             // Fetch detailed NFT data for each token
-            for (const tokenId of tokensData.tokens) {
-              try {
-                // console.log(
-                //   `[DEBUG] Fetching NFT data for ${collectionName}/${tokenId}`,
-                // );
-                const nftData = await fetchCosmosHubSingleNFT(
-                  contractAddress,
-                  tokenId,
-                );
+            const results = await Promise.allSettled(
+              tokensData.tokens.map((tokenId) =>
+                limit(async () => {
+                  try {
+                    const nftData = await fetchCosmosHubSingleNFT(contractAddress, tokenId);
 
-                if (nftData) {
-                  const transformedNFT = {
-                    name: nftData.name,
-                    tokenId: nftData.tokenId,
-                    chain: "cosmoshub",
-                    contract: contractAddress,
-                    collection: collectionName,
-                    image: nftData.image,
-                    listed: false, // No marketplace on Cosmos Hub
-                    listPrice: null,
-                    rarity: null,
-                    traits: nftData.traits || [],
-                    floor: floorPrice,
-                    sortUsd: floorPrice.amountUsd,
-                    daoStaked: false,
-                    sourceAddress: address,
-                  };
+                    if (!nftData) return null;
 
-                  regularNFTs.push(transformedNFT);
-                  // console.log(
-                  //   `[DEBUG] ✓ Added NFT ${tokenId} from ${collectionName}`,
-                  // );
-                }
-              } catch (error) {
-                console.error(
-                  `[ERROR] Failed to fetch NFT data for ${tokenId}:`,
-                  error,
-                );
+                    return {
+                      name: nftData.name,
+                      tokenId: nftData.tokenId,
+                      chain: "cosmoshub",
+                      contract: contractAddress,
+                      collection: collectionName,
+                      image: nftData.image,
+                      listed: false, // No marketplace on Cosmos Hub
+                      listPrice: null,
+                      rarity: null,
+                      traits: nftData.traits || [],
+                      floor: floorPrice,
+                      sortUsd: floorPrice.amountUsd,
+                      daoStaked: false,
+                      sourceAddress: address,
+                    };
+                  } catch (error) {
+                    console.error(`[ERROR] Failed to fetch NFT data for ${tokenId}:`, error);
+                    return null;
+                  }
+                })
+              )
+            );
+
+            // Push successful results
+            results.forEach((res) => {
+              if (res.status === "fulfilled" && res.value) {
+                regularNFTs.push(res.value);
+                // console.log(`[DEBUG] ✓ Added NFT ${res.value.tokenId} from ${collectionName}`);
               }
-            }
+            });
+
           } else {
             // console.log(
             //   `[DEBUG] No tokens found in ${collectionName} for ${address}`,

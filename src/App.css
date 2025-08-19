@@ -37,6 +37,7 @@ body {
 
 .marketplace-links a img {
   width: 48px;
+  opacity:0.9;
   /* set fixed size */
   height: 48px;
   border-radius: 50%;
@@ -103,6 +104,7 @@ body {
 .marketplace-links a img:hover {
   transform: scale(1.05);
   filter: drop-shadow(0 4px 12px rgba(255, 107, 157, 0.5));
+  opacity:1;
 }
 
 .desktop-only {
