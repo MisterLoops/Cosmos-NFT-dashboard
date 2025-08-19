@@ -135,8 +135,8 @@ export const TOKEN_LOGOS = {
   celestia: "https://raw.githubusercontent.com/cosmos/chain-registry/master/celestia/images/celestia.png",
   noble: "https://raw.githubusercontent.com/cosmos/chain-registry/master/_non-cosmos/ethereum/images/usdc.png",
   bINJ: "https://raw.githubusercontent.com/cosmostation/chainlist/master/chain/injective/asset/bINJ.png",
-  bOSMO: "https://raw.githubusercontent.com/cosmos/chain-registry/master/osmosis/images/bOSMO.png"
-
+  bOSMO: "https://raw.githubusercontent.com/cosmos/chain-registry/master/osmosis/images/bOSMO.png",
+  LAB: "https://raw.githubusercontent.com/cosmos/chain-registry/master/osmosis/images/LAB.png"
 };
 
 export const IBC_TOKEN_MAPPINGS = {
@@ -198,6 +198,12 @@ export const IBC_TOKEN_MAPPINGS = {
 
   // bOSMO on Osmosis
   'factory/osmo1s3l0lcqc7tu0vpj6wdjz9wqpxv8nk6eraevje4fuwkyjnwuy82qsx3lduv/boneOsmo': { symbol: 'bOSMO', decimals: 6, originChain: 'bOSMO' }, // bOSMO on Osmosis
+
+  // LAB
+  'factory/osmo17fel472lgzs87ekt9dvk0zqyh5gl80sqp4sk4n/LAB': { symbol: 'LAB', decimals: 6, originChain: 'LAB' }, // LAB on Osmosis
+  'ibc/93B1AE0AD5E88242745B245064A2A51DDA1319C18176A966D5F8F9E02ED5373E': { symbol: 'LAB', decimals: 6, originChain: 'LAB' }, // LAB on Stargaze
+  'ibc/1C1C7D78176056F3ADD028904EF29BD966F7A3F01526FDBDAC3AFB376A59733D': { symbol: 'LAB', decimals: 6, originChain: 'LAB' }, // LAB on Cosmoshub
+  'ibc/C1F4520E07B9190EA08FBAA5E1D68109B9738B5B717904C62F0EE9CA89471EC0': { symbol: 'LAB', decimals: 6, originChain: 'LAB' }, // LAB on Neutron
 
   // bINJ on Injective
   'factory/inj1dxp690rd86xltejgfq2fa7f2nxtgmm5cer3hvu/bINJ': { symbol: 'bINJ', decimals: 18, originChain: 'bINJ' }, // bINJ on Injective
