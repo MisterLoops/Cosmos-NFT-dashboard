@@ -37,6 +37,7 @@ const ChainBasedPortfolio = ({ chainBalances, showTokens, tokenBalancesClosing }
             maximumFractionDigits: 2,
           })}
         </div>
+
       </div>
       <div className="balances-grid">
         {chainsWithAssets.map(([chainName, chainData]) => (
@@ -185,7 +186,7 @@ const ChainBalanceCard = ({ chainName, chainData, chainConfig }) => {
 };
 
 // Desktop Chain-Based Portfolio Summary
-const DesktopChainPortfolio = ({ chainBalances }) => {
+const DesktopChainPortfolio = ({ chainBalances, showDollarBalances, setShowDollarBalances }) => {
   const [activeTooltip, setActiveTooltip] = useState(null);
 
   // Calculate total portfolio value
@@ -233,24 +234,31 @@ const DesktopChainPortfolio = ({ chainBalances }) => {
                 onMouseLeave={() => setActiveTooltip(null)}
               >
                 {/* Default view: Logo, Chain name, Total value */}
-                <img
-                  src={TOKEN_LOGOS[chainName]}
-                  alt={chainName}
-                  className="token-summary-logo"
-                  onError={(e) => {
-                    e.target.style.display = "none";
-                  }}
-                />
-                <span className="token-summary-symbol">
-                  {chainName.toUpperCase()}
-                </span>
-                <span className="token-summary-value">
-                  ${chainData.totalValue.toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </span>
-
+                <div>
+                  <img
+                    src={TOKEN_LOGOS[chainName]}
+                    alt={chainName}
+                    className="token-summary-logo"
+                    onError={(e) => {
+                      e.target.style.display = "none";
+                    }}
+                  />
+                  <span className="token-summary-symbol">
+                    {chainName.toUpperCase()}
+                  </span>
+                </div>
+                <div>
+                  <span className="token-summary-value">
+                    {showDollarBalances ? (
+                      `$${chainData.totalValue.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}`
+                    ) : (
+                      "******"
+                    )}
+                  </span>
+                </div>
                 {/* Tooltip with native price and non-native assets */}
                 {isTooltipActive && (
                   <div className="token-summary-tooltip">
@@ -268,7 +276,7 @@ const DesktopChainPortfolio = ({ chainBalances }) => {
                           />
                           <div className="tooltip-info">
                             <span className="tooltip-symbol">
-                              {nativeAsset.symbol}
+                              1 {nativeAsset.symbol}
                             </span>
                             <span className="tooltip-price">
                               ${nativeAsset.price.toLocaleString(undefined, {
@@ -276,6 +284,7 @@ const DesktopChainPortfolio = ({ chainBalances }) => {
                                 maximumFractionDigits: nativeAsset.price < 1 ? 4 : 2,
                               })}
                             </span>
+
                           </div>
                         </div>
                       )}
@@ -292,7 +301,6 @@ const DesktopChainPortfolio = ({ chainBalances }) => {
                                   className="asset-line-logo"
                                   onError={(e) => e.target.style.display = "none"}
                                 />
-                                <span className="asset-line-symbol">{asset.symbol}</span>
                                 <span className="asset-line-amount">
                                   {(() => {
                                     const amount = asset.formattedAmount;
@@ -303,6 +311,7 @@ const DesktopChainPortfolio = ({ chainBalances }) => {
                                     return amount.toLocaleString(undefined, { maximumFractionDigits: 2 });
                                   })()}
                                 </span>
+                                <span className="asset-line-symbol">{asset.symbol}</span>
                               </div>
                               <span className="asset-line-value">
                                 ${asset.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}
@@ -319,13 +328,19 @@ const DesktopChainPortfolio = ({ chainBalances }) => {
           })}
         </div>
         <div className="token-summary-total">
-          ${totalPortfolioValue.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}
-        </div>
+          <span className="token-summary-total-clickable"  onClick={() => setShowDollarBalances(!showDollarBalances)}>
+          {showDollarBalances ? (
+            `$${totalPortfolioValue.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}`
+          ) : (
+            "*****")}
+        </span>
       </div>
+
     </div>
+    </div >
   );
 };
 
@@ -338,6 +353,7 @@ export default function App() {
   const [tokenBalancesClosing, setTokenBalancesClosing] = useState(false);
   const [tokenBalances, setTokenBalances] = useState({});
   const [chainBalances, setChainBalances] = useState({});
+  const [showDollarBalances, setShowDollarBalances] = useState(true);
   const [assetPrices, setAssetPrices] = useState({});
   const [showWalletDropdown, setShowWalletDropdown] = useState(false);
   const [walletDropdownClosing, setWalletDropdownClosing] = useState(false);
@@ -1080,30 +1096,30 @@ export default function App() {
         <div className="marketplace-links desktop-only">
           <div className="marketplace-logos">
             <a href="https://www.madscientists.io/" target="_blank" rel="noopener noreferrer" data-tooltip="Mad Scientists, OSMOSIS genesis collection on Osmosis/Stargaze">
-          <img src="/MadScientist.png" alt="Mad Scientist" className="header-character" style={{height:'70px', opacity:1}} />
-          </a>
-            
-          <a href="https://www.stargaze.zone" target="_blank" rel="noopener noreferrer" data-tooltip="Stargaze Marketplace on Stargaze">
-            <img src="/Stargaze.svg" alt="Stargaze" />
-          </a>
-          <a href="https://intergaze.xyz" target="_blank" rel="noopener noreferrer" data-tooltip="Intergaze Marketplace on Initia">
-            <img src="/Intergaze.png" alt="Intergaze" />
-          </a>
-          <a href="https://app.backbonelabs.io" target="_blank" rel="noopener noreferrer" data-tooltip="BackBoneLabs Marketplace on Osmosis and Injective">
-            <img src="/BackBoneLabs.png" alt="BackBoneLabs" />
-          </a>
-          <a href="https://app.superbolt.wtf" target="_blank" rel="noopener noreferrer" data-tooltip="Superbolt Marketplace on Neutron">
-            <img src="/Superbolt.png" alt="Superbolt" />
-          </a>
-          <a href="https://app.arkprotocol.io/" target="_blank" rel="noopener noreferrer" data-tooltip="Ark Protocol, Interchain NFT transfers">
-            <img src="/Ark.png" alt="Ark Protocol" />
-          </a>
-          <a href="https://daodao.zone" target="_blank" rel="noopener noreferrer" data-tooltip="DAODAO, DAOs on Cosmos chains">
-            <img src="/DAODAO.png" alt="DAODAO" />
-          </a>
-          <a href="https://www.stargaze.zone/m/onchain-omies/tokens" target="_blank" rel="noopener noreferrer" data-tooltip="Onchain OMies, MANTRA genesis collection on Stargaze">
-          <img src="/OMie.png" alt="Omie" className="header-character" style={{height:'70px', opacity:1}}/>
-          </a>
+              <img src="/MadScientist.png" alt="Mad Scientist" className="header-character" style={{ height: '70px', opacity: 1 }} />
+            </a>
+
+            <a href="https://www.stargaze.zone" target="_blank" rel="noopener noreferrer" data-tooltip="Stargaze Marketplace on Stargaze">
+              <img src="/Stargaze.svg" alt="Stargaze" />
+            </a>
+            <a href="https://intergaze.xyz" target="_blank" rel="noopener noreferrer" data-tooltip="Intergaze Marketplace on Initia">
+              <img src="/Intergaze.png" alt="Intergaze" />
+            </a>
+            <a href="https://app.backbonelabs.io" target="_blank" rel="noopener noreferrer" data-tooltip="BackBoneLabs Marketplace on Osmosis and Injective">
+              <img src="/BackBoneLabs.png" alt="BackBoneLabs" />
+            </a>
+            <a href="https://app.superbolt.wtf" target="_blank" rel="noopener noreferrer" data-tooltip="Superbolt Marketplace on Neutron">
+              <img src="/Superbolt.png" alt="Superbolt" />
+            </a>
+            <a href="https://app.arkprotocol.io/" target="_blank" rel="noopener noreferrer" data-tooltip="Ark Protocol, Interchain NFT transfers">
+              <img src="/Ark.png" alt="Ark Protocol" />
+            </a>
+            <a href="https://daodao.zone" target="_blank" rel="noopener noreferrer" data-tooltip="DAODAO, DAOs on Cosmos chains">
+              <img src="/DAODAO.png" alt="DAODAO" />
+            </a>
+            <a href="https://www.stargaze.zone/m/onchain-omies/tokens" target="_blank" rel="noopener noreferrer" data-tooltip="Onchain OMies, MANTRA genesis collection on Stargaze">
+              <img src="/OMie.png" alt="Omie" className="header-character" style={{ height: '70px', opacity: 1 }} />
+            </a>
           </div>
         </div>
         <div className="wallet-info">
@@ -1352,7 +1368,8 @@ export default function App() {
 
       {/* Desktop Chain-Based Portfolio */}
       {Object.keys(chainBalances).length > 0 && !isFetchingNFTs && (
-        <DesktopChainPortfolio chainBalances={chainBalances} />
+        <DesktopChainPortfolio chainBalances={chainBalances} showDollarBalances={showDollarBalances}
+          setShowDollarBalances={setShowDollarBalances} />
       )}
 
       {wallet && Object.keys(tokenBalances).length > 0 && (
@@ -1362,6 +1379,7 @@ export default function App() {
           bosmoPrice={bosmoPrice}
           initPrice={initPrice}
           binjPrice={binjPrice}
+          showDollarBalances={showDollarBalances}
           onManualAddressRemoved={handleManualAddressRemoved}
           onFetchStatusChange={(isFetching) => {
             // Only allow setting to false after initial load, never back to true

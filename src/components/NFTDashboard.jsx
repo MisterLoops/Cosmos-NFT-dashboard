@@ -72,6 +72,7 @@ export default function NFTDashboard({
   initPrice,
   binjPrice,
   onManualAddressRemoved,
+  showDollarBalances,
   onFetchStatusChange,
 }) {
   const [showDonation, setShowDonation] = useState(false);
@@ -888,9 +889,9 @@ export default function NFTDashboard({
         ) : (
           <div className="stats">
             <div className="stat" title="Floor Prices">
-              <span className="stat-value">
-                $
-                {nfts
+              <span className="stat-value"> 
+                  {showDollarBalances ? (
+            `$${nfts
                   .reduce((total, nft) => {
                     const floorUsd = parseFloat(nft.floor?.amountUsd) || 0;
                     return total + floorUsd;
@@ -898,7 +899,11 @@ export default function NFTDashboard({
                   .toLocaleString("en-US", {
                     minimumFractionDigits: 0,
                     maximumFractionDigits: 0,
-                  })}
+                  })}`
+          ) : (
+              
+                "*****"
+          )}
               </span>
               <span className="stat-label">Total Value</span>
               <span className="stat-sublabel">Floor Prices</span>

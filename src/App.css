@@ -25,6 +25,10 @@ body {
   padding-right: 2rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   position: relative;
+  background: linear-gradient(90deg, #1f1b2e, #2b2340);
+  /* background-color: rgba(255, 107, 157, 0.05); */
+  
+  
 }
 
 .marketplace-links {
@@ -37,6 +41,7 @@ body {
 
 .marketplace-links a img {
   width: 48px;
+  height:auto;
   opacity:0.9;
   /* set fixed size */
   height: 48px;
@@ -44,6 +49,7 @@ body {
   /* make round */
   object-fit: cover;
   transition: transform 0.2s ease;
+  filter: drop-shadow(0 1px 3px rgba(255, 107, 157, 0.5));
 }
 .header-character {
   /* set fixed size */
@@ -57,7 +63,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: clamp(0.15em, 3vw, 4rem);   /* ⬅️ add this */
+  gap: clamp(0.5rem, 3vw, 8rem);   /* ⬅️ add this */
 }
 .marketplace-logos a::after {
   content: attr(data-tooltip);
@@ -1642,18 +1648,74 @@ body {
   line-height: 1.2;
 }
 
-* Desktop Token Balances */ .desktop-token-balances {
+* Desktop Token Balances */ 
+.desktop-token-balances {
   position: fixed;
   padding: 0 0.5rem;
-  width: 100%;
-  margin: 0 0 1rem 0;
+  width: 90%;
   height: 5rem;
   min-height: 5rem;
   max-height: 5rem;
   display: block;
-  position: absolute;
   z-index: 10000;
+  /* Centering properties */
+  left: 50%;
+  top: 1rem;
+  transform: translateX(-50%);
 }
+
+.eye-toggle {
+  cursor: pointer;
+  padding: 0.375rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ff6b9d;
+  width: 32px;
+  height: 32px;
+  margin-left:1rem;
+}
+
+.eye-toggle:hover {
+  /* color: white; */
+  transform: translateY(-1px);
+}
+
+/* active state from your design */
+.eye-toggle.active {
+  
+  color: #ff6b9d;
+}
+
+/* 🔥 click animation */
+.eye-toggle:active {
+  transform: scale(1.15);  /* slightly bigger */
+  transition: transform 0.1s ease;
+}
+
+
+.blur-text.hidden {
+  filter: blur(10px);
+  background-color:#ff6b9d;
+  user-select: none;         
+  color: transparent;  
+  margin:0;
+} 
+
+.blur-text {
+  display: inline-block;
+  transition: opacity 0.3s ease;
+}
+
+.blur-text.hidden {
+  color: transparent;               /* hide actual text */
+  text-shadow: 0 0 8px #ff6b9d;     /* blurred ghost */
+  opacity: 0.5;                     /* still visible but unreadable */
+  user-select: none; 
+  border-radius:20px;               /* can't copy */
+}
+
 
 .token-summary {
   background: rgba(255, 255, 255, 0.02);
@@ -1661,8 +1723,12 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 8px;
   padding: 0.75rem 1rem;
-  margin-bottom: 1.5rem;
+  margin-top: 0.5rem;
   transition: all 0.2s ease;
+  width: 95%;
+  /* Centering properties */
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .token-summary:hover {
@@ -1673,8 +1739,8 @@ body {
 .token-summary-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
-  align-items: flex-start;
+  gap: 0.5rem;
+  align-items: center;
   justify-content: space-around;
   height: 100%;
   align-content: flex-start;
@@ -1686,19 +1752,24 @@ body {
   font-size: 1.2rem;
   font-weight: 600;
   color: #ff6b9d;
-  text-align: center;
-  width: auto;
-  margin-top: 0.5rem;
+  margin-top: 1rem;
   height: 1.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
+  text-align: center;
+
+}
+.token-summary-total-clickable {
+cursor:pointer;
 }
 
 .token-summary-item {
   display: flex;
-  align-items: center;
-  gap: 0.375rem;
+  flex-direction: column;      /* stack logo+name above value */
+  align-items: center;         /* center horizontally */
+  justify-content: center;     /* center vertically */
+  gap: 0.25rem;                /* spacing between logo+name and value */
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 6px;
@@ -1707,9 +1778,11 @@ body {
   position: relative;
   flex-shrink: 0;
   white-space: nowrap;
-  height: 2.25rem;
   cursor: pointer;
-  z-index: 1;
+  position:relative
+  /* z-index: 1; */
+  height: auto;                /* let content dictate height */
+  text-align: center;          /* center all text */
 }
 
 .token-summary-item:hover {
@@ -1719,6 +1792,15 @@ body {
   z-index: 10;
 }
 
+/* Logo + chain name inline, centered */
+.token-summary-item > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;               /* space between logo and name */
+}
+
+/* Logo styling */
 .token-summary-logo {
   width: 16px;
   height: 16px;
@@ -1726,20 +1808,23 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Chain name */
 .token-summary-symbol {
   font-weight: 500;
   color: rgba(255, 255, 255, 0.9);
   font-size: 0.9rem;
 }
 
+/* Dollar value / hidden stars */
 .token-summary-value {
   font-weight: 500;
   color: #ff6b9d;
   font-size: 0.8rem;
+  display: inline-block;
 }
 
 .token-summary-tooltip {
-  position: fixed;
+  position: absolute;
   top: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%) translateY(-10px);
@@ -1747,7 +1832,7 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 8px;
   padding: 1rem;
-  z-index: 10000;
+  z-index: 10;
   opacity: 0;
   visibility: hidden;
   backdrop-filter: blur(15px);
@@ -1815,7 +1900,7 @@ body {
 
 .tooltip-price {
   font-weight: 400;
-  color: #ff6b9d;
+  color: white;
   font-size: 0.85rem;
 }
 
@@ -1928,6 +2013,7 @@ body {
 
 .stat {
   display: flex;
+  position:relative;
   flex-direction: column;
   align-items: center;
   text-align: center;
@@ -1946,6 +2032,7 @@ body {
   font-weight: bold;
   color: #10b981;
   margin-bottom: 0.5rem;
+  cursor:pointer;
 }
 
 .selected-stat-label {
@@ -3342,6 +3429,7 @@ body {
   .desktop-token-balances {
     display: none;
   }
+
 
   .dashboard-header {
     flex-direction: column;
