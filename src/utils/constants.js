@@ -120,6 +120,22 @@ export const CHAIN_CONFIGS = {
     decimals: 6,
   },
 };
+export const SYMBOL_TO_LOGO = {
+"STARS": "stargaze",
+"OSMO": "osmosis",
+"ATOM": "cosmoshub",
+"INJ": "injective",
+"INIT": "initia",
+"NTRN": "neutron",
+"OM": "mantra",
+"AKT": "akash",
+"BTC": "bitcoin",
+"TIA": "celestia",
+"USDC": "noble",
+"bINJ": "bINJ",
+"bOSMO": "bOSMO",
+"LAB": "LAB"
+};
 
 // Token logos from Keplr's chain registry
 export const TOKEN_LOGOS = {
@@ -232,10 +248,11 @@ export const CHAINS = Object.entries(CHAIN_CONFIGS).map(([key, config]) => ({
 
 // Marketplace configurations
 export const MARKETPLACES = {
-  stargaze: "https://app.stargaze.zone/media",
+  stargaze: "https://app.stargaze.zone/m/",
   backbonelabs: "https://app.backbonelabs.io",
   talis: "https://talis.art",
-  intergaze: "https://intergaze.io",
+  intergaze: "https://intergaze.xyz",
+  superbolt: "https://app.superbolt.wtf/browse/"
 };
 
 // Pagination configuration
