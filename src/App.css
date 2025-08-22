@@ -181,9 +181,9 @@ body {
 
 .token-balances {
   position: absolute;
-  top: 6.6rem;
-  left: 2rem;
-  right: 2rem;
+  top: 5.4rem;
+  left: 0.5rem;
+  right: 0.5rem;
   background: #1e1e2f;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -273,8 +273,8 @@ body {
 }
 
 .balance-card {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(30, 30, 47, 0.95);
+  border: 1px solid rgba(16, 185, 129, 0.5);
   border-radius: 16px;
   padding: 1.25rem;
   transition: all 0.3s ease;
@@ -283,9 +283,9 @@ body {
 
 .balance-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-  border-color: rgba(255, 107, 157, 0.3);
-  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5); /* green glow */
+  border-color: rgba(16, 185, 129, 0.5);           /* green border */
+  background: rgba(30, 30, 47, 0.95);/* subtle green tint */
 }
 
 .balance-header {
@@ -2236,8 +2236,8 @@ body {
 }
 
 .token-summary-item:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 107, 157, 0.4);
+  background: rgba(16, 185, 129, 0.08); 
+  border: 1px solid rgba(16, 185, 129, 0.5);
   transform: translateY(-1px);
   z-index: 10;
 }
@@ -2282,6 +2282,8 @@ body {
   background: rgba(30, 30, 47, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 8px;
+  backdrop-filter: blur(15px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   padding: 1rem;
   z-index: 9999;
   opacity: 0;
@@ -4093,10 +4095,12 @@ body {
   }
 
   .balance-card {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 16px;
-    padding: 1.25rem;
+    background: rgba(30, 30, 47, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    backdrop-filter: blur(15px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    padding: 0.5rem;
     transition: all 0.3s ease;
     backdrop-filter: blur(5px);
     overflow: hidden;
@@ -4113,22 +4117,28 @@ body {
   .chain-tooltip.nft-offers-tooltip {
     width: 100%;
     /* stretch full card width */
-    max-width: none;
+    max-width: 100%;
     /* remove any implicit max width */
     background: rgba(30, 30, 47, 0.95);
     border: none;
     /* remove border */
     border-radius: 8px;
     /* optional soft rounding */
-    padding: 1rem;
+    padding: 0.5rem;
     /* more breathing room */
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    /* box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); */
   }
 
   .balance-card.tooltip-active .chain-tooltip {
-    max-height: 500px;
+    max-height: 100%;
+    background: rgba(30, 30, 47, 0.95);
+    /* border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px; */
+    backdrop-filter: blur(15px);
+    /* box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5); */
     /* big enough to fit content */
     opacity: 1;
+
   }
 
   .chain-tooltip::after {

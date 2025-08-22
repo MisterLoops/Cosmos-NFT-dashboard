@@ -515,7 +515,7 @@ const DesktopChainPortfolio = ({ chainBalances, showDollarBalances, setShowDolla
             </svg>
           </div>
           <div className="offers-expanded-content">
-            <h4>Active NFT Offers</h4>
+            <h4>Your active NFT Offers</h4>
 
             {/* Platform breakdown */}
             <div className="offers-platforms">
