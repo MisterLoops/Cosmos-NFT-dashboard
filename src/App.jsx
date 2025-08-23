@@ -1741,6 +1741,7 @@ export default function App() {
     setShowTokens(false);
     setTokenBalances({});
     setChainBalances({});
+    setNftOffers({});
     setAssetPrices({});
     setTokenPrices({});
     setShowWalletDropdown(false);
