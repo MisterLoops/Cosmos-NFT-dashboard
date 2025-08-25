@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback } from "react";
 import { ExternalLink, Star } from "lucide-react";
 import { CHAIN_CONFIGS } from "../utils/constants.js";
 
-export default function NFTCard({ nft, marketplaceLink, viewMode }) {
+export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
   const chainColors = {
     stargaze: "#ff6b9d",
     osmosis: "#750BBB",
@@ -39,7 +39,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode }) {
           observer.disconnect();
         }
       },
-      { 
+      {
         threshold: 0.05, // Start loading earlier
         rootMargin: '100px' // Load when 100px away from viewport
       }
@@ -172,8 +172,8 @@ export default function NFTCard({ nft, marketplaceLink, viewMode }) {
     if (!amount) return "0";
     if (amount > 1) {
       return parseFloat(amount).toLocaleString(undefined, {
-      maximumFractionDigits: 2,
-    });
+        maximumFractionDigits: 2,
+      });
     }
     return parseFloat(amount).toLocaleString(undefined, {
       maximumFractionDigits: decimals,
@@ -196,7 +196,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode }) {
   }
 
   return (
-    <div 
+    <div
       className={`nft-card ${viewMode}`}
       onClick={() => {
         // On mobile, make the entire card clickable
@@ -380,7 +380,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode }) {
             <div className="traits-content">
               <div className="traits-header">
                 <h4>Traits</h4>
-                <button 
+                <button
                   className="traits-close-btn"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -389,7 +389,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode }) {
                   aria-label="Close traits"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="m18 6-12 12M6 6l12 12"/>
+                    <path d="m18 6-12 12M6 6l12 12" />
                   </svg>
                 </button>
               </div>
@@ -408,23 +408,67 @@ export default function NFTCard({ nft, marketplaceLink, viewMode }) {
           </div>
         )}
 
-        {viewMode === 'grid' && nft.floor && nft.floor.amount > 0 && (
+        {viewMode === 'grid' && (
           <div className="nft-floor">
             <div className="floor-info">
               <span className="floor-label">
-                {nft.floor.isStargaze ? "Floor (Stargaze):" : "Floor:"}
+                {priceMode === 'floor'
+                  ? (nft.floor?.isStargaze ? "Floor (Stargaze):" : "Floor:")
+                  : (nft.offerFromStargaze ? "Highest Offer (Stargaze):" : "Highest Offer:")
+                }
               </span>
+
               <span className="floor-amount">
-                {formatPrice(nft.floor.amount)} {nft.floor.symbol}
+                {priceMode === 'floor'
+                  ? (nft.floor?.amount > 0
+                    ? `${formatPrice(nft.floor.amount)} ${nft.floor.symbol}`
+                    : "Not Specified")
+                  : (nft.highestOffer?.amount > 0
+                    ? `${formatPrice(nft.highestOffer.amount)} ${nft.highestOffer.symbol}`
+                    : "Not Specified")
+                }
               </span>
-              {nft.floor.amountUsd > 0 && (
-                <span className="floor-usd">
-                  (${formatPriceUsd(nft.floor.amountUsd)})
+
+              {((priceMode === 'floor' && nft.floor?.amountUsd > 0) ||
+                (priceMode === 'offers' && nft.highestOffer?.amountUsd > 0)) && (
+                  <span className="floor-usd">
+                    (${formatPriceUsd(
+                      priceMode === 'floor'
+                        ? nft.floor.amountUsd
+                        : nft.highestOffer.amountUsd
+                    )})
+                  </span>
+                )}
+            </div>
+
+            <div className="last-sale-info">
+              <span className="last-sale-label">Last sale: </span>
+              {nft.lastSalePriceSpecified ? (
+                nft.lastSalePrice ? (
+                  <>
+                    <span className="last-sale-amount">
+                      {formatPrice(nft.lastSalePrice.amount)} {nft.lastSalePrice.symbol}{" "}
+                    </span>
+                    {nft.lastSalePrice.amountUsd > 0 && (
+                      <span className="last-sale-usd">
+                        (${formatPriceUsd(nft.lastSalePrice.amountUsd)})
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <span className="last-sale-amount">
+                    Never Sold
+                  </span>
+                )
+              ) : (
+                <span className="last-sale-amount">
+                  Not Specified
                 </span>
               )}
             </div>
           </div>
         )}
+
       </div>
     </div>
   );

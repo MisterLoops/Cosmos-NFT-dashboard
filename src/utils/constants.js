@@ -14,6 +14,7 @@ export const API_ENDPOINTS = {
   STARGAZE_INDEXER: "https://rest.stargaze-apis.com",
   OSMOSIS_LCD: "https://lcd-osmosis.keplr.app",
   COSMOS_HUB_LCD: "https://lcd-cosmoshub.keplr.app",
+  INJECTIVE_LCD: "https://lcd-injective.keplr.app",
   BOSMO_API: "https://warlock.backbonelabs.io/api/v1/references/token/offchain-oracle/bosmo",
   BINJ_API: "https://warlock.backbonelabs.io/api/v1/references/token/offchain-oracle/binj",
   LLAMA_FI_INITIA: "https://coins.llama.fi/prices/current/coingecko:initia",

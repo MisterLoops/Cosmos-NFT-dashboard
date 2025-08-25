@@ -71,6 +71,7 @@ export default function NFTDashboard({
   bosmoPrice,
   initPrice,
   binjPrice,
+  ntrnPrice,
   onManualAddressRemoved,
   showDollarBalances,
   onFetchStatusChange,
@@ -79,6 +80,7 @@ export default function NFTDashboard({
   const [copiedChain, setCopiedChain] = useState(null);
   const [nfts, setNfts] = useState([]);
   const [filteredNfts, setFilteredNfts] = useState([]);
+  const [priceMode, setPriceMode] = useState("floor");
   const [viewMode, setViewMode] = useState("grid");
   const [showFilters, setShowFilters] = useState(false);
   const [filtersClosing, setFiltersClosing] = useState(false);
@@ -106,8 +108,6 @@ export default function NFTDashboard({
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(PAGINATION_CONFIG.ITEMS_PER_PAGE);
   const [totalNFTs, setTotalNFTs] = useState(0);
-
-
 
   // Track which addresses have been fetched to avoid refetching
   const [fetchedAddresses, setFetchedAddresses] = useState(new Set());
@@ -257,14 +257,43 @@ export default function NFTDashboard({
     switch (sortType) {
       case "price-desc":
         return sorted.sort((a, b) => {
-          const priceA = parseFloat(a.floor?.amountUsd) || 0;
-          const priceB = parseFloat(b.floor?.amountUsd) || 0;
+          let priceA, priceB;
+
+          if (priceMode === 'offers') {
+            // For offers mode, prioritize NFTs with offers, then sort by offer amount
+            const hasOfferA = a.hasOffer && a.highestOffer?.amountUsd;
+            const hasOfferB = b.hasOffer && b.highestOffer?.amountUsd;
+
+            if (hasOfferA && !hasOfferB) return -1;
+            if (!hasOfferA && hasOfferB) return 1;
+
+            priceA = hasOfferA ? parseFloat(a.highestOffer.amountUsd) : 0;
+            priceB = hasOfferB ? parseFloat(b.highestOffer.amountUsd) : 0;
+          } else {
+            priceA = parseFloat(a.floor?.amountUsd) || 0;
+            priceB = parseFloat(b.floor?.amountUsd) || 0;
+          }
+
           return priceB - priceA;
         });
       case "price-asc":
         return sorted.sort((a, b) => {
-          const priceA = parseFloat(a.floor?.amountUsd) || 0;
-          const priceB = parseFloat(b.floor?.amountUsd) || 0;
+          let priceA, priceB;
+
+          if (priceMode === 'offers') {
+            const hasOfferA = a.hasOffer && a.highestOffer?.amountUsd;
+            const hasOfferB = b.hasOffer && b.highestOffer?.amountUsd;
+
+            if (hasOfferA && !hasOfferB) return -1;
+            if (!hasOfferA && hasOfferB) return 1;
+
+            priceA = hasOfferA ? parseFloat(a.highestOffer.amountUsd) : 0;
+            priceB = hasOfferB ? parseFloat(b.highestOffer.amountUsd) : 0;
+          } else {
+            priceA = parseFloat(a.floor?.amountUsd) || 0;
+            priceB = parseFloat(b.floor?.amountUsd) || 0;
+          }
+
           return priceA - priceB;
         });
       case "rarity-asc":
@@ -680,12 +709,26 @@ export default function NFTDashboard({
         // );
 
         try {
+
           const neutronNFTs = await fetchNeutronNFTs(validAddresses);
-          // Transform NFTs to include source address for tracking and process images
-          const transformedNFTs = neutronNFTs.map((nft) => ({
-            ...nft,
-            image: processImageUrl(nft.image), // Use processImageUrl here
-          }));
+          const transformedNFTs = neutronNFTs.map((nft) => {
+            let highestOfferUsd = nft.highestOffer?.amountUsd || 0;
+
+            if (nft.highestOffer && nft.highestOffer.amount && ntrnPrice) {
+              highestOfferUsd = (nft.highestOffer.amount * ntrnPrice).toFixed(2);
+            }
+
+            return {
+              ...nft,
+              image: processImageUrl(nft.image), // normalize image
+              highestOffer: nft.highestOffer
+                ? {
+                  ...nft.highestOffer,
+                  amountUsd: highestOfferUsd,
+                }
+                : null,
+            };
+          });
 
           // console.log(
           //   `[DEBUG] Found ${transformedNFTs.length} NFTs for neutron`,
@@ -767,12 +810,12 @@ export default function NFTDashboard({
     };
   }, [showSortMenu]);
 
-  // Update filtered NFTs immediately when main NFT list or sort changes
+  // Update filtered NFTs immediately when main NFT list, sort, or price mode changes
   useEffect(() => {
     const sortedNfts = sortNFTs(nfts, sortBy);
     setFilteredNfts([...sortedNfts]);
     applyFilters();
-  }, [nfts, sortBy]);
+  }, [nfts, sortBy, priceMode]);
 
   const applyFilters = () => {
     let filtered = sortNFTs([...nfts], sortBy);
@@ -848,7 +891,6 @@ export default function NFTDashboard({
   const goToNextPage = (shouldScroll = false) => goToPage(currentPage + 1, shouldScroll);
   const goToPreviousPage = (shouldScroll = false) => goToPage(currentPage - 1, shouldScroll);
 
-
   return (
     <div className="nft-dashboard">
       {!hasLoadedNFTs && (
@@ -888,25 +930,30 @@ export default function NFTDashboard({
           </div>
         ) : (
           <div className="stats">
-            <div className="stat" title="Floor Prices">
-              <span className="stat-value"> 
-                  {showDollarBalances ? (
-            `$${nfts
-                  .reduce((total, nft) => {
-                    const floorUsd = parseFloat(nft.floor?.amountUsd) || 0;
-                    return total + floorUsd;
-                  }, 0)
-                  .toLocaleString("en-US", {
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0,
-                  })}`
-          ) : (
-              
-                "*****"
-          )}
+            <div className="stat" title={priceMode === 'offers' ? 'Highest Offers' : 'Floor Prices'}>
+              <span className="stat-value">
+                {showDollarBalances ? (
+                  `$${nfts
+                    .reduce((total, nft) => {
+                      let price = 0;
+                      if (priceMode === 'offers' && nft.hasOffer && nft.highestOffer?.amountUsd) {
+                        price = parseFloat(nft.highestOffer.amountUsd);
+                      } else if (priceMode === 'floor') {
+                        price = parseFloat(nft.floor?.amountUsd) || 0;
+                      }
+                      return total + price;
+                    }, 0)
+                    .toLocaleString("en-US", {
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 0,
+                    })}`
+                ) : (
+
+                  "*****"
+                )}
               </span>
               <span className="stat-label">Total Value</span>
-              <span className="stat-sublabel">Floor Prices</span>
+              <span className="stat-sublabel">{priceMode === 'offers' ? 'Highest Offers' : 'Floor Prices'}</span>
             </div>
             <div className="stat">
               <span className="stat-value">
@@ -925,6 +972,28 @@ export default function NFTDashboard({
                 {new Set(nfts.map((n) => n.collection)).size}
               </span>
               <span className="stat-label">Collections</span>
+            </div>
+          </div>
+        )}
+
+        {/* Price Mode Slider */}
+        {hasLoadedNFTs && (
+          <div className="price-mode-slider">
+            <div className="slider-container">
+              <span className={`slider-label ${priceMode === 'floor' ? 'active' : ''}`}>
+                Floor Prices
+              </span>
+              <button
+                className="slider-toggle"
+                onClick={() => setPriceMode(priceMode === 'floor' ? 'offers' : 'floor')}
+              >
+                <div className={`slider-track ${priceMode === 'offers' ? 'offers-mode' : 'floor-mode'}`}>
+                  <div className="slider-thumb"></div>
+                </div>
+              </button>
+              <span className={`slider-label ${priceMode === 'offers' ? 'active' : ''}`}>
+                Highest Offers
+              </span>
             </div>
           </div>
         )}
@@ -1118,6 +1187,7 @@ export default function NFTDashboard({
               filters={filters}
               setFilters={setFilters}
               nfts={nfts}
+              priceMode={priceMode}
             />
           </div>
         )}
@@ -1194,11 +1264,13 @@ export default function NFTDashboard({
             </div>)}
           <div className={`nft-grid ${viewMode}`}>
             {paginatedNFTs.map((nft, index) => (
+              // console.log(nft),
               <NFTCard
                 key={`${nft.contract}-${nft.tokenId}`}
                 nft={nft}
                 marketplaceLink={getMarketplaceLink(nft)}
                 viewMode={viewMode}
+                priceMode={priceMode}
               />
             ))}
           </div>

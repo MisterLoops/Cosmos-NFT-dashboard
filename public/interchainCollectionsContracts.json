@@ -1,0 +1,26 @@
+{
+  "Collections": {
+    "HUBbits": {
+      "cosmoshub-4": "cosmos18m56zl5rzw2fs6fv97zu0yg8zek30fytj0lp083rzmnm7ftead3qgzsgyt",
+      "stargaze-1": "stars16z4gyrlek2sgspatqs0q7yueltrnqha3ssvsyv7zwndupz4d00eshfssda"
+    },
+    "Ark Interchain Passport": {
+      "cosmoshub-4": "cosmos156vt4gxqf27hjr7yyyk57qw4pyzv3nda0yf0uxc4pjrxaequkl2q4dkwms"
+    },
+    "Early Acces Pass": {
+      "cosmoshub-4": "cosmos1x8fsanacmzvgq24x4sretn6j23rtsz2ucfwuy8qzpuhm5yhap36qtrs84a"
+    },
+    "Mad Scientists" : {
+      "osmosis-1": "osmo16pwjh09s662a0j2ssmzauyvkvagjwd9kpwc0mtamlwr8dtznlhfqcweap6",
+      "stargaze-1": "stars1v8avajk64z7pppeu45ce6vv8wuxmwacdff484lqvv0vnka0cwgdqdk64sf"
+    },
+    "The Architects": {
+      "osmosis-1": "osmo1hpl408y6pt8xp4qqgl2xe6un9keqd7kmem9zw0clcfc8mjmpxswq0khlgl",
+      "stargaze-1": "stars1f728w7xk5y7kcgyszvrffcpgfc0ekumwqrfq4yf420kjjt2lgk3s0faade"
+    },
+    "Galactic Mining Club": {
+      "osmosis-1": "osmo1zr3ngejx502dn7jeqeqk4aaegtra2wdhsxjc6a6zts7cawp2q0esjp29mc",
+      "stargaze-1": "stars1v69drpttpzc2dxa904elxw905ar27jyy8s6l0dryrvfmyx8qqh9qv6wtdy"
+    }
+  }
+}

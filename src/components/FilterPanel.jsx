@@ -2,37 +2,40 @@
 import React, { useState } from 'react';
 import { X, ChevronDown, ChevronUp, Search } from 'lucide-react';
 
-export default function FilterPanel({ filters, setFilters, nfts }) {
+export default function FilterPanel({ filters, setFilters, nfts, priceMode }) {
   const [showAllCollections, setShowAllCollections] = useState(false);
   const [showCollectionSearch, setShowCollectionSearch] = useState(false);
   const [collectionSearchTerm, setCollectionSearchTerm] = useState('');
-  
+
   const availableChains = [...new Set(nfts.map(nft => nft.chain))];
-  
+
   // Sort collections by total USD value (descending)
   const availableCollections = [...new Set(nfts.map(nft => nft.collection))]
     .map(collection => {
       const collectionNfts = nfts.filter(nft => nft.collection === collection);
       const totalValue = collectionNfts.reduce((total, nft) => {
-        const floorUsd = parseFloat(nft.floor?.amountUsd) || 0;
-        return total + floorUsd;
+        const usd = priceMode === 'offers'
+          ? parseFloat(nft.highestOffer?.amountUsd) || 0
+          : parseFloat(nft.floor?.amountUsd) || 0;
+        return total + usd;
       }, 0);
       return { name: collection, totalValue };
     })
+
     .sort((a, b) => b.totalValue - a.totalValue)
     .map(item => item.name);
 
   // Filter collections based on search term
   const filteredCollections = collectionSearchTerm
     ? availableCollections.filter(collection =>
-        collection.toLowerCase().includes(collectionSearchTerm.toLowerCase())
-      )
+      collection.toLowerCase().includes(collectionSearchTerm.toLowerCase())
+    )
     : availableCollections;
 
   // Helper function to calculate NFT count and USD value for a category
   const getFilterStats = (filterType, filterValue) => {
     let filteredNfts = [];
-    
+
     if (filterType === 'chain') {
       filteredNfts = nfts.filter(nft => nft.chain === filterValue);
     } else if (filterType === 'collection') {
@@ -46,13 +49,17 @@ export default function FilterPanel({ filters, setFilters, nfts }) {
     }
 
     const count = filteredNfts.length;
+
     const totalValue = filteredNfts.reduce((total, nft) => {
-      const floorUsd = parseFloat(nft.floor?.amountUsd) || 0;
-      return total + floorUsd;
+      const usd = priceMode === 'offers'
+        ? parseFloat(nft.highestOffer?.amountUsd) || 0
+        : parseFloat(nft.floor?.amountUsd) || 0;
+      return total + usd;
     }, 0);
 
     return { count, totalValue };
   };
+
 
   // Helper function to format USD value
   const formatUSD = (value) => {
@@ -72,7 +79,7 @@ export default function FilterPanel({ filters, setFilters, nfts }) {
     const newChains = filters.chains.includes(chain)
       ? filters.chains.filter(c => c !== chain)
       : [...filters.chains, chain];
-    
+
     setFilters({ ...filters, chains: newChains });
   };
 
@@ -80,7 +87,7 @@ export default function FilterPanel({ filters, setFilters, nfts }) {
     const newCollections = filters.collections.includes(collection)
       ? filters.collections.filter(c => c !== collection)
       : [...filters.collections, collection];
-    
+
     setFilters({ ...filters, collections: newCollections });
   };
 
@@ -95,17 +102,17 @@ export default function FilterPanel({ filters, setFilters, nfts }) {
     });
   };
 
-  const hasActiveFilters = filters.chains.length > 0 || 
-                          filters.collections.length > 0 || 
-                          filters.listed || 
-                          filters.staked ||
-                          (filters.addresses && filters.addresses.length > 0);
+  const hasActiveFilters = filters.chains.length > 0 ||
+    filters.collections.length > 0 ||
+    filters.listed ||
+    filters.staked ||
+    (filters.addresses && filters.addresses.length > 0);
 
   return (
     <div className="filter-panel">
       <div className="mobile-filter-header">
         <h3 className="mobile-filter-title">Filters</h3>
-        <button 
+        <button
           onClick={() => window.dispatchEvent(new CustomEvent('closeMobileFilters'))}
           className="mobile-filter-close"
           aria-label="Close filters"
@@ -113,7 +120,7 @@ export default function FilterPanel({ filters, setFilters, nfts }) {
           <X size={20} />
         </button>
       </div>
-      
+
       <div className="filter-header">
         <h3>Filters</h3>
         {hasActiveFilters && (
@@ -122,7 +129,7 @@ export default function FilterPanel({ filters, setFilters, nfts }) {
           </button>
         )}
       </div>
-      
+
       {hasActiveFilters && (
         <div className="filter-selected-stats">
           <div className="filter-selected-stats-title">SELECTED</div>
@@ -132,7 +139,7 @@ export default function FilterPanel({ filters, setFilters, nfts }) {
                 ${(() => {
                   // Calculate total value of filtered NFTs
                   let filteredNfts = nfts;
-                  
+
                   if (filters.chains.length > 0) {
                     filteredNfts = filteredNfts.filter(nft => filters.chains.includes(nft.chain));
                   }
@@ -148,11 +155,14 @@ export default function FilterPanel({ filters, setFilters, nfts }) {
                   if (filters.addresses && filters.addresses.length > 0) {
                     filteredNfts = filteredNfts.filter(nft => filters.addresses.includes(nft.sourceAddress));
                   }
-                  
+
                   return filteredNfts.reduce((total, nft) => {
-                    const floorUsd = parseFloat(nft.floor?.amountUsd) || 0;
-                    return total + floorUsd;
+                    const usd = priceMode === 'offers'
+                      ? parseFloat(nft.highestOffer?.amountUsd) || 0
+                      : parseFloat(nft.floor?.amountUsd) || 0;
+                    return total + usd;
                   }, 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
                 })()}
               </span>
               <span className="filter-selected-stat-label">Value</span>
@@ -162,7 +172,7 @@ export default function FilterPanel({ filters, setFilters, nfts }) {
                 {(() => {
                   // Calculate total count of filtered NFTs
                   let filteredNfts = nfts;
-                  
+
                   if (filters.chains.length > 0) {
                     filteredNfts = filteredNfts.filter(nft => filters.chains.includes(nft.chain));
                   }
@@ -178,7 +188,7 @@ export default function FilterPanel({ filters, setFilters, nfts }) {
                   if (filters.addresses && filters.addresses.length > 0) {
                     filteredNfts = filteredNfts.filter(nft => filters.addresses.includes(nft.sourceAddress));
                   }
-                  
+
                   return filteredNfts.length;
                 })()}
               </span>
@@ -189,7 +199,7 @@ export default function FilterPanel({ filters, setFilters, nfts }) {
                 {(() => {
                   // Calculate unique collections count
                   let filteredNfts = nfts;
-                  
+
                   if (filters.chains.length > 0) {
                     filteredNfts = filteredNfts.filter(nft => filters.chains.includes(nft.chain));
                   }
@@ -205,7 +215,7 @@ export default function FilterPanel({ filters, setFilters, nfts }) {
                   if (filters.addresses && filters.addresses.length > 0) {
                     filteredNfts = filteredNfts.filter(nft => filters.addresses.includes(nft.sourceAddress));
                   }
-                  
+
                   return new Set(filteredNfts.map(n => n.collection)).size;
                 })()}
               </span>
@@ -214,7 +224,7 @@ export default function FilterPanel({ filters, setFilters, nfts }) {
           </div>
         </div>
       )}
-      
+
       <div className="filter-section">
         <h4>Status</h4>
         <div className="filter-options">
@@ -235,7 +245,7 @@ export default function FilterPanel({ filters, setFilters, nfts }) {
               </span>
             </div>
           </label>
-          
+
           <label className="filter-checkbox">
             <input
               type="checkbox"
@@ -255,7 +265,7 @@ export default function FilterPanel({ filters, setFilters, nfts }) {
           </label>
         </div>
       </div>
-      
+
       <div className="filter-section">
         <h4>Chains</h4>
         <div className="filter-options">
@@ -278,13 +288,13 @@ export default function FilterPanel({ filters, setFilters, nfts }) {
           })}
         </div>
       </div>
-      
+
       <div className="filter-section">
         <div className="collections-header">
           <h4>Collections</h4>
           <div className="collections-header-actions">
             {showAllCollections && filteredCollections.length > 5 && (
-              <button 
+              <button
                 className="show-less-btn-header"
                 onClick={() => setShowAllCollections(false)}
                 title="Show less collections"
@@ -302,7 +312,7 @@ export default function FilterPanel({ filters, setFilters, nfts }) {
             </button>
           </div>
         </div>
-        
+
         {showCollectionSearch && (
           <div className="collection-search">
             <input
@@ -323,7 +333,7 @@ export default function FilterPanel({ filters, setFilters, nfts }) {
             )}
           </div>
         )}
-        
+
         <div className="filter-options">
           {filteredCollections.slice(0, 5).map(collection => {
             const stats = getFilterStats('collection', collection);
@@ -342,7 +352,7 @@ export default function FilterPanel({ filters, setFilters, nfts }) {
               </label>
             );
           })}
-          
+
           {showAllCollections && filteredCollections.slice(5).map(collection => {
             const stats = getFilterStats('collection', collection);
             return (
@@ -360,9 +370,9 @@ export default function FilterPanel({ filters, setFilters, nfts }) {
               </label>
             );
           })}
-          
+
           {filteredCollections.length > 5 && (
-            <button 
+            <button
               className="show-more-btn"
               onClick={() => setShowAllCollections(!showAllCollections)}
             >
@@ -381,21 +391,21 @@ export default function FilterPanel({ filters, setFilters, nfts }) {
           )}
         </div>
       </div>
-      
+
       <div className="filter-section">
         <h4>Addresses</h4>
         <div className="filter-options">
           {(() => {
             // Get unique source addresses from NFTs
             const sourceAddresses = [...new Set(nfts.map(nft => nft.sourceAddress).filter(Boolean))];
-            
+
             return sourceAddresses.map(address => {
               const stats = getFilterStats('address', address);
               // Truncate address for display (show first 6 and last 4 characters)
-              const displayAddress = address.length > 16 
+              const displayAddress = address.length > 16
                 ? `${address.slice(0, 6)}...${address.slice(-4)}`
                 : address;
-              
+
               return (
                 <label key={address} className="filter-checkbox">
                   <input
