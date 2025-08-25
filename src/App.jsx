@@ -1763,60 +1763,67 @@ export default function App() {
     setWalletDropdownClosing(false);
   };
 
-  const isAddressValid = (address, chainPrefix) => {
-    // Handle special case for Neutron addresses which use "neutron1" prefix
-    const expectedPrefix = chainPrefix === "neutron" ? "neutron1" : chainPrefix;
+const isAddressValid = (address, chainPrefix) => {
+  // Handle special case for Neutron addresses which use "neutron1" prefix
+  const expectedPrefix = chainPrefix === "neutron" ? "neutron1" : chainPrefix;
 
-    // Basic check for prefix and length (typical length is 39-65 characters for Neutron)
-    const minLength = chainPrefix === "neutron" ? 39 : 39;
-    const maxLength = chainPrefix === "neutron" ? 65 : 45;
+  // Basic check for prefix and length (typical length is 39-65 characters for Neutron)
+  const minLength = chainPrefix === "neutron" ? 39 : 39;
+  const maxLength = chainPrefix === "neutron" ? 70 : 45;
 
-    return (
-      address.startsWith(expectedPrefix) &&
-      address.length >= minLength &&
-      address.length <= maxLength
-    );
-  };
+  return (
+    address.startsWith(expectedPrefix) &&
+    address.length >= minLength &&
+    address.length <= maxLength
+  );
+};
 
-  const handleAddManualAddress = () => {
-    if (!manualAddress.trim()) {
-      setError("Please enter an address.");
-      return;
-    }
+const handleAddManualAddress = () => {
+  if (!manualAddress.trim()) {
+    setError("Please enter an address.");
+    return;
+  }
 
-    if (!selectedChain) {
-      setError("Please select a chain.");
-      return;
-    }
+  if (!selectedChain) {
+    setError("Please select a chain.");
+    return;
+  }
 
-    const prefix = CHAIN_CONFIGS[selectedChain]?.prefix;
-    const trimmedAddress = manualAddress.trim();
+  const prefix = CHAIN_CONFIGS[selectedChain]?.prefix;
+  const trimmedAddress = manualAddress.trim();
 
-    if (!prefix) {
-      setError(`Chain configuration not found for ${selectedChain}.`);
-      return;
-    }
+  if (!prefix) {
+    setError(`Chain configuration not found for ${selectedChain}.`);
+    return;
+  }
 
-    if (!isAddressValid(trimmedAddress, prefix)) {
+  if (!isAddressValid(trimmedAddress, prefix)) {
+    // Handle special error message for Neutron
+    if (selectedChain === "neutron") {
+      setError(
+        `Invalid address format for NEUTRON. Address should start with "neutron1" and be 39-65 characters long.`,
+      );
+    } else {
       setError(
         `Invalid address format for ${selectedChain.toUpperCase()}. Address should start with "${prefix}" and be 39-45 characters long.`,
       );
-      return;
     }
+    return;
+  }
 
-    // Clear any previous errors
-    setError("");
+  // Clear any previous errors
+  setError("");
 
-    // Add the valid address
-    setAddressLoading((prev) => ({ ...prev, [selectedChain]: true }));
-    setManualAddresses((prev) => ({
-      ...prev,
-      [selectedChain]: trimmedAddress,
-    }));
-    setManualAddress("");
-    setShowManualAddressForm(false);
-    setShowWalletDropdown(false);
-  };
+  // Add the valid address
+  setAddressLoading((prev) => ({ ...prev, [selectedChain]: true }));
+  setManualAddresses((prev) => ({
+    ...prev,
+    [selectedChain]: trimmedAddress,
+  }));
+  setManualAddress("");
+  setShowManualAddressForm(false);
+  setShowWalletDropdown(false);
+};
 
   const handleRemovalConfirmation = (chain) => {
     setConfirmingRemoval(chain);
@@ -2252,6 +2259,7 @@ export default function App() {
           bosmoPrice={bosmoPrice}
           initPrice={initPrice}
           binjPrice={binjPrice}
+          ntrnPrice={assetPrices["NTRN"] || 0}
           showDollarBalances={showDollarBalances}
           onManualAddressRemoved={handleManualAddressRemoved}
           onFetchStatusChange={(isFetching) => {
