@@ -604,7 +604,6 @@ const DesktopChainPortfolio = ({ chainBalances, showDollarBalances, setShowDolla
             boxShadow: "0 8px 32px rgba(0, 0, 0, 0.5)",
             minWidth: "200px",
             whiteSpace: "nowrap",
-            padding: "1rem"
           }}
         >
           {(() => {
