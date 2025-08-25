@@ -18,7 +18,7 @@ import {
 // Enhanced Portfolio Display Component for Mobile
 const ChainBasedPortfolio = ({ chainBalances, showTokens, tokenBalancesClosing, nftOffers }) => {
   const [showOffersCard, setShowOffersCard] = useState(false);
-  
+
   // Calculate total portfolio value
   const totalPortfolioValue = Object.values(chainBalances).reduce(
     (total, chainData) => total + (chainData.totalValue || 0),
@@ -50,7 +50,7 @@ const ChainBasedPortfolio = ({ chainBalances, showTokens, tokenBalancesClosing, 
       {/* Offers Tab Button */}
       {totalOffersValue > 0 && (
         <div className="offers-tab-container">
-          <button 
+          <button
             className={`offers-tab-btn ${showOffersCard ? 'active' : ''}`}
             onClick={() => setShowOffersCard(!showOffersCard)}
           >
@@ -61,12 +61,12 @@ const ChainBasedPortfolio = ({ chainBalances, showTokens, tokenBalancesClosing, 
                 maximumFractionDigits: 2,
               })} in offers
             </span>
-            <svg 
-              width="16" 
-              height="16" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              xmlns="http://www.w3.org/2000/svg" 
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
               className={`offers-tab-arrow ${showOffersCard ? 'rotated' : ''}`}
             >
               <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -187,7 +187,7 @@ const NFTOffersCard = ({ nftOffers, totalOffersValue }) => {
                     })}
                   </span>
                 </div>
-                
+
                 {/* Individual offers */}
                 <div className="platform-offers-mobile">
                   {platformData.offers.map((offer, offerIndex) => (
@@ -1049,9 +1049,6 @@ export default function App() {
   };
 
   async function fetchAllOffers(addresses, allAssetPrices) {
-    console.log('🚀 Starting parallel fetches for NFT offers...');
-    console.log('📍 Addresses:', addresses);
-    console.log('💰 Asset Prices:', allAssetPrices);
 
     // Assuming these constants are defined elsewhere
     const REQUEST_CONFIG = {
@@ -1131,7 +1128,6 @@ export default function App() {
 
     // Fetch 1: Stargaze Wallet Name
     const fetchWalletName = async () => {
-      console.log('🔍 Fetch 1: Getting wallet name from Stargaze...');
       try {
         const response = await fetchWithRetry(API_ENDPOINTS.STARGAZE_GRAPHQL, {
           method: 'POST',
@@ -1149,7 +1145,6 @@ export default function App() {
         }, false); // Direct fetch, no proxy needed for Stargaze
 
         const data = await response.json();
-        console.log('✅ Fetch 1 response:', data);
 
         if (data.data?.wallet?.name?.name) {
           setWallet(prev => ({ ...prev, name: data.data.wallet.name.name }));
@@ -1163,7 +1158,6 @@ export default function App() {
 
     // Fetch 2: Stargaze Offers
     const fetchStargazeOffers = async () => {
-      console.log('🔍 Fetch 2: Getting Stargaze offers...');
       try {
         const response = await fetchWithRetry(API_ENDPOINTS.STARGAZE_GRAPHQL, {
           method: 'POST',
@@ -1204,7 +1198,6 @@ export default function App() {
         }, false); // Direct fetch, no proxy needed for Stargaze
 
         const data = await response.json();
-        console.log('✅ Fetch 2 response:', data);
 
         return {
           platform: 'Stargaze',
@@ -1245,7 +1238,6 @@ export default function App() {
 
     // Fetch 3: Superbolt Offers (with retry logic like Neutron)
     const fetchSuperboltOffers = async () => {
-      console.log('🔍 Fetch 3: Getting Superbolt offers...');
       try {
         const response = await fetchWithRetry(API_ENDPOINTS.SUPERBOLT_API, {
           method: 'POST',
@@ -1278,7 +1270,6 @@ export default function App() {
         }, true); // Use proxy with retry logic
 
         const data = await response.json();
-        console.log('✅ Fetch 3 response:', data);
 
         return {
           platform: 'Superbolt',
@@ -1311,7 +1302,6 @@ export default function App() {
 
     // Fetch 4: BackboneLabs Injective Offers (with proxy iteration like Injective)
     const fetchBackboneInjectiveOffers = async () => {
-      console.log('🔍 Fetch 4: Getting BackboneLabs Injective offers...');
       try {
         const offersUrl = `${API_ENDPOINTS.BACKBONE_LABS_API}/dapps/necropolis/offers/made?addresses=${addresses.injective}`;
         const response = await fetchWithRetry(
@@ -1324,7 +1314,6 @@ export default function App() {
         );
 
         const data = await response.json();
-        console.log('✅ Fetch 4 response:', data);
 
         const offersWithCollections = await Promise.all(
           (data.offers || []).map(async (offer) => {
@@ -1384,7 +1373,6 @@ export default function App() {
 
     // Fetch 5: BackboneLabs Osmosis Offers (with single proxy like Osmosis)
     const fetchBackboneOsmosisOffers = async () => {
-      console.log('🔍 Fetch 5: Getting BackboneLabs Osmosis offers...');
       try {
         const offersUrl = `${API_ENDPOINTS.BACKBONE_LABS_API}/dapps/necropolis/offers/made?addresses=${addresses.osmosis}`;
 
@@ -1398,7 +1386,6 @@ export default function App() {
         });
 
         const data = await response.json();
-        console.log('✅ Fetch 5 response:', data);
 
         const offersWithCollections = await Promise.all(
           (data.offers || []).map(async (offer) => {
@@ -1457,7 +1444,6 @@ export default function App() {
 
     // Fetch 6: Intergaze Offers
     const fetchIntergazeOffers = async () => {
-      console.log('🔍 Fetch 6: Getting Intergaze offers...');
       try {
         const response = await fetchWithRetry(
           `${API_ENDPOINTS.INTERGAZE_API}/profiles/${addresses.initia}/offers/made?offset=0&limit=100`,
@@ -1469,7 +1455,6 @@ export default function App() {
         );
 
         const data = await response.json();
-        console.log('✅ Fetch 6 response:', data);
 
         return {
           platform: 'Intergaze',
@@ -1528,7 +1513,6 @@ export default function App() {
         fetchIntergazeOffers()
       ]);
 
-      console.log('🎉 All offers fetches completed!');
 
       const platforms = [stargazeResult, superboltResult, backboneInjectiveResult, backboneOsmosisResult, intergazeResult];
 
@@ -1762,67 +1746,67 @@ export default function App() {
     setWalletDropdownClosing(false);
   };
 
-const isAddressValid = (address, chainPrefix) => {
-  // Handle special case for Neutron addresses which use "neutron1" prefix
-  const expectedPrefix = chainPrefix === "neutron" ? "neutron1" : chainPrefix;
+  const isAddressValid = (address, chainPrefix) => {
+    // Handle special case for Neutron addresses which use "neutron1" prefix
+    const expectedPrefix = chainPrefix === "neutron" ? "neutron1" : chainPrefix;
 
-  // Basic check for prefix and length (typical length is 39-65 characters for Neutron)
-  const minLength = chainPrefix === "neutron" ? 39 : 39;
-  const maxLength = chainPrefix === "neutron" ? 70 : 45;
+    // Basic check for prefix and length (typical length is 39-65 characters for Neutron)
+    const minLength = chainPrefix === "neutron" ? 39 : 39;
+    const maxLength = chainPrefix === "neutron" ? 70 : 45;
 
-  return (
-    address.startsWith(expectedPrefix) &&
-    address.length >= minLength &&
-    address.length <= maxLength
-  );
-};
+    return (
+      address.startsWith(expectedPrefix) &&
+      address.length >= minLength &&
+      address.length <= maxLength
+    );
+  };
 
-const handleAddManualAddress = () => {
-  if (!manualAddress.trim()) {
-    setError("Please enter an address.");
-    return;
-  }
-
-  if (!selectedChain) {
-    setError("Please select a chain.");
-    return;
-  }
-
-  const prefix = CHAIN_CONFIGS[selectedChain]?.prefix;
-  const trimmedAddress = manualAddress.trim();
-
-  if (!prefix) {
-    setError(`Chain configuration not found for ${selectedChain}.`);
-    return;
-  }
-
-  if (!isAddressValid(trimmedAddress, prefix)) {
-    // Handle special error message for Neutron
-    if (selectedChain === "neutron") {
-      setError(
-        `Invalid address format for NEUTRON. Address should start with "neutron1" and be 39-65 characters long.`,
-      );
-    } else {
-      setError(
-        `Invalid address format for ${selectedChain.toUpperCase()}. Address should start with "${prefix}" and be 39-45 characters long.`,
-      );
+  const handleAddManualAddress = () => {
+    if (!manualAddress.trim()) {
+      setError("Please enter an address.");
+      return;
     }
-    return;
-  }
 
-  // Clear any previous errors
-  setError("");
+    if (!selectedChain) {
+      setError("Please select a chain.");
+      return;
+    }
 
-  // Add the valid address
-  setAddressLoading((prev) => ({ ...prev, [selectedChain]: true }));
-  setManualAddresses((prev) => ({
-    ...prev,
-    [selectedChain]: trimmedAddress,
-  }));
-  setManualAddress("");
-  setShowManualAddressForm(false);
-  setShowWalletDropdown(false);
-};
+    const prefix = CHAIN_CONFIGS[selectedChain]?.prefix;
+    const trimmedAddress = manualAddress.trim();
+
+    if (!prefix) {
+      setError(`Chain configuration not found for ${selectedChain}.`);
+      return;
+    }
+
+    if (!isAddressValid(trimmedAddress, prefix)) {
+      // Handle special error message for Neutron
+      if (selectedChain === "neutron") {
+        setError(
+          `Invalid address format for NEUTRON. Address should start with "neutron1" and be 39-65 characters long.`,
+        );
+      } else {
+        setError(
+          `Invalid address format for ${selectedChain.toUpperCase()}. Address should start with "${prefix}" and be 39-45 characters long.`,
+        );
+      }
+      return;
+    }
+
+    // Clear any previous errors
+    setError("");
+
+    // Add the valid address
+    setAddressLoading((prev) => ({ ...prev, [selectedChain]: true }));
+    setManualAddresses((prev) => ({
+      ...prev,
+      [selectedChain]: trimmedAddress,
+    }));
+    setManualAddress("");
+    setShowManualAddressForm(false);
+    setShowWalletDropdown(false);
+  };
 
   const handleRemovalConfirmation = (chain) => {
     setConfirmingRemoval(chain);
