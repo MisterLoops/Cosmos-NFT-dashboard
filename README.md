@@ -5,7 +5,7 @@
  
 It simply runs in your browser, no data is stored, no database is required at this stage, wallet connection is offline with Keplr or Leap wallets.
  
- *Feel free to support me by donating any token on Stargaze chain at: `stars1d2y72xglnyrphze97kqfmccysdqpf4996srcyj`* 
+ <!-- *Feel free to support me by donating any token on Stargaze chain at: `stars1d2y72xglnyrphze97kqfmccysdqpf4996srcyj`*  -->
 
 ## Features
 **The dashboard:**

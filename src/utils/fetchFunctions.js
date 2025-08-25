@@ -2017,13 +2017,13 @@ const _fetchNeutronNFTs = async (addresses) => {
                 // 2. If no token offer, check for collection offers
                 if (!hasOffer && collectionOffers.length > 0) {
                   // Filter for true collection offers (nft_id should be null/undefined)
-                  const trueCollectionOffers = collectionOffers.filter(offer => 
+                  const trueCollectionOffers = collectionOffers.filter(offer =>
                     !offer.nft_id && offer.amount
                   );
 
                   if (trueCollectionOffers.length > 0) {
                     // Sort by USD amount descending to get highest offer
-                    const sortedOffers = trueCollectionOffers.sort((a, b) => 
+                    const sortedOffers = trueCollectionOffers.sort((a, b) =>
                       parseFloat(b.amount_usd || 0) - parseFloat(a.amount_usd || 0)
                     );
 
@@ -2150,7 +2150,7 @@ const _fetchNeutronNFTs = async (addresses) => {
     // Add staked NFTs - properly merge or add them (matching Stargaze pattern)
     let mergedCount = 0;
     let newStakedCount = 0;
-    
+
     stakedNFTs.forEach((nft) => {
       const key = `${nft.contract}-${nft.tokenId}`;
       if (uniqueNFTs.has(key)) {
@@ -2171,7 +2171,7 @@ const _fetchNeutronNFTs = async (addresses) => {
     });
 
     const finalNFTsArray = Array.from(uniqueNFTs.values());
-    
+
     // Enhanced logging (matching Stargaze style)
     console.log(`[DEBUG] === DEDUPLICATION SUMMARY ===`);
     console.log(`  - Regular NFTs fetched: ${regularNFTs.length}`);
