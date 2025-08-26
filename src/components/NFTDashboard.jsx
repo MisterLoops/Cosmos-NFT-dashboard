@@ -902,6 +902,8 @@ export default function NFTDashboard({
       return `https://app.backbonelabs.io/nfts/marketplace/collections/${nft.contract}/${nft.tokenId}`;
     if (nft.chain === "injective")
       return `https://app.backbonelabs.io/nfts/marketplace/collections/${nft.contract}/${nft.tokenId}`;
+    if (nft.chain === "dungeon")
+      return `https://app.backbonelabs.io/nfts/marketplace/collections/${nft.contract}/${nft.tokenId}`;
     if (nft.chain === "cosmoshub")
       return `https://app.arkprotocol.io/collections/${nft.contract}/${nft.tokenId}`;
     if (nft.chain === "initia")

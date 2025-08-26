@@ -156,6 +156,7 @@ const _fetchListedNFTMetadata = async (collectionAddress, tokenId, chain) => {
             attributes: processedTraits,
             traits: processedTraits,
             image: metadata.image || metadata.image_url,
+            rarity: metadata.rank || null,
           };
         } else if (
           response.status === 408 ||
@@ -3082,7 +3083,13 @@ const fetchOsmosisNFTMetadata = async (
 const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
   try {
     console.log(`[DEBUG] Fetching Osmosis NFTs for addresses:`, addresses);
+    const response = await fetch('/interchainCollectionsContracts.json');
+    if (!response.ok) {
+      console.error('[ERROR] Failed to load interchainCollectionsContracts.json');
+      return null;
+    }
 
+    const interchainCollectionsContracts = await response.json();
     // Pre-fetch collection floors once to avoid duplicate requests
     const collectionFloors = new Map();
     const stargazeOffers = new Map(); // Cache for Stargaze offers by collection
@@ -3108,13 +3115,7 @@ const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
     const getStargazeContract = async (collectionName) => {
       try {
         // Load interchain collections contracts from public folder
-        const response = await fetch('/interchainCollectionsContracts.json');
-        if (!response.ok) {
-          console.error('[ERROR] Failed to load interchainCollectionsContracts.json');
-          return null;
-        }
 
-        const interchainCollectionsContracts = await response.json();
         const collections = interchainCollectionsContracts.Collections;
 
         for (const [name, contracts] of Object.entries(collections)) {
@@ -6044,11 +6045,10 @@ const _fetchDungeonNFTs = async (addresses, DGNPrice = 0) => {
                 }
 
                 // Fetch metadata with MyGateway priority
-                const metadata = await fetchDungeonNFTMetadata(
-                  nft.nft_token_id,
+                const metadata = await fetchListedNFTMetadata(
                   nft.collection.contract,
-                  nft.token_uri,
-                  true,
+                  nft.nft_token_id,
+                  "dungeon",
                 );
 
                 // Process image URL
@@ -6081,7 +6081,7 @@ const _fetchDungeonNFTs = async (addresses, DGNPrice = 0) => {
                   image: processedImageUrl,
                   listed: false,
                   listPrice: null,
-                  rarity: nft.rank || null,
+                  rarity: metadata.rarity || null,
                   traits: processedTraits,
                   floor: {
                     amount: floorPriceDGN,
@@ -6224,7 +6224,7 @@ const _fetchDungeonNFTs = async (addresses, DGNPrice = 0) => {
                   image: processedImageUrl,
                   listed: true,
                   listPrice,
-                  rarity: nft.rank || null,
+                  rarity: metadata.rarity || null,
                   traits: processedTraits,
                   floor: {
                     amount: floorPriceDGN,

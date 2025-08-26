@@ -279,6 +279,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
               {nft.chain === "neutron" && "Superbolt"}
               {nft.chain === "initia" && "Intergaze"}
               {nft.chain === "cosmoshub" && "Ark Protocol"}
+              {nft.chain === "dungeon" && "BackboneLabs"}
             </div>
           </div>
           <a
