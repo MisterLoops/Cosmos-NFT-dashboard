@@ -5483,6 +5483,809 @@ export const fetchCosmosHubNFTs = async (addresses) => {
   return cachedRequest("fetchCosmosHubNFTs", _fetchCosmosHubNFTs, addresses);
 };
 
+// Fetch single NFT data from Dungeon using collection-specific metadata URLs (Original function)
+const _fetchDungeonSingleNFT = async (
+  collection,
+  tokenId,
+  metadataUrl = null,
+) => {
+  try {
+    // console.log(
+    //   `[DEBUG] Fetching Dungeon NFT metadata: ${collection}/${tokenId}`,
+    // );
+
+    if (!metadataUrl) {
+      console.warn(`[WARNING] No metadata URL provided for ${tokenId}`);
+      return null;
+    }
+
+    // Use provided metadata URL (from DAO config)
+    let url = metadataUrl
+      .replace("{tokenId}", tokenId)
+      .replace("{collection}", collection);
+
+    // Convert IPFS URLs to HTTP gateway URLs for better accessibility
+    if (url.startsWith("ipfs://")) {
+      url = url.replace("ipfs://", API_ENDPOINTS.IPFS_GATEWAY_PRIMARY);
+    }
+
+    // console.log(`[DEBUG] Using metadata URL: ${url}`);
+
+    // No rate limiting delays - fetch immediately
+
+    let nftMetadata = null;
+
+    let retries = 0;
+    const maxRetries = REQUEST_CONFIG.MAX_RETRIES;
+
+    while (retries <= maxRetries) {
+      try {
+        // Try multiple CORS proxies
+        const corsProxies = CORS_PROXIES;
+
+        let proxiedUrl;
+        const proxyUrl = corsProxies[retries % corsProxies.length];
+
+        if (proxyUrl.includes("codetabs.com")) {
+          proxiedUrl = proxyUrl + encodeURIComponent(url);
+        } else if (proxyUrl.includes("thingproxy.freeboard.io")) {
+          proxiedUrl = proxyUrl + encodeURIComponent(url);
+        } else {
+          proxiedUrl = proxyUrl + url;
+        }
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(
+          () => controller.abort(),
+          REQUEST_CONFIG.TIMEOUT,
+        ); // 15 second timeout
+
+        const response = await fetch(proxiedUrl, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+          },
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          nftMetadata = await response.json();
+          console.log(
+            `[DEBUG] Fetched metadata from API for ${tokenId}:`,
+            nftMetadata,
+          );
+          break; // Success, exit retry loop
+        } else if (
+          response.status === 408 ||
+          response.status === 429 ||
+          response.status >= 500
+        ) {
+          // Timeout, rate limited or server error, retry with longer delay
+          retries++;
+          if (retries <= maxRetries) {
+            const retryDelay = Math.min(
+              REQUEST_CONFIG.RETRY_DELAY_BASE * Math.pow(2, retries - 1),
+              REQUEST_CONFIG.MAX_RETRY_DELAY,
+            );
+            console.log(
+              `[DEBUG] API error ${response.status} (${response.status === 408 ? "Timeout" : "Server Error"}), retrying in ${retryDelay}ms (attempt ${retries}/${maxRetries})`,
+            );
+            await delay(retryDelay);
+            continue;
+          }
+        }
+
+        console.warn(
+          `[WARNING] Failed to fetch metadata from API: ${response.status} ${response.statusText}`,
+        );
+        return null;
+      } catch (error) {
+        retries++;
+        if (retries <= maxRetries) {
+          const retryDelay = Math.min(
+            REQUEST_CONFIG.RETRY_DELAY_BASE * Math.pow(2, retries - 1),
+            REQUEST_CONFIG.MAX_RETRY_DELAY,
+          );
+          console.log(
+            `[DEBUG] Network error, retrying in ${retryDelay}ms (attempt ${retries}/${maxRetries}):`,
+            error.name === "AbortError" ? "Request timeout" : error.message,
+          );
+          await delay(retryDelay);
+          continue;
+        }
+
+        console.error(
+          `[ERROR] Error fetching metadata from API after ${maxRetries} retries:`,
+          error,
+        );
+        return null;
+      }
+    }
+
+    if (!nftMetadata) {
+      console.warn(`[WARNING] No metadata found for ${tokenId}`);
+      return null;
+    }
+
+    // console.log(`[DEBUG] Processing metadata for ${tokenId}:`, nftMetadata);
+
+    // Process image URL with better handling for different formats
+    let imageUrl =
+      nftMetadata.image || nftMetadata.image_url || nftMetadata.cf_url;
+    if (imageUrl && imageUrl.startsWith("ipfs://")) {
+      imageUrl = imageUrl.replace(
+        "ipfs://",
+        API_ENDPOINTS.IPFS_GATEWAY_PRIMARY,
+      );
+    }
+
+    // Process traits with proper structure and comprehensive null checking
+    const rawTraits = (nftMetadata && Array.isArray(nftMetadata.attributes))
+      ? nftMetadata.attributes
+      : (nftMetadata && Array.isArray(nftMetadata.traits))
+        ? nftMetadata.traits
+        : [];
+
+    const processedTraits = rawTraits
+      .filter((trait) => trait && typeof trait === "object") // ensure not null/undefined
+      .map((trait) => ({
+        trait_type: trait.trait_type || trait.name || "Unknown",
+        value: trait.value !== undefined && trait.value !== null ? trait.value : "Unknown",
+        name: trait.trait_type || trait.name || "Unknown",
+      }));
+
+    // Define base data with defaults for safety
+    const baseData = {
+      name: `Token #${tokenId}`,
+      tokenId: String(tokenId),
+      image_url: null,
+      cf_url: null,
+      traits: [],
+      attributes: [],
+      rank: null,
+      rarity: null,
+      description: "",
+      collection: {
+        name: getCollectionNameFromContract(collection),
+      },
+    };
+
+    // Transform to our standard format with proper type checking and safe property access
+    const safeName = (nftMetadata && typeof nftMetadata.name === "string")
+      ? nftMetadata.name
+      : `Token #${tokenId}`;
+
+    const safeDescription = (nftMetadata && typeof nftMetadata.description === "string")
+      ? nftMetadata.description
+      : "";
+
+    const safeRank = (nftMetadata && typeof nftMetadata.rank === "number")
+      ? nftMetadata.rank
+      : null;
+
+    const safeRarity = (nftMetadata && typeof nftMetadata.rarityScore === "number")
+      ? nftMetadata.rarityScore
+      : null;
+
+    const transformedData = {
+      ...baseData, // Start with safe defaults
+      name: safeName,
+      image_url: typeof imageUrl === "string" ? imageUrl : null,
+      cf_url: typeof imageUrl === "string" ? imageUrl : null,
+      traits: processedTraits,
+      attributes: processedTraits,
+      rank: safeRank,
+      rarity: safeRarity,
+      description: safeDescription,
+    };
+
+    // console.log(
+    //   `[DEBUG] Transformed Dungeon NFT data for ${tokenId}:`,
+    //   transformedData,
+    // );
+    return transformedData;
+  } catch (error) {
+    console.error(`Error fetching Dungeon NFT ${collection}/${tokenId}:`, {
+      error: error.message,
+      name: error.name,
+      stack: error.stack,
+    });
+
+    return null;
+  }
+};
+
+// Fetch single NFT data from Dungeon using collection-specific metadata URLs (with caching)
+export const fetchDungeonSingleNFT = async (
+  collection,
+  tokenId,
+  metadataUrl = null,
+) => {
+  return cachedRequest(
+    "fetchDungeonSingleNFT",
+    _fetchDungeonSingleNFT,
+    collection,
+    tokenId,
+    metadataUrl,
+  );
+};
+
+// Fetch collection floor price for Dungeon (Original function)
+const _fetchDungeonCollectionFloor = async (collection) => {
+  try {
+    const url = `${API_ENDPOINTS.BACKBONE_LABS_API}/dapps/necropolis/collections/${collection}`;
+    // console.log(`[DEBUG] Fetching Dungeon collection floor from: ${url}`);
+
+    // No rate limiting delays - fetch immediately
+
+    let retries = 0;
+    const maxRetries = REQUEST_CONFIG.MAX_RETRIES;
+
+    while (retries <= maxRetries) {
+      try {
+        // Try multiple CORS proxies
+        const corsProxies = CORS_PROXIES;
+
+        let proxiedUrl;
+        const proxyUrl = corsProxies[retries % corsProxies.length];
+
+        if (proxyUrl.includes("codetabs.com")) {
+          proxiedUrl = proxyUrl + encodeURIComponent(url);
+        } else if (proxyUrl.includes("thingproxy.freeboard.io")) {
+          proxiedUrl = proxyUrl + encodeURIComponent(url);
+        } else {
+          proxiedUrl = proxyUrl + url;
+        }
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(
+          () => controller.abort(),
+          REQUEST_CONFIG.TIMEOUT,
+        );
+
+        const response = await fetch(proxiedUrl, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+          },
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          const data = await response.json();
+          // console.log(
+          //   `[DEBUG] Dungeon collection floor data for ${collection}:`,
+          //   data,
+          // );
+
+          // Handle different response formats
+          let floorPrice = 0;
+
+          // Check if data is a direct number (price in DGN)
+          if (typeof data === "number") {
+            floorPrice = data;
+          } else if (data?.floor) {
+            // Handle object with floor property
+            floorPrice = data.floor.price || data.floor.amount || data.floor;
+          } else if (data?.floorPrice) {
+            // Handle object with floorPrice property
+            floorPrice =
+              data.floorPrice.price ||
+              data.floorPrice.amount ||
+              data.floorPrice;
+          }
+
+          // console.log(
+          //   `[DEBUG] Extracted floor price for ${collection}: ${floorPrice} DGN`,
+          // );
+
+          if (floorPrice > 0) {
+            return {
+              price: floorPrice, // Floor price is already in DGN
+              usd_price: 0, // USD calculation will be done later with DGN price
+              denom: "udgn",
+              symbol: "DGN",
+            };
+          }
+
+          console.log(`[DEBUG] No valid floor price found for ${collection}`);
+
+          // Return null to indicate no floor data available
+          return null;
+        } else if (
+          response.status === 408 ||
+          response.status === 429 ||
+          response.status >= 500
+        ) {
+          retries++;
+          if (retries <= maxRetries) {
+            const retryDelay = Math.min(
+              REQUEST_CONFIG.RETRY_DELAY_BASE * Math.pow(2, retries - 1),
+              REQUEST_CONFIG.MAX_RETRY_DELAY,
+            );
+            console.log(
+              `[DEBUG] Collection floor API error ${response.status}, retrying in ${retryDelay}ms (attempt ${retries}/${maxRetries})`,
+            );
+            await delay(retryDelay);
+            continue;
+          }
+        }
+
+        console.warn(
+          `Failed to fetch Dungeon collection ${collection}: ${response.status} ${response.statusText}`,
+        );
+        return null;
+      } catch (error) {
+        retries++;
+        if (retries <= maxRetries) {
+          const retryDelay = Math.min(
+            REQUEST_CONFIG.RETRY_DELAY_BASE * Math.pow(2, retries - 1),
+            REQUEST_CONFIG.MAX_RETRY_DELAY,
+          );
+          console.log(
+            `[DEBUG] Collection floor network error, retrying in ${retryDelay}ms (attempt ${retries}/${maxRetries}):`,
+            error.name === "AbortError" ? "Request timeout" : error.message,
+          );
+          await delay(retryDelay);
+          continue;
+        }
+
+        throw error; // Re-throw after max retries
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error(`Error fetching Dungeaon collection ${collection}:`, {
+      error: error.message,
+      name: error.name,
+      stack: error.stack,
+      url: `${API_ENDPOINTS.BACKBONE_LABS_API}/dapps/necropolis/collections/${collection}`,
+    });
+
+    if (error.name === "TypeError" && error.message.includes("fetch")) {
+      console.error(
+        `[ERROR] Network/CORS error for Dungeon collection ${collection}`,
+      );
+    }
+
+    // Return null to indicate no floor data available
+    return null;
+  }
+};
+
+// Fetch Dungeon collection floor price (with caching)
+export const fetchDungeonCollectionFloor = async (collection) => {
+  return cachedRequest(
+    "fetchDungeonCollectionFloor",
+    _fetchDungeonCollectionFloor,
+    collection,
+  );
+};
+
+// Helper function to fetch NFT metadata with multiple CORS proxy fallbacks
+const fetchDungeonNFTMetadata = async (
+  tokenId,
+  contract,
+  tokenUri = null,
+  useMyGateway = true,
+) => {
+  // console.log(`[DEBUG] Fetching metadata for NFT ${tokenId} from ${contract}`);
+
+  // Try MyGateway first for non-listed/non-staked NFTs
+  if (useMyGateway && tokenUri) {
+    try {
+      // console.log(`[DEBUG] Trying MyGateway for ${tokenId}`);
+      const myGatewayUrl = tokenUri.replace(
+        "ipfs://",
+        API_ENDPOINTS.IPFS_GATEWAY_PRIMARY,
+      );
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(
+        () => controller.abort(),
+        REQUEST_CONFIG.TIMEOUT,
+      ); // 10 second timeout
+
+      const response = await fetch(myGatewayUrl, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const metadata = await response.json();
+        // console.log(`[DEBUG] ✓ MyGateway success for ${tokenId}`);
+        return metadata;
+      } else {
+        console.log(
+          `[DEBUG] MyGateway failed for ${tokenId}: ${response.status}`,
+        );
+      }
+    } catch (error) {
+      console.log(
+        `[DEBUG] MyGateway error for ${tokenId}:`,
+        error.name === "AbortError" ? "Request timeout" : error.message,
+      );
+    }
+  }
+
+  // Try multiple CORS proxies as fallback
+  if (tokenUri) {
+    for (let i = 0; i < CORS_PROXIES.length; i++) {
+      const proxyUrl = CORS_PROXIES[i];
+      try {
+        // console.log(
+        //   `[DEBUG] Trying CORS proxy ${i + 1}/${CORS_PROXIES.length} for ${tokenId}: ${proxyUrl}`,
+        // );
+
+        let proxiedUrl;
+        if (proxyUrl.includes("codetabs.com")) {
+          proxiedUrl = proxyUrl + encodeURIComponent(tokenUri);
+        } else if (proxyUrl.includes("thingproxy.freeboard.io")) {
+          proxiedUrl = proxyUrl + encodeURIComponent(tokenUri);
+        } else {
+          proxiedUrl = proxyUrl + tokenUri;
+        }
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(
+          () => controller.abort(),
+          REQUEST_CONFIG.TIMEOUT,
+        ); // 15 second timeout
+
+        const response = await fetch(proxiedUrl, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+          },
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          const metadata = await response.json();
+          // console.log(`[DEBUG] ✓ CORS proxy ${i + 1} success for ${tokenId}`);
+          return metadata;
+        } else {
+          console.log(
+            `[DEBUG] CORS proxy ${i + 1} failed for ${tokenId}: ${response.status}`,
+          );
+        }
+      } catch (error) {
+        console.log(
+          `[DEBUG] CORS proxy ${i + 1} error for ${tokenId}:`,
+          error.name === "AbortError" ? "Request timeout" : error.message,
+        );
+      }
+    }
+  }
+
+  console.log(`No token URI for ${tokenId}`);
+  return null;
+};
+
+// Fetch Dungeon NFTs with simplified staked NFTs approach (Original function)
+const _fetchDungeonNFTs = async (addresses, DGNPrice = 0) => {
+  try {
+    console.log(`[DEBUG] Fetching Dungeon NFTs for addresses:`, addresses);
+
+    // Pre-fetch collection floors once to avoid duplicate requests
+    const collectionFloors = new Map();
+
+
+    // Fetch wallet NFTs using optimized approach
+    const walletNFTs = [];
+
+    for (const address of addresses) {
+      // Fetch not listed NFTs
+      try {
+        let page = 1;
+        let hasMorePages = true;
+        const allNotListedNfts = [];
+
+        while (hasMorePages) {
+          const notListedUrl = `${API_ENDPOINTS.BACKBONE_LABS_API}/dapps/necropolis/nfts/address/${address}/not_listed?page=${page}&perPage=${PAGINATION_CONFIG.BACKBONE_API_PER_PAGE}&chainId=dungeon-1`;
+
+          const corsProxies = CORS_PROXIES;
+          let proxiedUrl;
+          const proxyUrl = corsProxies[0];
+
+          if (proxyUrl.includes("codetabs.com")) {
+            proxiedUrl = proxyUrl + encodeURIComponent(notListedUrl);
+          } else if (proxyUrl.includes("thingproxy.freeboard.io")) {
+            proxiedUrl = proxyUrl + encodeURIComponent(notListedUrl);
+          } else {
+            proxiedUrl = proxyUrl + notListedUrl;
+          }
+
+          const response = await fetch(proxiedUrl, {
+            method: "GET",
+            headers: { Accept: "application/json" },
+          });
+
+          if (response.ok) {
+            const notListedData = await response.json();
+
+            if (notListedData.nfts && Array.isArray(notListedData.nfts)) {
+              allNotListedNfts.push(...notListedData.nfts);
+
+              if (notListedData.nfts.length < PAGINATION_CONFIG.BACKBONE_API_PER_PAGE) {
+                hasMorePages = false;
+              } else {
+                page++;
+              }
+            } else {
+              hasMorePages = false;
+            }
+          } else {
+            hasMorePages = false;
+          }
+        }
+
+        if (allNotListedNfts.length > 0) {
+          const notListedPromises = allNotListedNfts.map((nft) =>
+            limit(async () => {
+              try {
+                // Get collection floor from cache or fetch
+                let collectionFloor = collectionFloors.get(nft.collection.contract);
+                if (!collectionFloor) {
+                  collectionFloor = await fetchDungeonCollectionFloor(nft.collection.contract);
+                  collectionFloors.set(nft.collection.contract, collectionFloor);
+                }
+
+                // Fetch metadata with MyGateway priority
+                const metadata = await fetchDungeonNFTMetadata(
+                  nft.nft_token_id,
+                  nft.collection.contract,
+                  nft.token_uri,
+                  true,
+                );
+
+                // Process image URL
+                let processedImageUrl = nft.cf_url || nft.image_url || metadata?.image_url;
+                if (processedImageUrl && processedImageUrl.startsWith("ipfs://")) {
+                  processedImageUrl = processedImageUrl.replace(
+                    "ipfs://",
+                    API_ENDPOINTS.IPFS_GATEWAY_PRIMARY,
+                  );
+                }
+
+                // Calculate floor price
+                const floorPriceDGN = collectionFloor ? parseFloat(collectionFloor.price || 0) : 0;
+                const floorPriceUsd = DGNPrice && floorPriceDGN > 0 ? floorPriceDGN * DGNPrice : 0;
+
+                // Process traits
+                const rawTraits = metadata?.attributes || metadata?.traits || [];
+                const processedTraits = rawTraits.map((trait) => ({
+                  name: trait.trait_type || trait.name,
+                  value: trait.value,
+                  rarity: undefined,
+                }));
+
+                return {
+                  name: nft.nft_name || metadata?.name || `NFT #${nft.nft_token_id}`,
+                  tokenId: nft.nft_token_id.toString(),
+                  chain: "dungeon",
+                  contract: nft.collection.contract,
+                  collection: nft.collection.name,
+                  image: processedImageUrl,
+                  listed: false,
+                  listPrice: null,
+                  rarity: nft.rank || null,
+                  traits: processedTraits,
+                  floor: {
+                    amount: floorPriceDGN,
+                    amountUsd: floorPriceUsd,
+                    denom: "udgn",
+                    symbol: "DGN",
+                  },
+                  sortUsd: floorPriceUsd,
+                  daoStaked: false,
+                  sourceAddress: address,
+                  hasOffers: false,
+                  highestOffer: null,
+                };
+              } catch (error) {
+                console.error(`[ERROR] Failed to process not listed NFT ${nft.nft_token_id}:`, error);
+                return null;
+              }
+            }),
+          );
+
+          const notListedResults = await Promise.all(notListedPromises);
+          notListedResults.forEach((nftData) => {
+            if (nftData) walletNFTs.push(nftData);
+          });
+        }
+      } catch (error) {
+        console.error(`[ERROR] Failed to fetch not listed NFTs for ${address}:`, error);
+      }
+
+      // Fetch listed NFTs
+      try {
+        let page = 1;
+        let hasMorePages = true;
+        const allListedNfts = [];
+
+        while (hasMorePages) {
+          const listedUrl = `${API_ENDPOINTS.BACKBONE_LABS_API}/dapps/necropolis/nfts/address/${address}/listed?page=${page}&perPage=${PAGINATION_CONFIG.BACKBONE_API_PER_PAGE}&chainId=dungeon-1`;
+
+          const corsProxies = CORS_PROXIES;
+          let proxiedUrl;
+          const proxyUrl = corsProxies[0];
+
+          if (proxyUrl.includes("codetabs.com")) {
+            proxiedUrl = proxyUrl + encodeURIComponent(listedUrl);
+          } else if (proxyUrl.includes("thingproxy.freeboard.io")) {
+            proxiedUrl = proxyUrl + encodeURIComponent(listedUrl);
+          } else {
+            proxiedUrl = proxyUrl + listedUrl;
+          }
+
+          const response = await fetch(proxiedUrl, {
+            method: "GET",
+            headers: { Accept: "application/json" },
+          });
+
+          if (response.ok) {
+            const listedData = await response.json();
+
+            if (listedData.nfts && Array.isArray(listedData.nfts)) {
+              allListedNfts.push(...listedData.nfts);
+
+              if (listedData.nfts.length < PAGINATION_CONFIG.BACKBONE_API_PER_PAGE) {
+                hasMorePages = false;
+              } else {
+                page++;
+              }
+            } else {
+              hasMorePages = false;
+            }
+          } else {
+            hasMorePages = false;
+          }
+        }
+
+        if (allListedNfts.length > 0) {
+          const listedPromises = allListedNfts.map((nft) =>
+            limit(async () => {
+              try {
+                // Get collection floor from cache or fetch
+                let collectionFloor = collectionFloors.get(nft.collection.contract);
+                if (!collectionFloor) {
+                  collectionFloor = await fetchDungeonCollectionFloor(nft.collection.contract);
+                  collectionFloors.set(nft.collection.contract, collectionFloor);
+                }
+
+                // Fetch metadata from BackboneLabs API for listed NFTs
+                const metadata = await fetchListedNFTMetadata(
+                  nft.collection.contract,
+                  nft.nft_token_id,
+                  "dungeon",
+                );
+
+                // Process image URL
+                let processedImageUrl = nft.cf_url || nft.image_url || metadata?.image_url;
+                if (processedImageUrl && processedImageUrl.startsWith("ipfs://")) {
+                  processedImageUrl = processedImageUrl.replace(
+                    "ipfs://",
+                    API_ENDPOINTS.IPFS_GATEWAY_PRIMARY,
+                  );
+                }
+
+                // Process list price from auction data
+                let listPrice = null;
+                if (nft.auction && nft.auction.reserve_price) {
+                  const priceAmount = parseFloat(nft.auction.reserve_price) / 1_000_000;
+                  const priceUsd = DGNPrice && priceAmount > 0 ? priceAmount * DGNPrice : 0;
+
+                  listPrice = {
+                    amount: priceAmount,
+                    denom: nft.auction.denom || "udgn",
+                    symbol: "DGN",
+                    amountUsd: priceUsd,
+                  };
+                }
+
+                // Calculate floor price
+                const floorPriceDGN = collectionFloor
+                  ? parseFloat(collectionFloor.price || 0)
+                  : listPrice ? listPrice.amount : 0;
+
+                const floorPriceUsd = DGNPrice && floorPriceDGN > 0
+                  ? floorPriceDGN * DGNPrice
+                  : listPrice ? listPrice.amountUsd : 0;
+
+
+                // Process traits
+                const rawTraits = metadata?.attributes || metadata?.traits || [];
+                const processedTraits = rawTraits.map((trait) => ({
+                  name: trait.trait_type || trait.name,
+                  value: trait.value,
+                  rarity: undefined,
+                }));
+
+                return {
+                  name: nft.nft_name || metadata?.name || `NFT #${nft.nft_token_id}`,
+                  tokenId: nft.nft_token_id.toString(),
+                  chain: "dungeon",
+                  contract: nft.collection.contract,
+                  collection: nft.collection.name,
+                  image: processedImageUrl,
+                  listed: true,
+                  listPrice,
+                  rarity: nft.rank || null,
+                  traits: processedTraits,
+                  floor: {
+                    amount: floorPriceDGN,
+                    amountUsd: floorPriceUsd,
+                    denom: "udgn",
+                    symbol: "DGN",
+                  },
+                  sortUsd: listPrice ? listPrice.amountUsd : floorPriceUsd,
+                  daoStaked: false,
+                  sourceAddress: address,
+                  hasOffers: false,
+                  highestOffer: null,
+                };
+              } catch (error) {
+                console.error(`[ERROR] Failed to process listed NFT ${nft.nft_token_id}:`, error);
+                return null;
+              }
+            }),
+          );
+
+          const listedResults = await Promise.all(listedPromises);
+          listedResults.forEach((nftData) => {
+            if (nftData) walletNFTs.push(nftData);
+          });
+        }
+      } catch (error) {
+        console.error(`[ERROR] Failed to fetch listed NFTs for ${address}:`, error);
+      }
+    }
+
+    // Combine staked and wallet NFTs with deduplication
+    const uniqueNFTs = new Map();
+
+    // Add wallet NFTs first
+    walletNFTs.forEach((nft) => {
+      const key = `${nft.contract}-${nft.tokenId}`;
+      uniqueNFTs.set(key, nft);
+    });
+
+    const finalNFTsArray = Array.from(uniqueNFTs.values());
+    console.log(
+      `[DEBUG] Total unique Dungeon NFTs after deduplication: ${finalNFTsArray.length}`,
+    );
+
+    return finalNFTsArray;
+  } catch (error) {
+    console.error("Error fetching Dungeon NFTs:", error);
+    return [];
+  }
+};
+
+// Fetch Dungeon NFTs with DAO integration (with caching)
+export const fetchDungeonNFTs = async (addresses, DGNPrice = 0) => {
+  return cachedRequest(
+    "fetchDungeonNFTs",
+    _fetchDungeonNFTs,
+    addresses,
+    DGNPrice,
+  );
+};
+
 // Get bOSMO price (placeholder - you'll need to implement this with a price API)
 export const getBOSMOPrice = async () => {
   try {

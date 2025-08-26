@@ -25,7 +25,8 @@ export default function DesktopChainPortfolio({ chainBalances, showDollarBalance
     Superbolt: '/Superbolt.png',
     "Backbonelabs Injective": '/BackBoneLabs.png',
     "Backbonelabs Osmosis": '/BackBoneLabs.png',
-    Intergaze: '/Intergaze.png'
+    Intergaze: '/Intergaze.png',
+    "Backbonelabs Dungeon": '/BackBoneLabs.png'
   };
 
   // Handle tooltip positioning

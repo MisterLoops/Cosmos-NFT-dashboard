@@ -10,6 +10,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
     injective: "#00d2ff",
     initia: "#4f46e5",
     neutron: "#000000",
+    dungeon: "#bd7202ff"
   };
 
   // Import chain display names from constants

@@ -14,7 +14,8 @@ export default function NFTOffersCard({ nftOffers, totalOffersValue }) {
     Superbolt: '/Superbolt.png',
     "Backbonelabs Injective": '/BackBoneLabs.png',
     "Backbonelabs Osmosis": '/BackBoneLabs.png',
-    Intergaze: '/Intergaze.png'
+    Intergaze: '/Intergaze.png',
+    "Backbonelabs Dungeon": '/BackBoneLabs.png'
   };
 
   // Get platforms data and sort by value
