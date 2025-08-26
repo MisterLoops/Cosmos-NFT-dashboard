@@ -8,6 +8,15 @@ It simply runs in your browser, no data is stored, no database is required at th
  <!-- *Feel free to support me by donating any token on Stargaze chain at: `stars1d2y72xglnyrphze97kqfmccysdqpf4996srcyj`*  -->
 
 ## Features
+**Chains implemented:** 
+* Stargaze 
+* Osmosis 
+* CosmosHub 
+* Initia (Intergaze) 
+* Injective 
+* Neutron 
+* Dungeon 
+ 
 **The dashboard:**
 * Offline connection to keplr/leap
 * Displays your Stargaze Name
