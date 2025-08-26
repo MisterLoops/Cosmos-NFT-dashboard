@@ -996,14 +996,14 @@ export default function NFTDashboard({
                   "*****"
                 )}
               </span>
-              <span className="stat-label">Total Value</span>
+              <span className="stat-label">NFTs Total Value</span>
               <span className="stat-sublabel">{priceMode === 'offers' ? 'Highest Offers' : 'Floor Prices'}</span>
             </div>
             <div className="stat">
               <span className="stat-value">
                 {nfts.length}
               </span>
-              <span className="stat-label">Total NFTs</span>
+              <span className="stat-label">NFTs</span>
             </div>
             <div className="stat">
               <span className="stat-value">

@@ -106,6 +106,7 @@ export default function DesktopChainPortfolio({ chainBalances, showDollarBalance
         </div>
 
         <div className="token-summary-total">
+          <span className="token-summary-total-label">{"Tokens Total Value: "}</span>
           <span className="token-summary-total-clickable" onClick={() => setShowDollarBalances(!showDollarBalances)}>
             {showDollarBalances ? (
               `$${totalPortfolioValue.toLocaleString(undefined, {
@@ -119,18 +120,18 @@ export default function DesktopChainPortfolio({ chainBalances, showDollarBalance
 
           {/* NFT Offers Section */}
           {totalOffersValue > 0 && (
-            <div className="offers-section">
+            <div className="offers-section" onClick={() => setShowOffersExpanded(!showOffersExpanded)}>
               <span
                 className="offers-value"
-                onClick={() => setShowOffersExpanded(!showOffersExpanded)}
               >
                 + ${showDollarBalances ? totalOffersValue.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
-                }) : "*****"} in offers
+                }) : "*****"}
               </span>
+              <span className="offers-section-label"> in NFT offers </span>
               <div className="offers-toggle-arrow" onClick={() => setShowOffersExpanded(!showOffersExpanded)} style={{ cursor: "pointer" }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: "#10b981" }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: "white" }}>
                   <path d={showOffersExpanded ? "M18 15L12 9L6 15" : "M6 9L12 15L18 9"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
@@ -143,7 +144,7 @@ export default function DesktopChainPortfolio({ chainBalances, showDollarBalance
       {showOffersExpanded && totalOffersValue > 0 && (
         <div className="offers-expanded-section">
           <div className="offers-close-arrow" onClick={() => setShowOffersExpanded(false)}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: "#10b981" }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: "white" }}>
               <path d="M18 15L12 9L6 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
@@ -260,7 +261,7 @@ export default function DesktopChainPortfolio({ chainBalances, showDollarBalance
                     />
                     <div className="tooltip-info">
                       <span className="tooltip-symbol">
-                        1 {nativeAsset.symbol}
+                        {nativeAsset.symbol}
                       </span>
                       <span className="tooltip-price">
                         ${nativeAsset.price.toLocaleString(undefined, {
