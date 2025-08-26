@@ -23,6 +23,7 @@ import {
   fetchNeutronNFTs,
   fetchInitiaNFTs,
   fetchCosmosHubNFTs,
+  fetchDungeonNFTs
 } from "../utils/fetchFunctions";
 import { CHAIN_CONFIGS, CHAINS, PAGINATION_CONFIG, DONATION_ADDRESSES } from "../utils/constants.js";
 
@@ -72,6 +73,7 @@ export default function NFTDashboard({
   initPrice,
   binjPrice,
   ntrnPrice,
+  DGNPrice,
   onManualAddressRemoved,
   showDollarBalances,
   onFetchStatusChange,
@@ -444,7 +446,7 @@ export default function NFTDashboard({
     const handleChainCompletion = () => {
       completedChains++;
       console.log(`[DEBUG] Chain completed. ${completedChains}/${totalChains} chains done`);
-      
+
       // Check if all chains are complete
       if (completedChains === totalChains) {
         console.log(`[DEBUG] All ${totalChains} chains completed processing`);
@@ -780,6 +782,26 @@ export default function NFTDashboard({
           console.error(`[ERROR] Error fetching Cosmos Hub NFTs:`, error);
           return [];
         }
+      } else if (chain.name === "dungeon") {
+        try {
+          const currentDGNPrice = DGNPrice || 0;
+
+          const dungeonNfts = await fetchDungeonNFTs(validAddresses, currentDGNPrice);
+          // Transform NFTs to include source address for tracking and process images
+          const transformedNFTs = dungeonNfts.map((nft) => ({
+            ...nft,
+            image: processImageUrl(nft.image), // Use processImageUrl here
+          }));
+
+          // console.log(
+          //   `[DEBUG] Found ${transformedNFTs.length} NFTs for dungeon`,
+          // );
+          return transformedNFTs;
+        } catch (error) {
+          console.error(`[ERROR] Error fetching Dungeon NFTs:`, error);
+          return [];
+        }
+
       }
 
       // For other chains, return empty array for now
