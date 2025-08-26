@@ -434,11 +434,42 @@ export default function NFTDashboard({
       }
     }
 
-    // Track completed chains
+    // Track completed chains with a ref to avoid state update races
     let completedChains = 0;
     const totalChains = chainsToProcess.length;
     const allNfts = [];
     let hasNewNFTs = false;
+
+    // Function to handle chain completion
+    const handleChainCompletion = () => {
+      completedChains++;
+      console.log(`[DEBUG] Chain completed. ${completedChains}/${totalChains} chains done`);
+      
+      // Check if all chains are complete
+      if (completedChains === totalChains) {
+        console.log(`[DEBUG] All ${totalChains} chains completed processing`);
+
+        // Clear fetching status
+        setFetchingStatus(["..."]);
+
+        // Clear manual address fetching state  
+        setIsManualAddressFetching(false);
+
+        // If no NFTs were found, clear loading immediately
+        if (!hasNewNFTs) {
+          if (hasConnectedAddresses) {
+            setIsFetchingNFTs(false);
+            if (onFetchStatusChange) {
+              onFetchStatusChange(false);
+            }
+          }
+          setHasLoadedNFTs(true);
+          console.log(`[DEBUG] All chains completed, no NFTs found, loading cleared`);
+        } else {
+          console.log(`[DEBUG] All chains completed, waiting for NFTs to be processed`);
+        }
+      }
+    };
 
     // Process each chain
     for (const { chain, chainAddresses } of chainsToProcess) {
@@ -495,35 +526,13 @@ export default function NFTDashboard({
         // The chain will still be marked as completed below
       } finally {
         // Clear loading state for this chain
-        setChainLoadingStates((prev) => {
-          const newStates = {
-            ...prev,
-            [chain.name]: false,
-          };
+        setChainLoadingStates((prev) => ({
+          ...prev,
+          [chain.name]: false,
+        }));
 
-          // Increment completed chains
-          completedChains++;
-
-          // console.log(`[DEBUG] Chain ${chain.name} completed. ${completedChains}/${totalChains} chains done`);
-
-          // Check if all chains are complete
-          if (completedChains === totalChains) {
-            // console.log(`[DEBUG] All ${totalChains} chains completed processing`);
-
-            // Clear fetching status
-            setFetchingStatus(["..."]);
-
-            // Clear manual address fetching state  
-            setIsManualAddressFetching(false);
-
-            // Mark that all chains have completed
-            setAllChainsCompleted(true);
-
-            // console.log(`[DEBUG] All chains completed, waiting for NFT processing to finish`);
-          }
-
-          return newStates;
-        });
+        // Handle chain completion
+        handleChainCompletion();
       }
     }
 
@@ -561,12 +570,23 @@ export default function NFTDashboard({
 
         return sortedNfts;
       });
-    } else if (completedChains === totalChains) {
-      // Mark that all chains are completed, but don't change loading state yet
-      // console.log(`[DEBUG] All chains completed but no new NFTs - waiting for state update`);
-      setAllChainsCompleted(true);
+      // Clear loading state after NFTs are processed (if all chains completed)
+      if (completedChains === totalChains && hasConnectedAddresses) {
+        // Use setTimeout to ensure NFTs state update has been processed
+        setTimeout(() => {
+          setIsFetchingNFTs(false);
+          if (onFetchStatusChange) {
+            onFetchStatusChange(false);
+          }
+          setHasLoadedNFTs(true);
+          console.log(`[DEBUG] Loading cleared after NFTs processed`);
+        }, 0);
+      }
     }
   }, [
+    addresses,
+    isFetchingNFTs,
+    fetchedAddresses,
     onAddressFetched,
     onFetchStatusChange,
     sortBy,
@@ -575,7 +595,7 @@ export default function NFTDashboard({
   // UseEffect to monitor when NFT processing is truly complete and filters can be displayed
   useEffect(() => {
     // Only change loading state when all chains are done AND NFTs are ready for filtering
-    if (allChainsCompleted && isFetchingNFTs && nfts.length > 0) {
+    if (allChainsCompleted && isFetchingNFTs && filteredNfts.length > 0) {
       // console.log(`[DEBUG] Setting isFetchingNFTs to false - NFTs ready for filtering`);
       setIsFetchingNFTs(false);
       setAllChainsCompleted(false); // Reset for next fetch
@@ -584,7 +604,7 @@ export default function NFTDashboard({
         onFetchStatusChange(false);
       }
     }
-  }, [nfts, allChainsCompleted, isFetchingNFTs, onFetchStatusChange]);
+  }, [filteredNfts, allChainsCompleted, isFetchingNFTs, onFetchStatusChange]);
 
   useEffect(() => {
     // console.log("useEffect triggered for fetchAllNFTs, addresses:", addresses);

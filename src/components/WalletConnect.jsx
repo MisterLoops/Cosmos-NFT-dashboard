@@ -132,11 +132,8 @@ export default function WalletConnect({
           </h2>
           <br></br>
           </span>
-          <p>This is a dashboard that I've built for fun on my spare time
-             that displays all your NFTs across Cosmos chains.</p>
-          <p>While you can see your holdings on major marketplaces
-              and DAOs, there are still improvements to be made and regarding DAOs implementation, they are added one
-               by one. You may notice some bugs. Hence why your feedback is important to report anything that doesn't
+          <p>A dashboard that displays all your NFTs holdings (including those staked in DAOS), tokens and NFT offers on marketplaces across Cosmos chains.</p>
+          <p>Your feedback is important to report anything that doesn't
                 work properly, what DAOs, chains and features you'd like to be added.</p>
           <p>It's a simple app that runs in your browser, nothing's stored in a database, 
           and the connection is an offline connection, so, you're safe!</p>
@@ -149,7 +146,7 @@ export default function WalletConnect({
           </p><br></br>
           </span>
           <span className="testing-message-bold">
-          <p>EVERYTHING IS AN EXPERIMENT</p>
+          <p>🧪 EVERYTHING IS AN EXPERIMENT 🧪</p>
           </span><br></br>
           <p><strong><a href="https://x.com/MisterLoops" target="_blank" rel="noopener noreferrer">MisterLoops</a></strong></p>
         </div>

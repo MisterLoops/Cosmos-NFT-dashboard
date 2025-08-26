@@ -2173,11 +2173,11 @@ const _fetchNeutronNFTs = async (addresses) => {
     const finalNFTsArray = Array.from(uniqueNFTs.values());
 
     // Enhanced logging (matching Stargaze style)
-    console.log(`[DEBUG] === DEDUPLICATION SUMMARY ===`);
-    console.log(`  - Regular NFTs fetched: ${regularNFTs.length}`);
-    console.log(`  - Staked NFTs fetched: ${stakedNFTs.length}`);
-    console.log(`  - Staked NFTs merged with existing: ${mergedCount}`);
-    console.log(`  - New staked NFTs added: ${newStakedCount}`);
+    // console.log(`[DEBUG] === DEDUPLICATION SUMMARY ===`);
+    // console.log(`  - Regular NFTs fetched: ${regularNFTs.length}`);
+    // console.log(`  - Staked NFTs fetched: ${stakedNFTs.length}`);
+    // console.log(`  - Staked NFTs merged with existing: ${mergedCount}`);
+    // console.log(`  - New staked NFTs added: ${newStakedCount}`);
     console.log(`[DEBUG] Total unique Neutron NFTs after deduplication: ${finalNFTsArray.length}`);
 
     return finalNFTsArray;

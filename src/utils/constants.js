@@ -122,20 +122,21 @@ export const CHAIN_CONFIGS = {
   },
 };
 export const SYMBOL_TO_LOGO = {
-"STARS": "stargaze",
-"OSMO": "osmosis",
-"ATOM": "cosmoshub",
-"INJ": "injective",
-"INIT": "initia",
-"NTRN": "neutron",
-"OM": "mantra",
-"AKT": "akash",
-"BTC": "bitcoin",
-"TIA": "celestia",
-"USDC": "noble",
-"bINJ": "bINJ",
-"bOSMO": "bOSMO",
-"LAB": "LAB"
+  "STARS": "stargaze",
+  "OSMO": "osmosis",
+  "ATOM": "cosmoshub",
+  "INJ": "injective",
+  "INIT": "initia",
+  "NTRN": "neutron",
+  "OM": "mantra",
+  "AKT": "akash",
+  "BTC": "bitcoin",
+  "TIA": "celestia",
+  "USDC": "noble",
+  "bINJ": "bINJ",
+  "bOSMO": "bOSMO",
+  "LAB": "LAB",
+  "BIKE": "BIKE"
 };
 
 // Token logos from Keplr's chain registry
@@ -153,7 +154,8 @@ export const TOKEN_LOGOS = {
   noble: "https://raw.githubusercontent.com/cosmos/chain-registry/master/_non-cosmos/ethereum/images/usdc.png",
   bINJ: "https://raw.githubusercontent.com/cosmostation/chainlist/master/chain/injective/asset/bINJ.png",
   bOSMO: "https://raw.githubusercontent.com/cosmos/chain-registry/master/osmosis/images/bOSMO.png",
-  LAB: "https://raw.githubusercontent.com/cosmos/chain-registry/master/osmosis/images/LAB.png"
+  LAB: "https://raw.githubusercontent.com/cosmos/chain-registry/master/osmosis/images/LAB.png",
+  BIKE: "https://raw.githubusercontent.com/cosmostation/chainlist/master/chain/mantra/asset/BIKE.png"
 };
 
 export const IBC_TOKEN_MAPPINGS = {
@@ -225,6 +227,10 @@ export const IBC_TOKEN_MAPPINGS = {
   // bINJ on Injective
   'factory/inj1dxp690rd86xltejgfq2fa7f2nxtgmm5cer3hvu/bINJ': { symbol: 'bINJ', decimals: 18, originChain: 'bINJ' }, // bINJ on Injective
 
+  // BIKE
+  'factory/mantra1vtpg8z82gz9qe3adf7t9z0qwuvkpzmqu9ds4ej/BIKE': { symbol: 'BIKE', decimals: 6, originChain: 'BIKE' }, // BIKE on Mantra
+  'ibc/512F2595204C4BCAC1C000A394CAB9529A4E519C97ED465B9230B563D2D4AFBA': { symbol: 'BIKE', decimals: 6, originChain: 'BIKE' }, // BIKE on Osmosis
+  'ibc/8A443E18BB2C30A0D635569935BB0364018EA97A372ADA5D7145378A40D3D967': { symbol: 'BIKE', decimals: 6, originChain: 'BIKE' }, // BIKE on Stargaze
 };
 
 // Derived configurations from CHAIN_CONFIGS
@@ -263,10 +269,10 @@ export const PAGINATION_CONFIG = {
 };
 
 export const DONATION_ADDRESSES = [
-{ chain: "Stargaze", address: "stars1d2y72xglnyrphze97kqfmccysdqpf4996srcyj" },
-{ chain: "Osmosis", address: "osmo1d2y72xglnyrphze97kqfmccysdqpf499xh84e3" },
-{ chain: "Mantra", address: "mantra1d2y72xglnyrphze97kqfmccysdqpf499987pve" },
-{ chain: "Akash", address: "akash1d2y72xglnyrphze97kqfmccysdqpf499rhezke" },
-{ chain: "Atom", address: "cosmos1d2y72xglnyrphze97kqfmccysdqpf499wv590r" },
-{ chain: "BTC (taproot)", address: "bc1pj2caj3hjsax74lx6dwlwp6rduxl9j0m7nfeh0fussul0pwa94u4qrlfj70" },
+  { chain: "Stargaze", address: "stars1d2y72xglnyrphze97kqfmccysdqpf4996srcyj" },
+  { chain: "Osmosis", address: "osmo1d2y72xglnyrphze97kqfmccysdqpf499xh84e3" },
+  { chain: "Mantra", address: "mantra1d2y72xglnyrphze97kqfmccysdqpf499987pve" },
+  { chain: "Akash", address: "akash1d2y72xglnyrphze97kqfmccysdqpf499rhezke" },
+  { chain: "Atom", address: "cosmos1d2y72xglnyrphze97kqfmccysdqpf499wv590r" },
+  { chain: "BTC (taproot)", address: "bc1pj2caj3hjsax74lx6dwlwp6rduxl9j0m7nfeh0fussul0pwa94u4qrlfj70" },
 ];
