@@ -110,6 +110,16 @@ export const CHAIN_CONFIGS = {
     symbol: "OM",
     decimals: 6,
   },
+  dungeon: {
+    chainId: "dungeon-1",
+    prefix: "dungeon",
+    displayName: "Dungeon",
+    rpc: "https://dungeon-wallet.rpc.quasarstaking.ai:443",
+    rest: "https://dungeon-wallet.api.quasarstaking.ai",
+    denom: "udgn",
+    symbol: "DGN",
+    decimals: 6,
+  },
   akash: {
     chainId: "akashnet-2",
     prefix: "akash",
@@ -136,7 +146,8 @@ export const SYMBOL_TO_LOGO = {
   "bINJ": "bINJ",
   "bOSMO": "bOSMO",
   "LAB": "LAB",
-  "BIKE": "BIKE"
+  "BIKE": "BIKE",
+  "DGN": "dungeon"
 };
 
 // Token logos from Keplr's chain registry
@@ -155,7 +166,8 @@ export const TOKEN_LOGOS = {
   bINJ: "https://raw.githubusercontent.com/cosmostation/chainlist/master/chain/injective/asset/bINJ.png",
   bOSMO: "https://raw.githubusercontent.com/cosmos/chain-registry/master/osmosis/images/bOSMO.png",
   LAB: "https://raw.githubusercontent.com/cosmos/chain-registry/master/osmosis/images/LAB.png",
-  BIKE: "https://raw.githubusercontent.com/cosmostation/chainlist/master/chain/mantra/asset/BIKE.png"
+  BIKE: "https://raw.githubusercontent.com/cosmostation/chainlist/master/chain/mantra/asset/BIKE.png",
+  dungeon:"https://raw.githubusercontent.com/cosmos/chain-registry/master/dungeon/images/DGN.png"
 };
 
 export const IBC_TOKEN_MAPPINGS = {
@@ -231,6 +243,9 @@ export const IBC_TOKEN_MAPPINGS = {
   'factory/mantra1vtpg8z82gz9qe3adf7t9z0qwuvkpzmqu9ds4ej/BIKE': { symbol: 'BIKE', decimals: 6, originChain: 'BIKE' }, // BIKE on Mantra
   'ibc/512F2595204C4BCAC1C000A394CAB9529A4E519C97ED465B9230B563D2D4AFBA': { symbol: 'BIKE', decimals: 6, originChain: 'BIKE' }, // BIKE on Osmosis
   'ibc/8A443E18BB2C30A0D635569935BB0364018EA97A372ADA5D7145378A40D3D967': { symbol: 'BIKE', decimals: 6, originChain: 'BIKE' }, // BIKE on Stargaze
+
+  // Dungeon on other chains
+  'ibc/CD6412358F33B372A355CF22786D8C19477C15092B56BD56188679EED8556964': { symbol: 'DGN', decimals: 6, originChain: 'dungeon' }, // DGN on Osmosis
 };
 
 // Derived configurations from CHAIN_CONFIGS

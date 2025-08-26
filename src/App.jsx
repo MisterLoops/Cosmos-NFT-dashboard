@@ -321,7 +321,8 @@ export default function App() {
       'TIA': 'celestia',
       'BTC': 'bitcoin',
       'USDC': 'usd-coin',
-      'BIKE': 'bike'
+      'BIKE': 'bike',
+      'DGN': 'dragon-coin-2'
     };
 
     const coingeckoIds = Object.values(symbolToCoinGeckoId)
@@ -366,7 +367,8 @@ export default function App() {
       'TIA': 5.5,
       'BTC': 95000,
       'USDC': 1.0,
-      'BIKE': 0
+      'BIKE': 0,
+      'DGN': 0
     };
 
     // Apply fallbacks for missing prices
@@ -833,6 +835,75 @@ export default function App() {
       }
     };
 
+    // Fetch 7: BackboneLabs Osmosis Offers (with single proxy like Osmosis)
+    const fetchBackboneDungeonOffers = async () => {
+      try {
+        const offersUrl = `${API_ENDPOINTS.BACKBONE_LABS_API}/dapps/necropolis/offers/made?addresses=${addresses.dungeon}`;
+
+        // Use first proxy like Osmosis pattern
+        const proxyUrl = CORS_PROXIES[0];
+        const proxiedUrl = buildProxiedUrl(proxyUrl, offersUrl);
+
+        const response = await fetch(proxiedUrl, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        });
+
+        const data = await response.json();
+
+        const offersWithCollections = await Promise.all(
+          (data.offers || []).map(async (offer) => {
+            try {
+              // Fetch token info instead of collection
+              const tokenUrl = `${API_ENDPOINTS.BACKBONE_LABS_API}/dapps/necropolis/collections/${offer.nft_contract}/${offer.token_id}`;
+              const tokenProxiedUrl = buildProxiedUrl(proxyUrl, tokenUrl);
+
+              const tokenResponse = await fetch(tokenProxiedUrl, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' }
+              });
+
+              const tokenData = await tokenResponse.json();
+
+              return {
+                amount: parseFloat(offer.offer_amount) / Math.pow(10, 6),
+                symbol: 'DGN',
+                amount_usd: calculateUsdValue(offer.offer_amount, 'DGN', 6),
+                collection: {
+                  name: tokenData.name || 'Unknown Token',
+                  image: tokenData.image_url
+                    ? (tokenData.image_url.startsWith('ipfs://')
+                      ? `https://ipfs.io/ipfs/${tokenData.image_url.slice(7)}`
+                      : tokenData.image_url)
+                    : ''
+                },
+                link: `${MARKETPLACES["backbonelabs"]}/nfts/marketplace/collections/${offer.nft_contract}/${offer.token_id}`
+              };
+            } catch (error) {
+              console.error('❌ Error fetching token for offer:', error);
+              return {
+                amount: parseFloat(offer.offer_amount) / Math.pow(10, 6),
+                symbol: 'DGN',
+                amount_usd: calculateUsdValue(offer.offer_amount, 'DGN', 6),
+                collection: {
+                  name: 'Unknown Token',
+                  image: ''
+                },
+                link: `${MARKETPLACES["backbonelabs"]}/nfts/marketplace/collections/${offer.nft_contract}/${offer.token_id}`
+              };
+            }
+          })
+        );
+
+        return {
+          platform: 'Backbonelabs Dungeon',
+          offers: offersWithCollections
+        };
+      } catch (error) {
+        console.error('❌ Fetch 7 error:', error);
+        return { platform: 'Backbonelabs Dungeon', offers: [] };
+      }
+    };
 
     try {
       const [
@@ -841,18 +912,20 @@ export default function App() {
         superboltResult,
         backboneInjectiveResult,
         backboneOsmosisResult,
-        intergazeResult
+        intergazeResult,
+        backboneDungeonResult
       ] = await Promise.all([
         fetchWalletName(),
         fetchStargazeOffers(),
         fetchSuperboltOffers(),
         fetchBackboneInjectiveOffers(),
         fetchBackboneOsmosisOffers(),
-        fetchIntergazeOffers()
+        fetchIntergazeOffers(),
+        fetchBackboneDungeonOffers()
       ]);
 
 
-      const platforms = [stargazeResult, superboltResult, backboneInjectiveResult, backboneOsmosisResult, intergazeResult];
+      const platforms = [stargazeResult, superboltResult, backboneInjectiveResult, backboneOsmosisResult, intergazeResult, backboneDungeonResult];
 
       const processedPlatforms = platforms
         .map(platform => {
@@ -1090,7 +1163,7 @@ export default function App() {
 
     // Basic check for prefix and length (typical length is 39-65 characters for Neutron)
     const minLength = chainPrefix === "neutron" ? 39 : 39;
-    const maxLength = chainPrefix === "neutron" ? 70 : 45;
+    const maxLength = chainPrefix === "neutron" ? 70 : 70;
 
     return (
       address.startsWith(expectedPrefix) &&
@@ -1581,6 +1654,7 @@ export default function App() {
           initPrice={initPrice}
           binjPrice={binjPrice}
           ntrnPrice={assetPrices["NTRN"] || 0}
+          DGNPrice={assetPrices["DGN"] || 0}
           showDollarBalances={showDollarBalances}
           onManualAddressRemoved={handleManualAddressRemoved}
           onFetchStatusChange={(isFetching) => {

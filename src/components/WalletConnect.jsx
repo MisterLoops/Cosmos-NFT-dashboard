@@ -40,7 +40,8 @@ export default function WalletConnect({
         "interwoven-1",
         "neutron-1",
         "mantra-1",
-        "akashnet-2"
+        "akashnet-2",
+        "dungeon-1"
       ];
 
       await window.keplr.enable(chainIds);
@@ -90,7 +91,8 @@ export default function WalletConnect({
         "interwoven-1",
         "neutron-1",
         "mantra-1",
-        "akashnet-2"
+        "akashnet-2",
+        "dungeon-1"
       ];
 
       await window.leap.enable(chainIds);
