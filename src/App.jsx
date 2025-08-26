@@ -1378,7 +1378,7 @@ export default function App() {
             <a href="https://intergaze.xyz" target="_blank" rel="noopener noreferrer" data-tooltip="Intergaze Marketplace on Initia">
               <img src="/Intergaze.png" alt="Intergaze" />
             </a>
-            <a href="https://app.backbonelabs.io" target="_blank" rel="noopener noreferrer" data-tooltip="BackBoneLabs Marketplace on Osmosis and Injective">
+            <a href="https://app.backbonelabs.io" target="_blank" rel="noopener noreferrer" data-tooltip="BackBoneLabs Marketplace on Osmosis, Injective and Dungeon">
               <img src="/BackBoneLabs.png" alt="BackBoneLabs" />
             </a>
             <a href="https://app.superbolt.wtf" target="_blank" rel="noopener noreferrer" data-tooltip="Superbolt Marketplace on Neutron">
