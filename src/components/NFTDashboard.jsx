@@ -8,10 +8,7 @@ import {
   ArrowDown,
   DollarSign,
   Award,
-  Heart,
-  Copy,
-  Check,
-  X
+  
 } from "lucide-react";
 import NFTCard from "./NFTCard";
 import FilterPanel from "./FilterPanel";
@@ -25,7 +22,7 @@ import {
   fetchCosmosHubNFTs,
   fetchDungeonNFTs
 } from "../utils/fetchFunctions";
-import { CHAIN_CONFIGS, CHAINS, PAGINATION_CONFIG, DONATION_ADDRESSES } from "../utils/constants.js";
+import { CHAIN_CONFIGS, CHAINS, PAGINATION_CONFIG} from "../utils/constants.js";
 
 // Function to process image URLs, handling potential GIF and IPFS cases
 const processImageUrl = (originalSrc) => {
@@ -77,9 +74,9 @@ export default function NFTDashboard({
   onManualAddressRemoved,
   showDollarBalances,
   onFetchStatusChange,
+  onInitialNFTLoadComplete
 }) {
-  const [showDonation, setShowDonation] = useState(false);
-  const [copiedChain, setCopiedChain] = useState(null);
+  
   const [nfts, setNfts] = useState([]);
   const [filteredNfts, setFilteredNfts] = useState([]);
   const [priceMode, setPriceMode] = useState("floor");
@@ -138,19 +135,12 @@ export default function NFTDashboard({
     };
   }, [showFilters]);
 
-  const copyAddress = async (chain, address) => {
-    try {
-      await navigator.clipboard.writeText(address);
-      setCopiedChain(chain);
-
-      // reset after 2s
-      setTimeout(() => {
-        setCopiedChain(null);
-      }, 2000);
-    } catch (err) {
-      console.error("Failed to copy: ", err);
+  useEffect(() => {
+    if (hasLoadedNFTs && onInitialNFTLoadComplete) {
+      onInitialNFTLoadComplete(); //  notify App
     }
-  };
+  }, [hasLoadedNFTs, onInitialNFTLoadComplete]);
+
 
   // Function to remove NFTs associated with a manual address
   const removeNFTsByManualAddress = useCallback(
@@ -1399,68 +1389,7 @@ export default function NFTDashboard({
           )}
         </div>
       </div>
-      <footer className="footer">
-        <div className="footer-inner">
-          <div className="footer-title">Cosmos NFTHUB DASHBOARD V1 @2025</div>
-          <div className="footer-bottom">
-            <div className="footer-logo">
-              <span>Built with love by</span>
-              <a href="https://x.com/MisterLoops" target="_blank" rel="noopener noreferrer">
-                <img src="loops-logo.png" alt="Cosmonaut logo" />
-              </a>
-            </div>
-            <button
-              onClick={() => setShowDonation(true)}
-              className="donate-btn"
-              title="Support this project"
-            >
-              <Heart className="donate-icon" />
-            </button>
-          </div>
-        </div>
-      </footer>
-      {/* Donation Modal */}
-      {showDonation && (
-        <div className="donation-overlay" onClick={() => setShowDonation(false)}>
-          <div className="donation-modal" onClick={(e) => e.stopPropagation()}>
-            <button
-              className="close-btn"
-              onClick={() => setShowDonation(false)}
-            >
-              <X size={20} />
-            </button>
-
-            <div className="donation-content">
-              <Heart className="donation-heart" />
-              <h3>Thank you for supporting!</h3>
-              <p>I spent quite much time on this.</p>
-              <p>Any donation welcome 😉</p>
-              {DONATION_ADDRESSES &&
-                DONATION_ADDRESSES.map((info) => {
-                  const isCopied = copiedChain === info.chain;
-
-                  return (
-                    <div key={info.chain} className="address-container">
-                      <div className="address-box">
-                        <span className="address-text">{info.chain}</span>
-                        <button
-                          onClick={() => copyAddress(info.chain, info.address)}
-                          className="copy-btn"
-                          title={isCopied ? "Copied!" : "Copy address"}
-                        >
-                          {isCopied ? <Check size={16} /> : <Copy size={16} />}
-                        </button>
-                      </div>
-                      {isCopied && (
-                        <span className="copied-text">Address copied to clipboard!</span>
-                      )}
-                    </div>
-                  );
-                })}
-            </div>
-          </div>
-        </div>
-      )}
+      
 
     </div>
   );

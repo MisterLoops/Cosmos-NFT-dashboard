@@ -125,7 +125,8 @@ export default function WalletConnect({
 
   return (
     <div className="wallet-connect">
-      <div className="testing-container">
+      <h1 className="welcome-text">Welcome to the Cosmos NFTHUB!</h1>
+      {/* <div className="testing-container">
         <div className="testing-message">
           <h3>V1</h3>
           <span className="testing-message-bold">
@@ -152,14 +153,25 @@ export default function WalletConnect({
           </span><br></br>
           <p><strong><a href="https://x.com/MisterLoops" target="_blank" rel="noopener noreferrer">MisterLoops</a></strong></p>
         </div>
-      </div>
+      </div> */}
 
       <div className="connect-container">
-        <Wallet size={48} className="wallet-icon" />
+        <Wallet size={64} className="wallet-icon" />
         <h1>Connect Your Wallet</h1>
         <p>
-          Select which Cosmos wallet you'd like to connect to access the Cosmos NFTHUB
+          ... to admire your interchain NFT portfolio on 7 cosmos chains from one single place.
         </p>
+        {/* <p>
+          Watch all your offers and sort your NFTs with filters.
+        </p> */}
+        <p>
+          The app simply runs in your browser, nothing's stored in a database.
+        </p>
+        <p className="offline-message">
+          It's an offline connection, no transaction EVER, you're safe 😉
+        </p>
+        <p className="connect-experiment">🧪 EVERYTHING IS AN EXPERIMENT 🧪</p>
+        <p><strong><a href="https://x.com/MisterLoops" target="_blank" rel="noopener noreferrer">MisterLoops</a></strong></p>
 
         {isMobile && (
           <div className="mobile-disclaimer">

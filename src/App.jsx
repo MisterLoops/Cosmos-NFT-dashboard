@@ -4,14 +4,15 @@ import WalletConnect from "./components/WalletConnect";
 import NFTDashboard from "./components/NFTDashboard";
 import ChainBasedPortfolio from "./components/ChainBasedPortfolio";
 import DesktopChainPortfolio from "./components/DesktopChainPortfolio";
-import { Trash2, Copy, Check } from "lucide-react";
+import { Trash2, Copy, Check, Heart, X } from "lucide-react";
 import {
   CHAIN_CONFIGS,
   CHAIN_ENDPOINTS,
   CORS_PROXIES,
   API_ENDPOINTS,
   IBC_TOKEN_MAPPINGS,
-  MARKETPLACES
+  MARKETPLACES,
+  DONATION_ADDRESSES 
 } from "./utils/constants.js";
 
 export default function App() {
@@ -27,6 +28,8 @@ export default function App() {
   const [assetPrices, setAssetPrices] = useState({});
   const [nftOffers, setNftOffers] = useState({});
   const [offersLoading, setOffersLoading] = useState(false);
+  const [hasLoadedBalances, setHasLoadedBalances] = useState(false);
+  const [hasLoadedNFTs, setHasLoadedNFTs] = useState(false);
   const [showWalletDropdown, setShowWalletDropdown] = useState(false);
   const [walletDropdownClosing, setWalletDropdownClosing] = useState(false);
   const [showManualAddressForm, setShowManualAddressForm] = useState(false);
@@ -48,6 +51,8 @@ export default function App() {
     canScrollDown: false,
     isScrollable: false,
   });
+  const [showDonation, setShowDonation] = useState(false);
+  const [copiedChain, setCopiedChain] = useState(null);
 
   // Refs to track if prices have been fetched to prevent duplicates
   const bosmoFetchedRef = useRef(false);
@@ -216,6 +221,12 @@ export default function App() {
     fetchBinjPrice();
   }, []);
 
+  useEffect(() => {
+    if (hasLoadedBalances && hasLoadedNFTs && !hasCompletedInitialLoad) {
+      setHasCompletedInitialLoad(true);
+    }
+  }, [hasLoadedBalances, hasLoadedNFTs, hasCompletedInitialLoad]);
+
   const fetchAllChainBalances = async (addresses) => {
     const chainBalances = {}; // Structure: { chainName: { assets: [...], totalValue: 0 } }
 
@@ -303,6 +314,20 @@ export default function App() {
 
     return chainBalances;
   };
+
+  const copyAddress = async (chain, address) => {
+      try {
+        await navigator.clipboard.writeText(address);
+        setCopiedChain(chain);
+  
+        // reset after 2s
+        setTimeout(() => {
+          setCopiedChain(null);
+        }, 2000);
+      } catch (err) {
+        console.error("Failed to copy: ", err);
+      }
+    };
 
   const fetchAllAssetPrices = async () => {
     // console.log("[DEBUG] Fetching prices for all supported assets");
@@ -1086,6 +1111,7 @@ export default function App() {
       console.error('Error fetching token balances:', error);
     } finally {
       setOffersLoading(false);
+      setHasLoadedBalances(true);
     }
   };
 
@@ -1349,16 +1375,16 @@ export default function App() {
     };
   }, [showWalletDropdown]);
 
-  if (!wallet) {
-    return <WalletConnect onConnect={handleWalletConnect} error={error} />;
-  }
+  // if (!wallet) {
+  //   return <WalletConnect onConnect={handleWalletConnect} error={error} />;
+  // }
 
   // Removed gating logic, access is granted if wallet is connected.
   // The "Access Denied" view is removed.
 
   return (
-    <div className="app">
-      {hasCompletedInitialLoad && (<header className="app-header">
+    <div className={`${(hasCompletedInitialLoad) ? "app" : "app-connecting"}`}>
+      <header className="app-header">
         <div className="app-title-container">
           <img src="/cosmosNFTHUBlogo.png" alt="Logo" className="app-logo" />
           <div className="app-title">
@@ -1395,7 +1421,7 @@ export default function App() {
             </a>
           </div>
         </div>
-        <div className="wallet-info">
+        {<div className="wallet-info">
           <button
             onClick={() => {
               if (showTokens) {
@@ -1427,8 +1453,9 @@ export default function App() {
                 }
               }}
               className="wallet-btn"
+              disabled={(!hasCompletedInitialLoad && isFetchingNFTs)}
             >
-              {wallet.name}
+              {hasCompletedInitialLoad ? wallet.name : "....."}
             </button>
 
             {(showWalletDropdown || walletDropdownClosing) && (
@@ -1612,12 +1639,14 @@ export default function App() {
                       <button
                         onClick={handleAddManualAddress}
                         className="add-btn"
+                        disabled={isFetchingNFTs || !hasCompletedInitialLoad}
                       >
                         Add
                       </button>
                       <button
                         onClick={() => setShowManualAddressForm(false)}
                         className="cancel-btn"
+
                       >
                         Cancel
                       </button>
@@ -1627,11 +1656,11 @@ export default function App() {
               </div>
             )}
           </div>
-        </div>
-      </header>)}
+        </div>}
+      </header>
 
       {/* Mobile Chain-Based Portfolio */}
-      {(showTokens || tokenBalancesClosing) && !isFetchingNFTs && (
+      {(showTokens || tokenBalancesClosing) && hasCompletedInitialLoad && (
         <ChainBasedPortfolio
           chainBalances={chainBalances}
           showTokens={showTokens}
@@ -1641,12 +1670,14 @@ export default function App() {
       )}
 
       {/* Desktop Chain-Based Portfolio */}
-      {Object.keys(chainBalances).length > 0 && !isFetchingNFTs && (
+      {Object.keys(chainBalances).length > 0 && hasCompletedInitialLoad && (
         <DesktopChainPortfolio chainBalances={chainBalances} showDollarBalances={showDollarBalances}
           setShowDollarBalances={setShowDollarBalances} nftOffers={nftOffers} />
       )}
 
-      {wallet && Object.keys(tokenBalances).length > 0 && (
+      {!wallet ? (
+        <WalletConnect onConnect={handleWalletConnect} error={error} />
+      ) : (
         <NFTDashboard
           addresses={getAllAddresses()}
           onAddressFetched={clearAddressLoading}
@@ -1658,15 +1689,73 @@ export default function App() {
           showDollarBalances={showDollarBalances}
           onManualAddressRemoved={handleManualAddressRemoved}
           onFetchStatusChange={(isFetching) => {
-            // Only allow setting to false after initial load, never back to true
-            if (!isFetching || !hasCompletedInitialLoad) {
-              setIsFetchingNFTs(isFetching);
-              if (!isFetching && !hasCompletedInitialLoad) {
-                setHasCompletedInitialLoad(true);
-              }
-            }
+            setIsFetchingNFTs(isFetching);
           }}
+          onInitialNFTLoadComplete={() => setHasLoadedNFTs(true)}
         />
+
+      )}
+      <footer className="footer">
+        <div className="footer-inner">
+          <div className="footer-title">Cosmos NFTHUB DASHBOARD V1 @2025</div>
+          <div className="footer-bottom">
+            <div className="footer-logo">
+              <span>Built with love by</span>
+              <a href="https://x.com/MisterLoops" target="_blank" rel="noopener noreferrer">
+                <img src="loops-logo.png" alt="Cosmonaut logo" />
+              </a>
+            </div>
+            <button
+              onClick={() => setShowDonation(true)}
+              className="donate-btn"
+              title="Support this project"
+            >
+              <Heart className="donate-icon" />
+            </button>
+          </div>
+        </div>
+      </footer>
+      {/* Donation Modal */}
+      {showDonation && (
+        <div className="donation-overlay" onClick={() => setShowDonation(false)}>
+          <div className="donation-modal" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="close-btn"
+              onClick={() => setShowDonation(false)}
+            >
+              <X size={20} />
+            </button>
+
+            <div className="donation-content">
+              <Heart className="donation-heart" />
+              <h3>Thank you for supporting!</h3>
+              <p>I spent quite much time on this.</p>
+              <p>Any donation welcome 😉</p>
+              {DONATION_ADDRESSES &&
+                DONATION_ADDRESSES.map((info) => {
+                  const isCopied = copiedChain === info.chain;
+
+                  return (
+                    <div key={info.chain} className="address-container">
+                      <div className="address-box">
+                        <span className="address-text">{info.chain}</span>
+                        <button
+                          onClick={() => copyAddress(info.chain, info.address)}
+                          className="copy-btn"
+                          title={isCopied ? "Copied!" : "Copy address"}
+                        >
+                          {isCopied ? <Check size={16} /> : <Copy size={16} />}
+                        </button>
+                      </div>
+                      {isCopied && (
+                        <span className="copied-text">Address copied to clipboard!</span>
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

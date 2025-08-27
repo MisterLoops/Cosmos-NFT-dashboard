@@ -3083,680 +3083,492 @@ const fetchOsmosisNFTMetadata = async (
 const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
   try {
     console.log(`[DEBUG] Fetching Osmosis NFTs for addresses:`, addresses);
-    const response = await fetch('/interchainCollectionsContracts.json');
-    if (!response.ok) {
+
+    // Load interchain contracts (used to map Osmosis collection -> Stargaze collection)
+    const resp = await fetch('/interchainCollectionsContracts.json');
+    if (!resp.ok) {
       console.error('[ERROR] Failed to load interchainCollectionsContracts.json');
-      return null;
+      return [];
     }
+    const interchainCollectionsContracts = await resp.json();
 
-    const interchainCollectionsContracts = await response.json();
-    // Pre-fetch collection floors once to avoid duplicate requests
-    const collectionFloors = new Map();
-    const stargazeOffers = new Map(); // Cache for Stargaze offers by collection
-    const osmosisDAOs = daosConfig.DAOs["osmosis-1"];
+    // Caches
+    const collectionFloors = new Map();                  // key: osmoContract -> floor object
+    const stargazeOffersByOsmoContract = new Map();      // key: osmoContract -> Promise<stargazeData|null>
+    const osmosisDAOs = daosConfig?.DAOs?.["osmosis-1"] || {};
 
-    if (osmosisDAOs) {
-      for (const [daoName, daoConfig] of Object.entries(osmosisDAOs)) {
-        try {
-          const collectionFloor = await fetchOsmosisCollectionFloor(
-            daoConfig.collection,
-          );
-          collectionFloors.set(daoConfig.collection, collectionFloor);
-          console.log(
-            `[DEBUG] Floor for ${daoName}: ${collectionFloor?.price || 0} bOSMO`,
-          );
-        } catch (error) {
-          console.error(`[ERROR] Failed to fetch floor for ${daoName}:`, error);
-        }
-      }
-    }
-
-    // Helper function to get Stargaze contract from collection name
-    const getStargazeContract = async (collectionName) => {
+    // ---------- Helpers ----------
+    const resolveInterchainByOsmoContract = (osmoContract) => {
       try {
-        // Load interchain collections contracts from public folder
-
-        const collections = interchainCollectionsContracts.Collections;
-
+        const collections = interchainCollectionsContracts?.Collections || {};
         for (const [name, contracts] of Object.entries(collections)) {
-          if (name === collectionName && contracts["stargaze-1"]) {
-            return contracts["stargaze-1"];
+          if (contracts?.["osmosis-1"] && contracts["osmosis-1"] === osmoContract) {
+            return {
+              interchainName: name,
+              stargazeContract: contracts["stargaze-1"] || null,
+            };
           }
         }
-        return null;
-      } catch (error) {
-        console.error(`[ERROR] Failed to get Stargaze contract for ${collectionName}:`, error);
+      } catch (e) {
+        console.error(`[ERROR] resolveInterchainByOsmoContract failed for ${osmoContract}:`, e);
+      }
+      return { interchainName: null, stargazeContract: null };
+    };
+
+    const fetchOsmosisFloor = async (osmoContract) => {
+      if (collectionFloors.has(osmoContract)) return collectionFloors.get(osmoContract);
+      try {
+        const floor = await fetchOsmosisCollectionFloor(osmoContract);
+        collectionFloors.set(osmoContract, floor);
+        return floor;
+      } catch (e) {
+        console.error(`[ERROR] fetchOsmosisFloor failed for ${osmoContract}:`, e);
+        collectionFloors.set(osmoContract, null);
         return null;
       }
     };
 
-    // Helper function to check Stargaze offers for a collection
-    const checkStargazeOffers = async (collectionName) => {
-      try {
-        // Check cache first
-        if (stargazeOffers.has(collectionName)) {
-          return stargazeOffers.get(collectionName);
-        }
-
-        const stargazeContract = await getStargazeContract(collectionName);
-        if (!stargazeContract) {
-          console.log(`[DEBUG] No Stargaze contract found for collection: ${collectionName}`);
-          stargazeOffers.set(collectionName, null);
+    // Returns a Promise and caches it immediately to dedupe concurrent requests
+    const fetchStargazeDataForOsmoContract = (osmoContract) => {
+      if (stargazeOffersByOsmoContract.has(osmoContract)) {
+        return stargazeOffersByOsmoContract.get(osmoContract);
+      }
+      const { stargazeContract } = resolveInterchainByOsmoContract(osmoContract);
+      const promise = (async () => {
+        if (!stargazeContract) return null;
+        try {
+          return await _fetchStargazeCollectionFloorAndOffer(stargazeContract);
+        } catch (e) {
+          console.error(`[ERROR] _fetchStargazeCollectionFloorAndOffer failed for ${osmoContract}:`, e);
           return null;
         }
-
-        const stargazeData = await _fetchStargazeCollectionFloorAndOffer(stargazeContract);
-        stargazeOffers.set(collectionName, stargazeData);
-
-        return stargazeData;
-      } catch (error) {
-        console.error(`[ERROR] Failed to check Stargaze offers for ${collectionName}:`, error);
-        stargazeOffers.set(collectionName, null);
-        return null;
-      }
+      })();
+      stargazeOffersByOsmoContract.set(osmoContract, promise);
+      return promise;
     };
 
-    // Helper function to check NFT offers
+    // Offers for a specific NFT on Osmosis marketplace
     const checkNFTOffers = async (contract, tokenId) => {
       try {
-        const contractQuery = {
-          nft_auction: {
-            nft_contract: contract,
-            token_id: tokenId
-          }
-        };
-        const queryString = JSON.stringify(contractQuery);
-        // console.log(`[DEBUG] Query for ${tokenId}:`, queryString);
-        const encodedQuery = btoa(queryString);
+        const query = { nft_auction: { nft_contract: contract, token_id: tokenId } };
+        const encoded = btoa(JSON.stringify(query));
+        const url = `${API_ENDPOINTS.OSMOSIS_LCD}/cosmwasm/wasm/v1/contract/osmo1d538dlgllprz0hh32x0qvcx5c9pp7xxr3lr06z5k95vfr4njhppsy0w0k3/smart/${encoded}`;
+        const res = await fetch(url, { headers: { Accept: "application/json" } });
 
-        // Query the BackboneLabs marketplace smart contract
-        const queryUrl = `${API_ENDPOINTS.OSMOSIS_LCD}/cosmwasm/wasm/v1/contract/osmo1d538dlgllprz0hh32x0qvcx5c9pp7xxr3lr06z5k95vfr4njhppsy0w0k3/smart/${encodedQuery}`
-        const response = await fetch(queryUrl, {
-          method: "GET",
-          headers: { Accept: "application/json" },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-
-          if (data.data && data.data.offers && data.data.offers.length > 0) {
-            // Find the highest offer
-            const highestOffer = data.data.offers.reduce((max, offer) => {
-              const offerAmount = parseInt(offer.amount);
-              const maxAmount = parseInt(max.amount);
-              return offerAmount > maxAmount ? offer : max;
-            });
-
-            // Calculate amounts with exponent 6
-            const highestOfferAmount = parseInt(highestOffer.amount) / 1_000_000;
-            const highestOfferAmountUsd = bosmoPrice && highestOfferAmount > 0 ?
-              highestOfferAmount * bosmoPrice : 0;
-
+        if (res.ok) {
+          const data = await res.json();
+          const offers = data?.data?.offers || [];
+          if (offers.length > 0) {
+            const highest = offers.reduce((max, o) =>
+              parseInt(o.amount) > parseInt(max.amount) ? o : max
+            );
+            const amt = parseInt(highest.amount) / 1_000_000;
             return {
               hasOffer: true,
               highestOffer: {
                 highestOfferType: "token",
-                amount: highestOfferAmount,
-                amountUsd: highestOfferAmountUsd,
+                amount: amt,
+                amountUsd: bosmoPrice && amt > 0 ? amt * bosmoPrice : 0,
                 denom: "factory/osmo1s3l0lcqc7tu0vpj6wdjz9wqpxv8nk6eraevje4fuwkyjnwuy82qsx3lduv/boneOsmo",
                 symbol: "bOSMO",
               },
             };
           }
         }
-      } catch (error) {
-        console.error(`[ERROR] Failed to check offers for ${contract}:${tokenId}:`, error);
+      } catch (err) {
+        console.error(`[ERROR] Offer check failed for ${contract}:${tokenId}`, err);
       }
-
-      // Return default values if no offers or error
-      return {
-        hasOffer: false,
-        highestOffer: null,
-      };
+      return { hasOffer: false, highestOffer: null };
     };
 
-    // Helper function to process offer data including Stargaze check
-    const processOfferData = async (nft, osmosisOfferData, collectionName) => {
-      let finalOfferData = { ...osmosisOfferData };
+    // Attach best available offer (Osmosis token-level first; fallback to Stargaze collection-level)
+    const processOfferData = async (nft, osmosisOfferData) => {
+      let final = { ...osmosisOfferData };
 
-      // If no Osmosis offer, check Stargaze
-      if (!osmosisOfferData.hasOffer) {
-        const stargazeData = await checkStargazeOffers(collectionName);
+      if (!osmosisOfferData?.hasOffer) {
+        const osmoContract = nft?.collection?.contract || nft?.contract;
+        const sgData = await fetchStargazeDataForOsmoContract(osmoContract);
 
-        // FIX: Stargaze offer lives under collection.highestOffer.offerPrice
-        const stargazeOffer = stargazeData?.highestOffer?.offerPrice;
+        // Expected path (per your note): collection.highestOffer.offerPrice
+        const offerNode =
+          sgData?.collection?.highestOffer?.offerPrice ||
+          sgData?.highestOffer?.offerPrice || // fallback if structure differs
+          sgData?.highestOffer ||             // ultimate fallback
+          null;
 
-        if (stargazeOffer && stargazeOffer.amount && parseFloat(stargazeOffer.amount) > 0) {
-          const exponent = stargazeOffer.exponent ?? 6;
-          const stargazeOfferAmount =
-            parseFloat(stargazeOffer.amount) / Math.pow(10, exponent);
-          const stargazeOfferUsd = parseFloat(stargazeOffer.amountUsd) || 0;
-          finalOfferData = {
+        const amount = offerNode?.amount;
+        if (amount && !Number.isNaN(parseFloat(amount))) {
+          const exponent = (typeof offerNode.exponent === "number") ? offerNode.exponent : 6;
+          const amt = parseFloat(amount) / Math.pow(10, exponent);
+          final = {
             hasOffer: true,
             highestOffer: {
-              highestOfferType: "collection", // or "token" if you prefer
-              amount: stargazeOfferAmount,
-              amountUsd: stargazeOfferUsd,
-              denom: stargazeOffer.denom,
-              symbol: stargazeOffer.symbol,
+              highestOfferType: "collection",
+              amount: amt,
+              amountUsd: offerNode.amountUsd ? parseFloat(offerNode.amountUsd) : 0,
+              denom: offerNode.denom,
+              symbol: offerNode.symbol,
             },
             offerFromStargaze: true,
           };
         }
       }
 
-      if (!finalOfferData.offerFromStargaze) {
-        finalOfferData.offerFromStargaze = false;
-      }
-
-      return finalOfferData;
+      if (!final.offerFromStargaze) final.offerFromStargaze = false;
+      return final;
     };
 
-
-
-    // Fetch staked NFTs using simplified BackboneLabs API approach
-    const stakedNFTs = [];
-
-    for (const address of addresses) {
-      try {
-        let page = 1;
-        let hasMorePages = true;
-        const allStakedNfts = [];
-
-        while (hasMorePages) {
-          const stakedUrl = `https://warlock.backbonelabs.io/api/v1/dapps/necropolis/nfts/address/${address}/staked?page=${page}&perPage=24&chainId=osmosis-1`;
-
-          const corsProxies = CORS_PROXIES;
-          let proxiedUrl;
-          const proxyUrl = corsProxies[0];
-
-          if (proxyUrl.includes("codetabs.com")) {
-            proxiedUrl = proxyUrl + encodeURIComponent(stakedUrl);
-          } else if (proxyUrl.includes("thingproxy.freeboard.io")) {
-            proxiedUrl = proxyUrl + encodeURIComponent(stakedUrl);
-          } else {
-            proxiedUrl = proxyUrl + stakedUrl;
-          }
-
-          const response = await fetch(proxiedUrl, {
-            method: "GET",
-            headers: { Accept: "application/json" },
-          });
-
-          if (response.ok) {
-            const stakedData = await response.json();
-
-            if (stakedData.nfts && Array.isArray(stakedData.nfts)) {
-              allStakedNfts.push(...stakedData.nfts);
-
-              if (stakedData.nfts.length < 24) {
-                hasMorePages = false;
-              } else {
-                page++;
-              }
-            } else {
-              hasMorePages = false;
-            }
-          } else {
-            hasMorePages = false;
-          }
+    const getDisplayCollectionName = (contractAddress, fallbackName) => {
+      for (const [daoName, daoConfig] of Object.entries(osmosisDAOs)) {
+        if (daoConfig.collection === contractAddress) {
+          return daoName.replace(" DAO", "");
         }
-
-        if (allStakedNfts.length > 0) {
-          const stakedPromises = allStakedNfts.map((nft) =>
-            limit(async () => {
-              try {
-                // Get collection floor from cache or fetch
-                let collectionFloor = collectionFloors.get(nft.collection.contract);
-                if (!collectionFloor) {
-                  collectionFloor = await fetchOsmosisCollectionFloor(nft.collection.contract);
-                  collectionFloors.set(nft.collection.contract, collectionFloor);
-                }
-
-                // Fetch metadata
-                let metadata = null;
-                if (nft.token_uri) {
-                  metadata = await fetchOsmosisNFTMetadata(
-                    nft.nft_token_id,
-                    nft.collection.contract,
-                    nft.token_uri,
-                    true,
-                  );
-                } else {
-                  metadata = await fetchListedNFTMetadata(
-                    nft.collection.contract,
-                    nft.nft_token_id,
-                    "osmosis",
-                  );
-                }
-
-                // Process image URL
-                let processedImageUrl = nft.cf_url || nft.image_url || metadata?.image;
-                if (processedImageUrl && processedImageUrl.startsWith("ipfs://")) {
-                  processedImageUrl = processedImageUrl.replace(
-                    "ipfs://",
-                    API_ENDPOINTS.IPFS_GATEWAY_PRIMARY,
-                  );
-                }
-
-                // Calculate floor price
-                const floorPriceBosmo = collectionFloor ? parseFloat(collectionFloor.price || 0) : 0;
-                const floorPriceUsd = bosmoPrice && floorPriceBosmo > 0 ? floorPriceBosmo * bosmoPrice : 0;
-
-                // Get collection info
-                const getCollectionInfo = (contractAddress) => {
-                  for (const [daoName, daoConfig] of Object.entries(osmosisDAOs || {})) {
-                    if (daoConfig.collection === contractAddress) {
-                      return {
-                        name: daoName.replace(" DAO", ""),
-                        daoName: daoName,
-                        daoAddress: daoConfig.DAO,
-                      };
-                    }
-                  }
-                  return {
-                    name: nft.collection.name || "Unknown Collection",
-                    daoName: null,
-                    daoAddress: null,
-                  };
-                };
-                const collectionInfo = getCollectionInfo(nft.collection.contract);
-
-                // Process traits
-                const rawTraits = metadata?.attributes || metadata?.traits || [];
-                const processedTraits = rawTraits.map((trait) => ({
-                  name: trait.trait_type || trait.name,
-                  value: trait.value,
-                  rarity: undefined,
-                }));
-
-                // Check offers including Stargaze
-                const osmosisOfferData = {
-                  hasOffer: false,
-                  highestOffer: null,
-                };
-                const offerData = await processOfferData(nft, osmosisOfferData, collectionInfo.name);
-
-                return {
-                  name: nft.nft_name || metadata?.name || `NFT #${nft.nft_token_id}`,
-                  tokenId: nft.nft_token_id.toString(),
-                  chain: "osmosis",
-                  contract: nft.collection.contract,
-                  collection: collectionInfo.name,
-                  image: processedImageUrl,
-                  listed: false,
-                  listPrice: null,
-                  rarity: nft.rank || null,
-                  traits: processedTraits,
-                  floor: {
-                    amount: floorPriceBosmo,
-                    amountUsd: floorPriceUsd,
-                    denom: "factory/osmo1s3l0lcqc7tu0vpj6wdjz9wqpxv8nk6eraevje4fuwkyjnwuy82qsx3lduv/boneOsmo",
-                    symbol: "bOSMO",
-                  },
-                  sortUsd: floorPriceUsd,
-                  staked: true,
-                  daoStaked: true,
-                  daoName: collectionInfo.daoName,
-                  daoAddress: collectionInfo.daoAddress,
-                  sourceAddress: address,
-                  ...offerData,
-                };
-              } catch (error) {
-                console.error(`[ERROR] Failed to process staked NFT ${nft.nft_token_id}:`, error);
-                return null;
-              }
-            }),
-          );
-
-          const stakedResults = await Promise.all(stakedPromises);
-          stakedResults.forEach((nftData) => {
-            if (nftData) stakedNFTs.push(nftData);
-          });
-        }
-      } catch (error) {
-        console.error(`[ERROR] Failed to fetch staked NFTs for ${address}:`, error);
       }
-    }
+      return fallbackName || "Unknown Collection";
+    };
 
-    // Fetch wallet NFTs using optimized approach
+    // ---------- Fetch NFTs ----------
+    const stakedNFTs = [];
     const walletNFTs = [];
 
+    // ===== STAKED =====
     for (const address of addresses) {
-      // Fetch not listed NFTs
       try {
-        let page = 1;
-        let hasMorePages = true;
-        const allNotListedNfts = [];
+        let page = 1, hasMore = true;
+        const allStaked = [];
+        while (hasMore) {
+          const url = `https://warlock.backbonelabs.io/api/v1/dapps/necropolis/nfts/address/${address}/staked?page=${page}&perPage=24&chainId=osmosis-1`;
+          const proxy = CORS_PROXIES[0];
+          const proxied = proxy.includes("codetabs.com") || proxy.includes("thingproxy.freeboard.io")
+            ? proxy + encodeURIComponent(url)
+            : proxy + url;
 
-        while (hasMorePages) {
-          const notListedUrl = `${API_ENDPOINTS.BACKBONE_LABS_API}/dapps/necropolis/nfts/address/${address}/not_listed?page=${page}&perPage=${PAGINATION_CONFIG.BACKBONE_API_PER_PAGE}&chainId=osmosis-1`;
-
-          const corsProxies = CORS_PROXIES;
-          let proxiedUrl;
-          const proxyUrl = corsProxies[0];
-
-          if (proxyUrl.includes("codetabs.com")) {
-            proxiedUrl = proxyUrl + encodeURIComponent(notListedUrl);
-          } else if (proxyUrl.includes("thingproxy.freeboard.io")) {
-            proxiedUrl = proxyUrl + encodeURIComponent(notListedUrl);
-          } else {
-            proxiedUrl = proxyUrl + notListedUrl;
-          }
-
-          const response = await fetch(proxiedUrl, {
-            method: "GET",
-            headers: { Accept: "application/json" },
-          });
-
-          if (response.ok) {
-            const notListedData = await response.json();
-
-            if (notListedData.nfts && Array.isArray(notListedData.nfts)) {
-              allNotListedNfts.push(...notListedData.nfts);
-
-              if (notListedData.nfts.length < PAGINATION_CONFIG.BACKBONE_API_PER_PAGE) {
-                hasMorePages = false;
-              } else {
-                page++;
-              }
+          const res = await fetch(proxied, { headers: { Accept: "application/json" } });
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data?.nfts) && data.nfts.length > 0) {
+              allStaked.push(...data.nfts);
+              hasMore = data.nfts.length >= 24;
+              page += hasMore ? 1 : 0;
             } else {
-              hasMorePages = false;
+              hasMore = false;
             }
           } else {
-            hasMorePages = false;
+            hasMore = false;
           }
         }
 
-        if (allNotListedNfts.length > 0) {
-          const notListedPromises = allNotListedNfts.map((nft) =>
-            limit(async () => {
-              try {
-                // Get collection floor from cache or fetch
-                let collectionFloor = collectionFloors.get(nft.collection.contract);
-                if (!collectionFloor) {
-                  collectionFloor = await fetchOsmosisCollectionFloor(nft.collection.contract);
-                  collectionFloors.set(nft.collection.contract, collectionFloor);
-                }
+        if (allStaked.length > 0) {
+          const results = await Promise.all(
+            allStaked.map(nft =>
+              limit(async () => {
+                try {
+                  const osmoContract = nft.collection.contract;
+                  const floor = await fetchOsmosisFloor(osmoContract);
 
-                // Fetch metadata with MyGateway priority
-                const metadata = await fetchOsmosisNFTMetadata(
-                  nft.nft_token_id,
-                  nft.collection.contract,
-                  nft.token_uri,
-                  true,
-                );
+                  // metadata
+                  const metadata = nft.token_uri
+                    ? await fetchOsmosisNFTMetadata(nft.nft_token_id, osmoContract, nft.token_uri, true)
+                    : await fetchListedNFTMetadata(osmoContract, nft.nft_token_id, "osmosis");
 
-                // Process image URL
-                let processedImageUrl = nft.cf_url || nft.image_url || metadata?.image_url;
-                if (processedImageUrl && processedImageUrl.startsWith("ipfs://")) {
-                  processedImageUrl = processedImageUrl.replace(
-                    "ipfs://",
-                    API_ENDPOINTS.IPFS_GATEWAY_PRIMARY,
-                  );
-                }
-
-                // Calculate floor price
-                const floorPriceBosmo = collectionFloor ? parseFloat(collectionFloor.price || 0) : 0;
-                const floorPriceUsd = bosmoPrice && floorPriceBosmo > 0 ? floorPriceBosmo * bosmoPrice : 0;
-
-                // Get collection name
-                const getCollectionName = (contractAddress) => {
-                  for (const [daoName, daoConfig] of Object.entries(osmosisDAOs || {})) {
-                    if (daoConfig.collection === contractAddress) {
-                      return daoName.replace(" DAO", "");
-                    }
+                  let img = nft.cf_url || nft.image_url || metadata?.image || metadata?.image_url;
+                  if (img?.startsWith("ipfs://")) {
+                    img = img.replace("ipfs://", API_ENDPOINTS.IPFS_GATEWAY_PRIMARY);
                   }
-                  return nft.collection.name || "Unknown Collection";
-                };
 
-                // Process traits
-                const rawTraits = metadata?.attributes || metadata?.traits || [];
-                const processedTraits = rawTraits.map((trait) => ({
-                  name: trait.trait_type || trait.name,
-                  value: trait.value,
-                  rarity: undefined,
-                }));
+                  const floorBosmo = floor ? parseFloat(floor.price || 0) : 0;
+                  const floorUsd = bosmoPrice && floorBosmo > 0 ? floorBosmo * bosmoPrice : 0;
 
-                // Check offers including Stargaze
-                const osmosisOfferData = {
-                  hasOffer: false,
-                  highestOffer: null,
-                };
-                const offerData = await processOfferData(nft, osmosisOfferData, getCollectionName(nft.collection.contract));
+                  const displayName = getDisplayCollectionName(osmoContract, nft.collection.name);
 
-                return {
-                  name: nft.nft_name || metadata?.name || `NFT #${nft.nft_token_id}`,
-                  tokenId: nft.nft_token_id.toString(),
-                  chain: "osmosis",
-                  contract: nft.collection.contract,
-                  collection: getCollectionName(nft.collection.contract),
-                  image: processedImageUrl,
-                  listed: false,
-                  listPrice: null,
-                  rarity: nft.rank || null,
-                  traits: processedTraits,
-                  floor: {
-                    amount: floorPriceBosmo,
-                    amountUsd: floorPriceUsd,
-                    denom: "factory/osmo1s3l0lcqc7tu0vpj6wdjz9wqpxv8nk6eraevje4fuwkyjnwuy82qsx3lduv/boneOsmo",
-                    symbol: "bOSMO",
-                  },
-                  sortUsd: floorPriceUsd,
-                  daoStaked: false,
-                  sourceAddress: address,
-                  ...offerData,
-                };
-              } catch (error) {
-                console.error(`[ERROR] Failed to process not listed NFT ${nft.nft_token_id}:`, error);
-                return null;
-              }
-            }),
-          );
+                  const traitsRaw = metadata?.attributes || metadata?.traits || [];
+                  const traits = traitsRaw.map(t => ({
+                    name: t.trait_type || t.name,
+                    value: t.value,
+                  }));
 
-          const notListedResults = await Promise.all(notListedPromises);
-          notListedResults.forEach((nftData) => {
-            if (nftData) walletNFTs.push(nftData);
-          });
-        }
-      } catch (error) {
-        console.error(`[ERROR] Failed to fetch not listed NFTs for ${address}:`, error);
-      }
-
-      // Fetch listed NFTs
-      try {
-        let page = 1;
-        let hasMorePages = true;
-        const allListedNfts = [];
-
-        while (hasMorePages) {
-          const listedUrl = `${API_ENDPOINTS.BACKBONE_LABS_API}/dapps/necropolis/nfts/address/${address}/listed?page=${page}&perPage=${PAGINATION_CONFIG.BACKBONE_API_PER_PAGE}&chainId=osmosis-1`;
-
-          const corsProxies = CORS_PROXIES;
-          let proxiedUrl;
-          const proxyUrl = corsProxies[0];
-
-          if (proxyUrl.includes("codetabs.com")) {
-            proxiedUrl = proxyUrl + encodeURIComponent(listedUrl);
-          } else if (proxyUrl.includes("thingproxy.freeboard.io")) {
-            proxiedUrl = proxyUrl + encodeURIComponent(listedUrl);
-          } else {
-            proxiedUrl = proxyUrl + listedUrl;
-          }
-
-          const response = await fetch(proxiedUrl, {
-            method: "GET",
-            headers: { Accept: "application/json" },
-          });
-
-          if (response.ok) {
-            const listedData = await response.json();
-
-            if (listedData.nfts && Array.isArray(listedData.nfts)) {
-              allListedNfts.push(...listedData.nfts);
-
-              if (listedData.nfts.length < PAGINATION_CONFIG.BACKBONE_API_PER_PAGE) {
-                hasMorePages = false;
-              } else {
-                page++;
-              }
-            } else {
-              hasMorePages = false;
-            }
-          } else {
-            hasMorePages = false;
-          }
-        }
-
-        if (allListedNfts.length > 0) {
-          const listedPromises = allListedNfts.map((nft) =>
-            limit(async () => {
-              try {
-                // Get collection floor from cache or fetch
-                let collectionFloor = collectionFloors.get(nft.collection.contract);
-                if (!collectionFloor) {
-                  collectionFloor = await fetchOsmosisCollectionFloor(nft.collection.contract);
-                  collectionFloors.set(nft.collection.contract, collectionFloor);
-                }
-
-                // Fetch metadata from BackboneLabs API for listed NFTs
-                const metadata = await fetchListedNFTMetadata(
-                  nft.collection.contract,
-                  nft.nft_token_id,
-                  "osmosis",
-                );
-
-                // Check for offers on listed NFTs (Osmosis first, then Stargaze if none)
-                const osmosisOfferData = await checkNFTOffers(nft.collection.contract, nft.nft_token_id);
-                const offerData = await processOfferData(nft, osmosisOfferData, getCollectionName(nft.collection.contract));
-
-                // Process image URL
-                let processedImageUrl = nft.cf_url || nft.image_url || metadata?.image_url;
-                if (processedImageUrl && processedImageUrl.startsWith("ipfs://")) {
-                  processedImageUrl = processedImageUrl.replace(
-                    "ipfs://",
-                    API_ENDPOINTS.IPFS_GATEWAY_PRIMARY,
+                  // Offers: Osmosis (none for staked) + Stargaze collection
+                  const offerData = await processOfferData(
+                    { ...nft, collection: { ...nft.collection, contract: osmoContract } },
+                    { hasOffer: false, highestOffer: null }
                   );
-                }
 
-                // Process list price from auction data
-                let listPrice = null;
-                if (nft.auction && nft.auction.reserve_price) {
-                  const priceAmount = parseFloat(nft.auction.reserve_price) / 1_000_000;
-                  const priceUsd = bosmoPrice && priceAmount > 0 ? priceAmount * bosmoPrice : 0;
-
-                  listPrice = {
-                    amount: priceAmount,
-                    denom: nft.auction.denom || "factory/osmo1s3l0lcqc7tu0vpj6wdjz9wqpxv8nk6eraevje4fuwkyjnwuy82qsx3lduv/boneOsmo",
-                    symbol: "bOSMO",
-                    amountUsd: priceUsd,
+                  return {
+                    name: nft.nft_name || metadata?.name || `NFT #${nft.nft_token_id}`,
+                    tokenId: nft.nft_token_id.toString(),
+                    chain: "osmosis",
+                    contract: osmoContract,
+                    collection: displayName,
+                    image: img,
+                    listed: false,
+                    listPrice: null,
+                    rarity: nft.rank || null,
+                    traits,
+                    floor: {
+                      amount: floorBosmo,
+                      amountUsd: floorUsd,
+                      denom: "factory/osmo1s3l0lcqc7tu0vpj6wdjz9wqpxv8nk6eraevje4fuwkyjnwuy82qsx3lduv/boneOsmo",
+                      symbol: "bOSMO",
+                    },
+                    sortUsd: floorUsd,
+                    staked: true,
+                    daoStaked: true,
+                    daoName: osmosisDAOs[displayName + " DAO"] ? (displayName + " DAO") : null,
+                    daoAddress: osmosisDAOs[displayName + " DAO"]?.DAO || null,
+                    sourceAddress: address,
+                    ...offerData,
                   };
+                } catch (e) {
+                  console.error(`[ERROR] Failed to process staked NFT ${nft.nft_token_id}:`, e);
+                  return null;
                 }
-
-                // Calculate floor price
-                const floorPriceBosmo = collectionFloor
-                  ? parseFloat(collectionFloor.price || 0)
-                  : listPrice ? listPrice.amount : 0;
-
-                const floorPriceUsd = bosmoPrice && floorPriceBosmo > 0
-                  ? floorPriceBosmo * bosmoPrice
-                  : listPrice ? listPrice.amountUsd : 0;
-
-                // Get collection name
-                const getCollectionName = (contractAddress) => {
-                  for (const [daoName, daoConfig] of Object.entries(osmosisDAOs || {})) {
-                    if (daoConfig.collection === contractAddress) {
-                      return daoName.replace(" DAO", "");
-                    }
-                  }
-                  return nft.collection.name || "Unknown Collection";
-                };
-
-                // Process traits
-                const rawTraits = metadata?.attributes || metadata?.traits || [];
-                const processedTraits = rawTraits.map((trait) => ({
-                  name: trait.trait_type || trait.name,
-                  value: trait.value,
-                  rarity: undefined,
-                }));
-
-                return {
-                  name: nft.nft_name || metadata?.name || `NFT #${nft.nft_token_id}`,
-                  tokenId: nft.nft_token_id.toString(),
-                  chain: "osmosis",
-                  contract: nft.collection.contract,
-                  collection: getCollectionName(nft.collection.contract),
-                  image: processedImageUrl,
-                  listed: true,
-                  listPrice,
-                  rarity: nft.rank || null,
-                  traits: processedTraits,
-                  floor: {
-                    amount: floorPriceBosmo,
-                    amountUsd: floorPriceUsd,
-                    denom: "factory/osmo1s3l0lcqc7tu0vpj6wdjz9wqpxv8nk6eraevje4fuwkyjnwuy82qsx3lduv/boneOsmo",
-                    symbol: "bOSMO",
-                  },
-                  sortUsd: listPrice ? listPrice.amountUsd : floorPriceUsd,
-                  daoStaked: false,
-                  sourceAddress: address,
-                  ...offerData,
-                };
-              } catch (error) {
-                console.error(`[ERROR] Failed to process listed NFT ${nft.nft_token_id}:`, error);
-                return null;
-              }
-            }),
+              })
+            )
           );
-
-          const listedResults = await Promise.all(listedPromises);
-          listedResults.forEach((nftData) => {
-            if (nftData) walletNFTs.push(nftData);
-          });
+          results.forEach(r => r && stakedNFTs.push(r));
         }
-      } catch (error) {
-        console.error(`[ERROR] Failed to fetch listed NFTs for ${address}:`, error);
+      } catch (e) {
+        console.error(`[ERROR] Failed to fetch staked NFTs for ${address}:`, e);
       }
     }
 
-    // Combine staked and wallet NFTs with deduplication
+    // ===== WALLET: NOT LISTED =====
+    for (const address of addresses) {
+      try {
+        let page = 1, hasMore = true;
+        const allNotListed = [];
+        while (hasMore) {
+          const url = `${API_ENDPOINTS.BACKBONE_LABS_API}/dapps/necropolis/nfts/address/${address}/not_listed?page=${page}&perPage=${PAGINATION_CONFIG.BACKBONE_API_PER_PAGE}&chainId=osmosis-1`;
+          const proxy = CORS_PROXIES[0];
+          const proxied = proxy.includes("codetabs.com") || proxy.includes("thingproxy.freeboard.io")
+            ? proxy + encodeURIComponent(url)
+            : proxy + url;
+
+          const res = await fetch(proxied, { headers: { Accept: "application/json" } });
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data?.nfts) && data.nfts.length > 0) {
+              allNotListed.push(...data.nfts);
+              hasMore = data.nfts.length >= PAGINATION_CONFIG.BACKBONE_API_PER_PAGE;
+              page += hasMore ? 1 : 0;
+            } else {
+              hasMore = false;
+            }
+          } else {
+            hasMore = false;
+          }
+        }
+
+        if (allNotListed.length > 0) {
+          const results = await Promise.all(
+            allNotListed.map(nft =>
+              limit(async () => {
+                try {
+                  const osmoContract = nft.collection.contract;
+                  const floor = await fetchOsmosisFloor(osmoContract);
+
+                  const metadata = await fetchOsmosisNFTMetadata(
+                    nft.nft_token_id,
+                    osmoContract,
+                    nft.token_uri,
+                    true
+                  );
+
+                  let img = nft.cf_url || nft.image_url || metadata?.image_url || metadata?.image;
+                  if (img?.startsWith("ipfs://")) {
+                    img = img.replace("ipfs://", API_ENDPOINTS.IPFS_GATEWAY_PRIMARY);
+                  }
+
+                  const floorBosmo = floor ? parseFloat(floor.price || 0) : 0;
+                  const floorUsd = bosmoPrice && floorBosmo > 0 ? floorBosmo * bosmoPrice : 0;
+
+                  const displayName = getDisplayCollectionName(osmoContract, nft.collection.name);
+
+                  const traitsRaw = metadata?.attributes || metadata?.traits || [];
+                  const traits = traitsRaw.map(t => ({
+                    name: t.trait_type || t.name,
+                    value: t.value,
+                  }));
+
+                  const offerData = await processOfferData(
+                    { ...nft, collection: { ...nft.collection, contract: osmoContract } },
+                    { hasOffer: false, highestOffer: null }
+                  );
+
+                  return {
+                    name: nft.nft_name || metadata?.name || `NFT #${nft.nft_token_id}`,
+                    tokenId: nft.nft_token_id.toString(),
+                    chain: "osmosis",
+                    contract: osmoContract,
+                    collection: displayName,
+                    image: img,
+                    listed: false,
+                    listPrice: null,
+                    rarity: nft.rank || null,
+                    traits,
+                    floor: {
+                      amount: floorBosmo,
+                      amountUsd: floorUsd,
+                      denom: "factory/osmo1s3l0lcqc7tu0vpj6wdjz9wqpxv8nk6eraevje4fuwkyjnwuy82qsx3lduv/boneOsmo",
+                      symbol: "bOSMO",
+                    },
+                    sortUsd: floorUsd,
+                    daoStaked: false,
+                    sourceAddress: address,
+                    ...offerData,
+                  };
+                } catch (e) {
+                  console.error(`[ERROR] Failed to process not listed NFT ${nft.nft_token_id}:`, e);
+                  return null;
+                }
+              })
+            )
+          );
+          results.forEach(r => r && walletNFTs.push(r));
+        }
+      } catch (e) {
+        console.error(`[ERROR] Failed to fetch not listed NFTs for ${address}:`, e);
+      }
+    }
+
+    // ===== WALLET: LISTED =====
+    for (const address of addresses) {
+      try {
+        let page = 1, hasMore = true;
+        const allListed = [];
+        while (hasMore) {
+          const url = `${API_ENDPOINTS.BACKBONE_LABS_API}/dapps/necropolis/nfts/address/${address}/listed?page=${page}&perPage=${PAGINATION_CONFIG.BACKBONE_API_PER_PAGE}&chainId=osmosis-1`;
+          const proxy = CORS_PROXIES[0];
+          const proxied = proxy.includes("codetabs.com") || proxy.includes("thingproxy.freeboard.io")
+            ? proxy + encodeURIComponent(url)
+            : proxy + url;
+
+          const res = await fetch(proxied, { headers: { Accept: "application/json" } });
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data?.nfts) && data.nfts.length > 0) {
+              allListed.push(...data.nfts);
+              hasMore = data.nfts.length >= PAGINATION_CONFIG.BACKBONE_API_PER_PAGE;
+              page += hasMore ? 1 : 0;
+            } else {
+              hasMore = false;
+            }
+          } else {
+            hasMore = false;
+          }
+        }
+
+        if (allListed.length > 0) {
+          const results = await Promise.all(
+            allListed.map(nft =>
+              limit(async () => {
+                try {
+                  const osmoContract = nft.collection.contract;
+                  const floor = await fetchOsmosisFloor(osmoContract);
+
+                  const metadata = await fetchListedNFTMetadata(osmoContract, nft.nft_token_id, "osmosis");
+                  const osmosisOfferData = await checkNFTOffers(osmoContract, nft.nft_token_id);
+
+                  const displayName = getDisplayCollectionName(osmoContract, nft.collection.name);
+                  const offerData = await processOfferData(
+                    { ...nft, collection: { ...nft.collection, contract: osmoContract } },
+                    osmosisOfferData
+                  );
+
+                  let img = nft.cf_url || nft.image_url || metadata?.image_url || metadata?.image;
+                  if (img?.startsWith("ipfs://")) {
+                    img = img.replace("ipfs://", API_ENDPOINTS.IPFS_GATEWAY_PRIMARY);
+                  }
+
+                  let listPrice = null;
+                  if (nft.auction?.reserve_price) {
+                    const amt = parseFloat(nft.auction.reserve_price) / 1_000_000;
+                    const amtUsd = bosmoPrice && amt > 0 ? amt * bosmoPrice : 0;
+                    listPrice = {
+                      amount: amt,
+                      denom: nft.auction.denom || "factory/osmo1s3l0lcqc7tu0vpj6wdjz9wqpxv8nk6eraevje4fuwkyjnwuy82qsx3lduv/boneOsmo",
+                      symbol: "bOSMO",
+                      amountUsd: amtUsd,
+                    };
+                  }
+
+                  const floorBosmo = floor
+                    ? parseFloat(floor.price || 0)
+                    : listPrice ? listPrice.amount : 0;
+
+                  const floorUsd = bosmoPrice && floorBosmo > 0
+                    ? floorBosmo * bosmoPrice
+                    : listPrice ? listPrice.amountUsd : 0;
+
+                  const traitsRaw = metadata?.attributes || metadata?.traits || [];
+                  const traits = traitsRaw.map(t => ({
+                    name: t.trait_type || t.name,
+                    value: t.value,
+                  }));
+
+                  return {
+                    name: nft.nft_name || metadata?.name || `NFT #${nft.nft_token_id}`,
+                    tokenId: nft.nft_token_id.toString(),
+                    chain: "osmosis",
+                    contract: osmoContract,
+                    collection: displayName,
+                    image: img,
+                    listed: true,
+                    listPrice,
+                    rarity: nft.rank || null,
+                    traits,
+                    floor: {
+                      amount: floorBosmo,
+                      amountUsd: floorUsd,
+                      denom: "factory/osmo1s3l0lcqc7tu0vpj6wdjz9wqpxv8nk6eraevje4fuwkyjnwuy82qsx3lduv/boneOsmo",
+                      symbol: "bOSMO",
+                    },
+                    sortUsd: listPrice ? listPrice.amountUsd : floorUsd,
+                    daoStaked: false,
+                    sourceAddress: address,
+                    ...offerData,
+                  };
+                } catch (e) {
+                  console.error(`[ERROR] Failed to process listed NFT ${nft.nft_token_id}:`, e);
+                  return null;
+                }
+              })
+            )
+          );
+          results.forEach(r => r && walletNFTs.push(r));
+        }
+      } catch (e) {
+        console.error(`[ERROR] Failed to fetch listed NFTs for ${address}:`, e);
+      }
+    }
+
+    // ---------- Deduplicate & merge ----------
     const uniqueNFTs = new Map();
-
-    // Add wallet NFTs first
-    walletNFTs.forEach((nft) => {
-      const key = `${nft.contract}-${nft.tokenId}`;
-      uniqueNFTs.set(key, nft);
-    });
-
-    // Add staked NFTs - properly merge or add them
-    stakedNFTs.forEach((nft) => {
-      const key = `${nft.contract}-${nft.tokenId}`;
+    walletNFTs.forEach(n => uniqueNFTs.set(`${n.contract}-${n.tokenId}`, n));
+    stakedNFTs.forEach(n => {
+      const key = `${n.contract}-${n.tokenId}`;
       if (uniqueNFTs.has(key)) {
-        // If NFT exists in wallet, mark it as both staked
-        const existingNFT = uniqueNFTs.get(key);
         uniqueNFTs.set(key, {
-          ...existingNFT,
+          ...uniqueNFTs.get(key),
           daoStaked: true,
-          daoName: nft.daoName,
-          daoAddress: nft.daoAddress,
+          daoName: n.daoName,
+          daoAddress: n.daoAddress,
         });
       } else {
-        // If NFT is only staked (not in wallet), add it as staked-only
-        uniqueNFTs.set(key, nft);
+        uniqueNFTs.set(key, n);
       }
     });
 
-    const finalNFTsArray = Array.from(uniqueNFTs.values());
-    console.log(
-      `[DEBUG] Total unique Osmosis NFTs after deduplication: ${finalNFTsArray.length}`,
-    );
-
-    return finalNFTsArray;
+    const finalNFTs = Array.from(uniqueNFTs.values());
+    console.log(`[DEBUG] Total unique Osmosis NFTs after deduplication: ${finalNFTs.length}`);
+    return finalNFTs;
   } catch (error) {
     console.error("Error fetching Osmosis NFTs:", error);
     return [];
   }
 };
+
+
 
 // Fetch Osmosis NFTs with DAO integration (with caching)
 export const fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
@@ -5022,142 +4834,111 @@ const _fetchCosmosHubNFTs = async (addresses) => {
   console.log(`[DEBUG] Fetching Cosmos Hub NFTs for addresses:`, addresses);
 
   try {
-    // Load collections from the JSON file
+    // Load collections config
     let collectionsConfig;
     try {
       const response = await fetch("/interchainCollectionsContracts.json");
       collectionsConfig = await response.json();
     } catch (error) {
-      console.error(
-        `[ERROR] Failed to load Cosmos Hub collections config:`,
-        error,
-      );
+      console.error(`[ERROR] Failed to load Cosmos Hub collections config:`, error);
       return [];
     }
 
-    // First, fetch staked NFTs from all Cosmos Hub DAOs
+    // === Stargaze floor/offer cache (keyed by Stargaze contract) ===
+    const stargazeCache = new Map();
+    const fetchStargazeData = async (stargazeContract) => {
+      if (!stargazeContract) return null;
+      if (stargazeCache.has(stargazeContract)) return stargazeCache.get(stargazeContract);
+
+      const promise = (async () => {
+        try {
+          return await fetchStargazeCollectionFloorAndOffer(stargazeContract);
+        } catch (err) {
+          console.error(`[ERROR] Failed to fetch Stargaze floor/offer for ${stargazeContract}:`, err);
+          return null;
+        }
+      })();
+
+      stargazeCache.set(stargazeContract, promise);
+      return promise;
+    };
+
+    // -------- STAKED NFTs --------
     const stakedNFTs = [];
     const cosmosHubDAOs = daosConfig.DAOs["cosmoshub-4"];
 
-    // console.log(`[DEBUG] === STARTING STAKED NFT FETCH ===`);
     if (cosmosHubDAOs) {
-      // console.log(
-      //   `[DEBUG] Starting staked NFTs fetch for ${Object.keys(cosmosHubDAOs).length} Cosmos Hub DAOs`,
-      // );
-
       for (const [daoName, daoConfig] of Object.entries(cosmosHubDAOs)) {
         try {
-          // console.log(
-          //   `[DEBUG] Fetching staked NFTs for DAO: ${daoName}, contract: ${daoConfig.contract}`,
-          // );
-
           let allStakedTokenIds = [];
           for (const address of addresses) {
-            // console.log(
-            //   `[DEBUG] Fetching staked NFTs for Cosmos Hub address: ${address}`,
-            // );
-            const stakedTokenIds = await fetchStakedNFTs(
-              "cosmoshub-4",
-              daoConfig.contract,
-              address,
-            );
+            const stakedTokenIds = await fetchStakedNFTs("cosmoshub-4", daoConfig.contract, address);
             if (Array.isArray(stakedTokenIds)) {
               allStakedTokenIds.push(...stakedTokenIds);
             }
           }
-
-          // Remove duplicates
           const stakedTokenIds = [...new Set(allStakedTokenIds)];
-          // console.log(
-          //   `[DEBUG] Raw staked response for ${daoName}:`,
-          //   stakedTokenIds,
-          // );
 
-          // Fetch detailed NFT data for each staked token ID
-          if (Array.isArray(stakedTokenIds) && stakedTokenIds.length > 0) {
-            // console.log(
-            //   `[DEBUG] === PROCESSING ${stakedTokenIds.length} STAKED NFTs FOR ${daoName} ===`,
-            // );
-
+          if (stakedTokenIds.length > 0) {
             const stakedNftPromises = stakedTokenIds.map((tokenId) =>
               limit(async () => {
                 try {
-                  const nftData = await fetchCosmosHubSingleNFT(
-                    daoConfig.collection,
-                    tokenId.toString()
-                  );
-
+                  const nftData = await fetchCosmosHubSingleNFT(daoConfig.collection, tokenId.toString());
                   if (!nftData) return null;
 
-                  // Determine collection name
+                  // Find matching collection entry
                   const collectionEntry = Object.entries(collectionsConfig.Collections || {}).find(
-                    ([name, contracts]) =>
+                    ([, contracts]) =>
                       (typeof contracts === "string" && contracts === daoConfig.collection) ||
                       (typeof contracts === "object" && contracts["cosmoshub-4"] === daoConfig.collection)
                   );
-
                   const collectionName = collectionEntry?.[0] || daoName.replace(" DAO", "");
                   const collectionData = collectionEntry?.[1];
 
-                  // Defaults
-                  let floorPrice = {
-                    amount: 0,
-                    amountUsd: 0,
-                    denom: "uatom",
-                    symbol: "ATOM",
-                  };
+                  // --- Get Stargaze floor & offer ---
+                  let floorPrice = { amount: 0, amountUsd: 0, denom: "uatom", symbol: "ATOM" };
                   let highestOffer = null;
+                  let offerFromStargaze = false;
 
-                  // Fetch Stargaze floor + offer if available
-                  if (typeof collectionData === "object" && collectionData["stargaze-1"]) {
-                    try {
-                      const stargazeData = await fetchStargazeCollectionFloorAndOffer(
-                        collectionData["stargaze-1"]
-                      );
-
-                      if (stargazeData) {
-                        // Floor
-                        const stargazeFloor = stargazeData.floor;
-                        if (stargazeFloor && stargazeFloor.amount) {
-                          const exp = stargazeFloor.exponent ?? 6;
-                          floorPrice = {
-                            amount: parseFloat(stargazeFloor.amount) / Math.pow(10, exp),
-                            amountUsd: parseFloat(stargazeFloor.amountUsd) || 0,
-                            denom: stargazeFloor.denom,
-                            symbol: stargazeFloor.symbol,
-                            isStargaze: true,
-                          };
-                        }
-
-                        // Highest Offer
-                        const stargazeOffer = stargazeData.highestOffer?.offerPrice;
-                        if (stargazeOffer && stargazeOffer.amount) {
-                          const exp = stargazeOffer.exponent ?? 6;
-                          highestOffer = {
-                            amount: parseFloat(stargazeOffer.amount) / Math.pow(10, exp),
-                            amountUsd: parseFloat(stargazeOffer.amountUsd) || 0,
-                            denom: stargazeOffer.denom,
-                            symbol: stargazeOffer.symbol,
-                            isStargaze: true,
-                          };
-                        }
+                  const stargazeContract = typeof collectionData === "object" ? collectionData["stargaze-1"] : null;
+                  if (stargazeContract) {
+                    const sgData = await fetchStargazeData(stargazeContract);
+                    if (sgData) {
+                      // Floor
+                      const sgFloor = sgData.floor;
+                      if (sgFloor?.amount) {
+                        const exp = sgFloor.exponent ?? 6;
+                        floorPrice = {
+                          amount: parseFloat(sgFloor.amount) / Math.pow(10, exp),
+                          amountUsd: parseFloat(sgFloor.amountUsd) || 0,
+                          denom: sgFloor.denom,
+                          symbol: sgFloor.symbol,
+                          isStargaze: true,
+                        };
                       }
-                    } catch (error) {
-                      console.error(
-                        `[ERROR] Failed to fetch Stargaze floor/offer for staked ${collectionName}:`,
-                        error
-                      );
+                      // Highest Offer
+                      const sgOffer = sgData.collection?.highestOffer?.offerPrice || sgData.highestOffer?.offerPrice;
+                      if (sgOffer?.amount) {
+                        const exp = sgOffer.exponent ?? 6;
+                        highestOffer = {
+                          amount: parseFloat(sgOffer.amount) / Math.pow(10, exp),
+                          amountUsd: parseFloat(sgOffer.amountUsd) || 0,
+                          denom: sgOffer.denom,
+                          symbol: sgOffer.symbol,
+                          isStargaze: true,
+                        };
+                        offerFromStargaze = true;
+                      }
                     }
                   }
 
-                  // Normalize image
+                  // Normalize IPFS image
                   let imageUrl = nftData.image;
-                  if (imageUrl && imageUrl.includes("ipfs.io/ipfs/")) {
+                  if (imageUrl?.includes("ipfs.io/ipfs/")) {
                     const ipfsPath = imageUrl.split("/ipfs/")[1];
                     imageUrl = `https://gateway.pinata.cloud/ipfs/${ipfsPath}`;
                   }
 
-                  // Return enriched NFT object
                   return {
                     name: nftData.name,
                     tokenId: nftData.tokenId,
@@ -5171,225 +4952,97 @@ const _fetchCosmosHubNFTs = async (addresses) => {
                     traits: nftData.traits || [],
                     floor: floorPrice,
                     highestOffer,
-                    offerFromStargaze: true,
+                    offerFromStargaze,
                     sortUsd: floorPrice.amountUsd,
                     daoStaked: true,
-                    daoName: daoName,
+                    daoName,
                     daoAddress: daoConfig.DAO,
                     sourceAddress: addresses[0],
                   };
-                } catch (error) {
-                  console.error(
-                    `[ERROR] ✗ Failed to fetch staked NFT ${tokenId} from ${daoName}:`,
-                    error
-                  );
+                } catch (err) {
+                  console.error(`[ERROR] ✗ Failed to fetch staked NFT ${tokenId} from ${daoName}:`, err);
                   return null;
                 }
               })
             );
 
-
-            // Wait for all limited parallel fetches
-            const stakedNFTResults = await Promise.allSettled(stakedNftPromises);
-
-            // Push fulfilled results into stakedNFTs
-            stakedNFTResults.forEach((res) => {
-              if (res.status === "fulfilled" && res.value) {
-                stakedNFTs.push(res.value);
-              }
-            });
-          } else {
-            // console.log(`[DEBUG] No staked NFTs found for ${daoName}`);
+            const results = await Promise.allSettled(stakedNftPromises);
+            results.forEach((res) => res.status === "fulfilled" && res.value && stakedNFTs.push(res.value));
           }
-        } catch (error) {
-          console.error(
-            `[ERROR] Failed to fetch staked NFTs from ${daoName}:`,
-            error,
-          );
+        } catch (err) {
+          console.error(`[ERROR] Failed to fetch staked NFTs from ${daoName}:`, err);
         }
       }
     }
 
-    // console.log(`[DEBUG] === STAKED NFT FETCH COMPLETE ===`);
-    // console.log(`[DEBUG] Total staked NFTs collected: ${stakedNFTs.length}`);
-
-    // Fetch regular NFTs from Cosmos Hub
+    // -------- REGULAR NFTs --------
     const regularNFTs = [];
-
     for (const address of addresses) {
-      // console.log(`[DEBUG] Fetching Cosmos Hub NFTs for address: ${address}`);
-
-      // Query each collection for tokens owned by this address
-      for (const [collectionName, collectionData] of Object.entries(
-        collectionsConfig.Collections || {},
-      )) {
+      for (const [collectionName, collectionData] of Object.entries(collectionsConfig.Collections || {})) {
         try {
-          // Get the cosmoshub-4 contract address
-          let contractAddress;
-          if (typeof collectionData === "string") {
-            contractAddress = collectionData;
-          } else if (
-            typeof collectionData === "object" &&
-            collectionData["cosmoshub-4"]
-          ) {
-            contractAddress = collectionData["cosmoshub-4"];
-          } else {
-            // console.log(
-            //   `[DEBUG] No cosmoshub-4 contract address found for ${collectionName}`,
-            // );
-            continue;
-          }
-
-          // console.log(
-          //   `[DEBUG] Querying collection ${collectionName} (${contractAddress}) for address ${address}`,
-          // );
+          // Resolve cosmoshub-4 contract
+          let contractAddress =
+            typeof collectionData === "string"
+              ? collectionData
+              : collectionData["cosmoshub-4"];
+          if (!contractAddress) continue;
 
           const query = { tokens: { owner: address } };
           const encodedQuery = btoa(JSON.stringify(query));
-
-          // Use only Keplr LCD endpoint
           const url = `${API_ENDPOINTS.COSMOS_HUB_LCD}/cosmwasm/wasm/v1/contract/${contractAddress}/smart/${encodedQuery}`;
 
           let tokensData = null;
-          let retries = 0;
-          const maxRetries = REQUEST_CONFIG.MAX_RETRIES;
-
-          while (retries <= maxRetries) {
-            try {
-              // console.log(`[DEBUG] Querying tokens from: ${url}`);
-
-              const response = await fetch(url, {
-                method: "GET",
-                headers: {
-                  Accept: "application/json",
-                },
-              });
-
-              if (response.ok) {
-                const data = await response.json();
-                // console.log(
-                //   `[DEBUG] Tokens response for ${collectionName}:`,
-                //   data,
-                // );
-
-                // Handle response format
-                tokensData = data.data || data;
-                break; // Success, exit retry loop
-              } else if (
-                response.status === 408 ||
-                response.status === 429 ||
-                response.status >= 500
-              ) {
-                retries++;
-                if (retries <= maxRetries) {
-                  const retryDelay = Math.min(
-                    REQUEST_CONFIG.RETRY_DELAY_BASE * Math.pow(2, retries - 1),
-                    REQUEST_CONFIG.MAX_RETRY_DELAY,
-                  );
-                  console.log(
-                    `[DEBUG] API error ${response.status}, retrying in ${retryDelay}ms (attempt ${retries}/${maxRetries})`,
-                  );
-                  await delay(retryDelay);
-                  continue;
-                }
-              }
-
-              console.warn(
-                `[WARNING] Failed to fetch tokens from ${url}: ${response.status} ${response.statusText}`,
-              );
-              break;
-            } catch (error) {
-              retries++;
-              if (retries <= maxRetries) {
-                const retryDelay = Math.min(
-                  REQUEST_CONFIG.RETRY_DELAY_BASE * Math.pow(2, retries - 1),
-                  REQUEST_CONFIG.MAX_RETRY_DELAY,
-                );
-                console.log(
-                  `[DEBUG] Network error, retrying in ${retryDelay}ms (attempt ${retries}/${maxRetries}):`,
-                  error.name === "AbortError"
-                    ? "Request timeout"
-                    : error.message,
-                );
-                await delay(retryDelay);
-                continue;
-              }
-              console.error(
-                `[ERROR] Error fetching tokens from ${url}:`,
-                error,
-              );
-              break;
+          try {
+            const response = await fetch(url, { headers: { Accept: "application/json" } });
+            if (response.ok) {
+              const data = await response.json();
+              tokensData = data.data || data;
             }
+          } catch (err) {
+            console.error(`[ERROR] Failed fetching tokens from ${url}:`, err);
           }
 
-          if (
-            tokensData &&
-            tokensData.tokens &&
-            Array.isArray(tokensData.tokens)
-          ) {
-            // console.log(
-            //   `[DEBUG] Found ${tokensData.tokens.length} tokens in ${collectionName} for ${address}`,
-            // );
-
-            // Get floor price from Stargaze if available
-            let floorPrice = {
-              amount: 0,
-              amountUsd: 0,
-              denom: "uatom",
-              symbol: "ATOM",
-            };
-            let highestOffer = null;              // <-- declare per-collection iteration
+          if (tokensData?.tokens?.length) {
+            // --- Get Stargaze floor & offer (once per collection) ---
+            let floorPrice = { amount: 0, amountUsd: 0, denom: "uatom", symbol: "ATOM" };
+            let highestOffer = null;
             let offerFromStargaze = false;
 
-            if (typeof collectionData === "object" && collectionData["stargaze-1"]) {
-              try {
-                const stargazeData = await fetchStargazeCollectionFloorAndOffer(
-                  collectionData["stargaze-1"]
-                );
-
-                if (stargazeData) {
-                  // Floor
-                  const stargazeFloor = stargazeData.floor;
-                  if (stargazeFloor && stargazeFloor.amount) {
-                    const exp = stargazeFloor.exponent ?? 6;
-                    floorPrice = {
-                      amount: parseFloat(stargazeFloor.amount) / Math.pow(10, exp),
-                      amountUsd: parseFloat(stargazeFloor.amountUsd) || 0,
-                      denom: stargazeFloor.denom,
-                      symbol: stargazeFloor.symbol,
-                      isStargaze: true,
-                    };
-                  }
-
-                  // Highest Offer
-                  const stargazeOffer = stargazeData.highestOffer?.offerPrice;
-                  if (stargazeOffer && stargazeOffer.amount) {
-                    const exp = stargazeOffer.exponent ?? 6;
-                    highestOffer = {
-                      amount: parseFloat(stargazeOffer.amount) / Math.pow(10, exp),
-                      amountUsd: parseFloat(stargazeOffer.amountUsd) || 0,
-                      denom: stargazeOffer.denom,
-                      symbol: stargazeOffer.symbol,
-                      isStargaze: true,
-                    };
-                    offerFromStargaze = true;
-                  }
+            const stargazeContract = typeof collectionData === "object" ? collectionData["stargaze-1"] : null;
+            if (stargazeContract) {
+              const sgData = await fetchStargazeData(stargazeContract);
+              if (sgData) {
+                const sgFloor = sgData.floor;
+                if (sgFloor?.amount) {
+                  const exp = sgFloor.exponent ?? 6;
+                  floorPrice = {
+                    amount: parseFloat(sgFloor.amount) / Math.pow(10, exp),
+                    amountUsd: parseFloat(sgFloor.amountUsd) || 0,
+                    denom: sgFloor.denom,
+                    symbol: sgFloor.symbol,
+                    isStargaze: true,
+                  };
                 }
-              } catch (error) {
-                console.error(
-                  `[ERROR] Failed to fetch Stargaze floor/offer for staked ${collectionName}:`,
-                  error
-                );
+                const sgOffer = sgData.collection?.highestOffer?.offerPrice || sgData.highestOffer?.offerPrice;
+                if (sgOffer?.amount) {
+                  const exp = sgOffer.exponent ?? 6;
+                  highestOffer = {
+                    amount: parseFloat(sgOffer.amount) / Math.pow(10, exp),
+                    amountUsd: parseFloat(sgOffer.amountUsd) || 0,
+                    denom: sgOffer.denom,
+                    symbol: sgOffer.symbol,
+                    isStargaze: true,
+                  };
+                  offerFromStargaze = true;
+                }
               }
             }
 
-            // Fetch detailed NFT data for each token
             const results = await Promise.allSettled(
               tokensData.tokens.map((tokenId) =>
                 limit(async () => {
                   try {
                     const nftData = await fetchCosmosHubSingleNFT(contractAddress, tokenId);
-
                     if (!nftData) return null;
 
                     return {
@@ -5399,85 +5052,53 @@ const _fetchCosmosHubNFTs = async (addresses) => {
                       contract: contractAddress,
                       collection: collectionName,
                       image: nftData.image,
-                      listed: false, // No marketplace on Cosmos Hub
+                      listed: false,
                       listPrice: null,
                       rarity: null,
                       traits: nftData.traits || [],
                       floor: floorPrice,
                       highestOffer,
-                      offerFromStargaze: true,
+                      offerFromStargaze,
                       sortUsd: floorPrice.amountUsd,
                       daoStaked: false,
                       sourceAddress: address,
                     };
-                  } catch (error) {
-                    console.error(`[ERROR] Failed to fetch NFT data for ${tokenId}:`, error);
+                  } catch (err) {
+                    console.error(`[ERROR] Failed to fetch NFT data for ${tokenId}:`, err);
                     return null;
                   }
                 })
               )
             );
-
-            // Push successful results
-            results.forEach((res) => {
-              if (res.status === "fulfilled" && res.value) {
-                regularNFTs.push(res.value);
-                // console.log(`[DEBUG] ✓ Added NFT ${res.value.tokenId} from ${collectionName}`);
-              }
-            });
-
-          } else {
-            // console.log(
-            //   `[DEBUG] No tokens found in ${collectionName} for ${address}`,
-            // );
+            results.forEach((res) => res.status === "fulfilled" && res.value && regularNFTs.push(res.value));
           }
-        } catch (error) {
-          console.error(
-            `[ERROR] Failed to query collection ${collectionName}:`,
-            error,
-          );
+        } catch (err) {
+          console.error(`[ERROR] Failed to query collection ${collectionName}:`, err);
         }
       }
     }
 
-    // Combine staked and regular NFTs with deduplication
+    // -------- Dedup & Merge --------
     const uniqueNFTs = new Map();
-
-    // Add regular NFTs first
-    regularNFTs.forEach((nft) => {
-      const key = `${nft.contract}-${nft.tokenId}`;
-      uniqueNFTs.set(key, nft);
-    });
-
-    // Add staked NFTs - properly merge or add them
+    regularNFTs.forEach((nft) => uniqueNFTs.set(`${nft.contract}-${nft.tokenId}`, nft));
     stakedNFTs.forEach((nft) => {
       const key = `${nft.contract}-${nft.tokenId}`;
       if (uniqueNFTs.has(key)) {
-        // If NFT exists in wallet, mark it as both staked
-        const existingNFT = uniqueNFTs.get(key);
-        uniqueNFTs.set(key, {
-          ...existingNFT,
-          daoStaked: true,
-          daoName: nft.daoName,
-          daoAddress: nft.daoAddress,
-        });
+        uniqueNFTs.set(key, { ...uniqueNFTs.get(key), daoStaked: true, daoName: nft.daoName, daoAddress: nft.daoAddress });
       } else {
-        // If NFT is only staked (not in wallet), add it as staked-only
         uniqueNFTs.set(key, nft);
       }
     });
 
     const finalNFTsArray = Array.from(uniqueNFTs.values());
-    console.log(
-      `[DEBUG] Total unique Cosmos Hub NFTs after deduplication: ${finalNFTsArray.length}`,
-    );
-
+    console.log(`[DEBUG] Total unique Cosmos Hub NFTs after deduplication: ${finalNFTsArray.length}`);
     return finalNFTsArray;
-  } catch (error) {
-    console.error("Error fetching Cosmos Hub NFTs:", error);
+  } catch (err) {
+    console.error("Error fetching Cosmos Hub NFTs:", err);
     return [];
   }
 };
+
 
 // Fetch Cosmos Hub NFTs with DAO integration (with caching)
 export const fetchCosmosHubNFTs = async (addresses) => {
