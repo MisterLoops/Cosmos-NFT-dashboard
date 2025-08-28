@@ -91,8 +91,7 @@ export default function WalletConnect({
         "interwoven-1",
         "neutron-1",
         "mantra-1",
-        "akashnet-2",
-        "dungeon-1"
+        "akashnet-2"
       ];
 
       await window.leap.enable(chainIds);

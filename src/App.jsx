@@ -14,6 +14,7 @@ import {
   MARKETPLACES,
   DONATION_ADDRESSES 
 } from "./utils/constants.js";
+import { toBech32 } from "@cosmjs/encoding";
 
 export default function App() {
   const [wallet, setWallet] = useState(null);
@@ -1017,48 +1018,64 @@ export default function App() {
   };
 
   const getAddressesFromChains = async (walletType = "keplr") => {
-    const addresses = {};
+  const addresses = {};
 
-    try {
-      // Enable all chains first
-      const chainIds = [
-        "stargaze-1",
-        "osmosis-1",
-        "cosmoshub-4",
-        "injective-1",
-        "interwoven-1",
-        "neutron-1",
-        "mantra-1",
-        "akashnet-2",
-      ];
+  try {
+    const chainIds = [
+      "stargaze-1",
+      "osmosis-1",
+      "cosmoshub-4",
+      "injective-1",
+      "interwoven-1",
+      "neutron-1",
+      "mantra-1",
+      "akashnet-2",
+      // do NOT include dungeon-1 when enabling with leap
+      ...(walletType === "leap" ? [] : ["dungeon-1"]),
+    ];
 
-      const walletInstance = walletType === "leap" ? window.leap : window.keplr;
+    const walletInstance = walletType === "leap" ? window.leap : window.keplr;
 
-      if (!walletInstance) {
-        throw new Error(
-          `${walletType === "leap" ? "Leap" : "Keplr"} wallet not found. Please install the extension.`,
-        );
-      }
-
-      await walletInstance.enable(chainIds);
-
-      // Get addresses for all chains directly from the wallet
-      for (const [chainName, config] of Object.entries(CHAIN_CONFIGS)) {
-        const key = await walletInstance.getKey(config.chainId);
-        addresses[chainName] = key.bech32Address;
-        // console.log(
-        //   `${chainName} address (${walletType}): ${key.bech32Address}`,
-        // );
-      }
-    } catch (error) {
-      console.error("Failed to connect to chains:", error);
+    if (!walletInstance) {
       throw new Error(
-        `Failed to connect to chains. Please try again or check your ${walletType === "leap" ? "Leap" : "Keplr"} wallet.`,
+        `${walletType === "leap" ? "Leap" : "Keplr"} wallet not found. Please install the extension.`,
       );
     }
 
-    return addresses;
-  };
+    await walletInstance.enable(chainIds);
+
+    for (const [chainName, config] of Object.entries(CHAIN_CONFIGS)) {
+      // Skip dungeon for leap, derive later
+      if (walletType === "leap" && config.chainId === "dungeon-1") {
+        continue;
+      }
+
+      const key = await walletInstance.getKey(config.chainId);
+      addresses[chainName] = key.bech32Address;
+    }
+
+    // Derive dungeon manually if leap
+    if (walletType === "leap" && CHAIN_CONFIGS["dungeon"]) {
+      // pick one of the other keys, cosmoshub is safe
+      const baseKey = await walletInstance.getKey("cosmoshub-4");
+      const dungeonAddr = toBech32(
+        CHAIN_CONFIGS["dungeon"].prefix,
+        baseKey.address, // Uint8Array
+      );
+      addresses["dungeon"] = dungeonAddr;
+    }
+
+  } catch (error) {
+    console.error("Failed to connect to chains:", error);
+    throw new Error(
+      `Failed to connect to chains. Please try again or check your ${
+        walletType === "leap" ? "Leap" : "Keplr"
+      } wallet.`,
+    );
+  }
+
+  return addresses;
+};
 
   const fetchTokenBalances = async (addresses) => {
     try {
