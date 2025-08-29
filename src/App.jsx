@@ -1221,21 +1221,28 @@ export default function App() {
     setTokenBalancesClosing(false);
     setWalletDropdownClosing(false);
   };
-
-  const isAddressValid = (address, chainPrefix) => {
-    // Handle special case for Neutron addresses which use "neutron1" prefix
-    const expectedPrefix = chainPrefix === "neutron" ? "neutron1" : chainPrefix;
-
-    // Basic check for prefix and length (typical length is 39-65 characters for Neutron)
-    const minLength = chainPrefix === "neutron" ? 39 : 39;
-    const maxLength = chainPrefix === "neutron" ? 70 : 70;
-
-    return (
-      address.startsWith(expectedPrefix) &&
-      address.length >= minLength &&
-      address.length <= maxLength
-    );
+  const isAddressValid = (addr, prefix) => {
+    try {
+      const { prefix: decodedPrefix } = fromBech32(addr.toLowerCase());
+      return decodedPrefix === prefix;
+    } catch {
+      return false;
+    }
   };
+  // const isAddressValid = (address, chainPrefix) => {
+  //   // Handle special case for Neutron addresses which use "neutron1" prefix
+  //   const expectedPrefix = chainPrefix === "neutron" ? "neutron1" : chainPrefix;
+
+  //   // Basic check for prefix and length (typical length is 39-65 characters for Neutron)
+  //   const minLength = chainPrefix === "neutron" ? 39 : 39;
+  //   const maxLength = chainPrefix === "neutron" ? 70 : 70;
+
+  //   return (
+  //     address.startsWith(expectedPrefix) &&
+  //     address.length >= minLength &&
+  //     address.length <= maxLength
+  //   );
+  // };
 
   const handleAddManualAddress = () => {
     if (!manualAddress.trim()) {
@@ -1258,15 +1265,9 @@ export default function App() {
 
     if (!isAddressValid(trimmedAddress, prefix)) {
       // Handle special error message for Neutron
-      if (selectedChain === "neutron") {
         setError(
-          `Invalid address format for NEUTRON. Address should start with "neutron1" and be 39-65 characters long.`,
+          `Invalid address for ${selectedChain.toUpperCase()}.`,
         );
-      } else {
-        setError(
-          `Invalid address format for ${selectedChain.toUpperCase()}. Address should start with "${prefix}" and be 39-45 characters long.`,
-        );
-      }
       return;
     }
 
