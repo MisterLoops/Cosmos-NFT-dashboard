@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { fromBech32, toBech32 } from "@cosmjs/encoding";
 import "./App.css";
 import WalletConnect from "./components/WalletConnect";
 import NFTDashboard from "./components/NFTDashboard";
@@ -12,9 +13,9 @@ import {
   API_ENDPOINTS,
   IBC_TOKEN_MAPPINGS,
   MARKETPLACES,
-  DONATION_ADDRESSES 
+  DONATION_ADDRESSES
 } from "./utils/constants.js";
-import { toBech32 } from "@cosmjs/encoding";
+
 
 export default function App() {
   const [wallet, setWallet] = useState(null);
@@ -317,18 +318,18 @@ export default function App() {
   };
 
   const copyAddress = async (chain, address) => {
-      try {
-        await navigator.clipboard.writeText(address);
-        setCopiedChain(chain);
-  
-        // reset after 2s
-        setTimeout(() => {
-          setCopiedChain(null);
-        }, 2000);
-      } catch (err) {
-        console.error("Failed to copy: ", err);
-      }
-    };
+    try {
+      await navigator.clipboard.writeText(address);
+      setCopiedChain(chain);
+
+      // reset after 2s
+      setTimeout(() => {
+        setCopiedChain(null);
+      }, 2000);
+    } catch (err) {
+      console.error("Failed to copy: ", err);
+    }
+  };
 
   const fetchAllAssetPrices = async () => {
     // console.log("[DEBUG] Fetching prices for all supported assets");
@@ -1017,65 +1018,86 @@ export default function App() {
     return updatedChainBalances;
   };
 
-  const getAddressesFromChains = async (walletType = "keplr") => {
-  const addresses = {};
+  // updated to accept manualAddress if walletType is "manual"
+  const getAddressesFromChains = async (walletInfo) => {
+    const addresses = {};
 
-  try {
-    const chainIds = [
-      "stargaze-1",
-      "osmosis-1",
-      "cosmoshub-4",
-      "injective-1",
-      "interwoven-1",
-      "neutron-1",
-      "mantra-1",
-      "akashnet-2",
-      // do NOT include dungeon-1 when enabling with leap
-      ...(walletType === "leap" ? [] : ["dungeon-1"]),
-    ];
+    try {
+      // Handle MANUAL ENTRY directly
+      if (walletInfo.type === "manual") {
+        if (!walletInfo.stargazeAddress || !walletInfo.injectiveAddress || !walletInfo.initiaAddress) {
+          throw new Error("Manual entry requires both Stargaze, Injective and Initia addresses");
+        }
 
-    const walletInstance = walletType === "leap" ? window.leap : window.keplr;
+        // 1️⃣ Derive all Cosmos SDK addresses from Stargaze
+        const { data: cosmosBytes } = fromBech32(walletInfo.stargazeAddress.toLowerCase());
+        for (const [chainName, config] of Object.entries(CHAIN_CONFIGS)) {
+          if (chainName !== "injective" && chainName !== "initia") {
+            addresses[chainName] = toBech32(config.prefix, cosmosBytes);
+          }
+        }
 
-    if (!walletInstance) {
-      throw new Error(
-        `${walletType === "leap" ? "Leap" : "Keplr"} wallet not found. Please install the extension.`,
-      );
-    }
+        // derive Injective and Initia bech32 addresses
+        addresses.injective = walletInfo.injectiveAddress;
+        addresses.initia = walletInfo.initiaAddress;
 
-    await walletInstance.enable(chainIds);
+        return addresses;
+      }
+      // Otherwise, KEPLR or LEAP normal flow
+      const chainIds = [
+        "stargaze-1",
+        "osmosis-1",
+        "cosmoshub-4",
+        "injective-1",
+        "interwoven-1",
+        "neutron-1",
+        "mantra-1",
+        "akashnet-2",
+        // do NOT include dungeon-1 when enabling with leap
+        ...(walletInfo.type === "leap" ? [] : ["dungeon-1"]),
+      ];
 
-    for (const [chainName, config] of Object.entries(CHAIN_CONFIGS)) {
-      // Skip dungeon for leap, derive later
-      if (walletType === "leap" && config.chainId === "dungeon-1") {
-        continue;
+      const walletInstance = walletInfo.type === "leap" ? window.leap : window.keplr;
+
+      if (!walletInstance) {
+        throw new Error(
+          `${walletInfo.type === "leap" ? "Leap" : "Keplr"} wallet not found. Please install the extension.`
+        );
       }
 
-      const key = await walletInstance.getKey(config.chainId);
-      addresses[chainName] = key.bech32Address;
-    }
+      await walletInstance.enable(chainIds);
 
-    // Derive dungeon manually if leap
-    if (walletType === "leap" && CHAIN_CONFIGS["dungeon"]) {
-      // pick one of the other keys, cosmoshub is safe
-      const baseKey = await walletInstance.getKey("cosmoshub-4");
-      const dungeonAddr = toBech32(
-        CHAIN_CONFIGS["dungeon"].prefix,
-        baseKey.address, // Uint8Array
+      for (const [chainName, config] of Object.entries(CHAIN_CONFIGS)) {
+        // Skip dungeon for leap, derive later
+        if (walletInfo.type === "leap" && config.chainId === "dungeon-1") {
+          continue;
+        }
+
+        const key = await walletInstance.getKey(config.chainId);
+        addresses[chainName] = key.bech32Address;
+      }
+
+      // Derive dungeon manually if leap
+      if (walletInfo.type === "leap" && CHAIN_CONFIGS["dungeon"]) {
+        // pick one of the other keys, cosmoshub is safe
+        const baseKey = await walletInstance.getKey("cosmoshub-4");
+        const dungeonAddr = toBech32(
+          CHAIN_CONFIGS["dungeon"].prefix,
+          baseKey.address // Uint8Array
+        );
+        addresses["dungeon"] = dungeonAddr;
+      }
+    } catch (error) {
+      console.error("Failed to connect to chains:", error);
+      throw new Error(
+        `Failed to connect to chains. Please try again or check your ${walletInfo.type === "leap" ? "Leap" : walletInfo.type === "manual" ? "manual address" : "Keplr"
+        } wallet.`
       );
-      addresses["dungeon"] = dungeonAddr;
     }
 
-  } catch (error) {
-    console.error("Failed to connect to chains:", error);
-    throw new Error(
-      `Failed to connect to chains. Please try again or check your ${
-        walletType === "leap" ? "Leap" : "Keplr"
-      } wallet.`,
-    );
-  }
+    return addresses;
+  };
 
-  return addresses;
-};
 
   const fetchTokenBalances = async (addresses) => {
     try {
@@ -1155,7 +1177,7 @@ export default function App() {
     setWallet(walletInfo);
 
     try {
-      const allAddresses = await getAddressesFromChains(walletInfo.type);
+      const allAddresses = await getAddressesFromChains(walletInfo);
       setAddresses(allAddresses);
 
       // No longer gating, so set hasAccess to true directly

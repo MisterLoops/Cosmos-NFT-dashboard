@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
+import { fromBech32 } from "@cosmjs/encoding";
 import { Wallet } from "lucide-react";
+import '../App.css';
 
 export default function WalletConnect({
   onConnect,
@@ -8,7 +10,28 @@ export default function WalletConnect({
   const [connecting, setConnecting] = useState(false);
   const [selectedWallet, setSelectedWallet] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [manualStargazeAddress, setManualStargazeAddress] = useState("");
+  const [manualInjectiveAddress, setManualInjectiveAddress] = useState("");
+  const [manualInitiaAddress, setManualInitiaAddress] = useState("");
+  const [manualMode, setManualMode] = useState(false);
+  const [errors, setErrors] = useState({
+    stargaze: "",
+    injective: "",
+    initia: "",
+  });
+const validateBech32 = (addr, prefix) => {
+  try {
+    const { prefix: decodedPrefix } = fromBech32(addr.toLowerCase());
+    return decodedPrefix === prefix;
+  } catch {
+    return false;
+  }
+};
 
+// Specific validators
+const validateStargaze = (addr) => validateBech32(addr, "stars");
+const validateInjective = (addr) => validateBech32(addr, "inj");
+const validateInitia = (addr) => validateBech32(addr, "init");
   // Detect mobile viewport
   useEffect(() => {
     const checkMobile = () => {
@@ -122,6 +145,33 @@ export default function WalletConnect({
     }
   };
 
+  // NEW: Manual address connect
+  const connectManualAddress = () => {
+    if (!manualStargazeAddress.trim()) {
+      alert("Please enter a Stargaze address");
+      return;
+    }
+    if (!manualInjectiveAddress.trim()) {
+      alert("Please enter a Stargaze address");
+      return;
+    }
+    if (!manualInitiaAddress.trim()) {
+      alert("Please enter a Stargaze address");
+      return;
+    }
+
+    const walletInfo = {
+      name: "Stargaze Address",
+      type: "manual", // keep "keplr" type for consistency
+      stargazeAddress: manualStargazeAddress,
+      injectiveAddress: manualInjectiveAddress,
+      initiaAddress: manualInitiaAddress,
+      publicKey: null, // no pubKey available in manual mode
+    };
+
+    onConnect(walletInfo);
+  };
+
   return (
     <div className="wallet-connect">
       <h1 className="welcome-text">Welcome to the Cosmos NFTHUB!</h1>
@@ -170,7 +220,6 @@ export default function WalletConnect({
           It's an offline connection, no transaction EVER, you're safe 😉
         </p>
         <p className="connect-experiment">🧪 EVERYTHING IS AN EXPERIMENT 🧪</p>
-        <p><strong><a href="https://x.com/MisterLoops" target="_blank" rel="noopener noreferrer">MisterLoops</a></strong></p>
 
         {isMobile && (
           <div className="mobile-disclaimer">
@@ -180,53 +229,113 @@ export default function WalletConnect({
           </div>
         )}
 
-        <div className="wallet-options">
-          <button
-            onClick={connectKeplr}
-            disabled={connecting}
-            className="wallet-option-btn"
-          >
-            <div className="wallet-option-content" title="Keplr wallet">
-              <div className="wallet-logo keplr-logo" >
-                <img
-                  src="https://cdn.prod.website-files.com/667dc891bc7b863b5397495b/66a8b2095086e8b326351bd3_logo-icon.svg"
-                  alt="Keplr"
-                  onError={(e) => {
-                    e.target.style.display = "none";
-                    e.target.parentElement.innerHTML =
-                      '<span class="logo-text">K</span>';
-                  }}
-                />
-              </div>
-              {/* <div className="wallet-info">
-                <h3>Keplr Wallet</h3>
-              </div> */}
-            </div>
-          </button>
+        {!manualMode ? (
+          <>
+            <div className="wallet-options">
+              <button onClick={connectKeplr} disabled={connecting} className="wallet-option-btn">
+                <div className="wallet-option-content" title="Keplr wallet">
+                  <div className="wallet-logo keplr-logo">
+                    <img
+                      src="https://cdn.prod.website-files.com/667dc891bc7b863b5397495b/66a8b2095086e8b326351bd3_logo-icon.svg"
+                      alt="Keplr"
+                      onError={(e) => { e.target.style.display = "none"; e.target.parentElement.innerHTML = '<span class="logo-text">K</span>'; }}
+                    />
+                  </div>
+                </div>
+              </button>
 
-          <button
-            onClick={connectLeap}
-            disabled={connecting}
-            className="wallet-option-btn"
-          >
-            <div className="wallet-option-content" title="Leap wallet">
-              <div className="wallet-logo leap-logo">
-                <img
-                  src="https://assets.leapwallet.io/logos/leap-cosmos-logo.png"
-                  alt="Leap"
-                  onError={(e) => {
-                    e.target.style.display = "none";
-                    e.target.parentElement.innerHTML =
-                      '<span class="logo-text">L</span>';
-                  }}
-                />
-              </div>
-              {/* <div className="wallet-info">
-                <h3>Leap Wallet</h3>
-              </div> */}
+              <button onClick={connectLeap} disabled={connecting} className="wallet-option-btn">
+                <div className="wallet-option-content" title="Leap wallet">
+                  <div className="wallet-logo leap-logo">
+                    <img
+                      src="https://assets.leapwallet.io/logos/leap-cosmos-logo.png"
+                      alt="Leap"
+                      onError={(e) => { e.target.style.display = "none"; e.target.parentElement.innerHTML = '<span class="logo-text">L</span>'; }}
+                    />
+                  </div>
+                </div>
+              </button>
             </div>
-          </button>
-        </div>
+
+            {/* Clickable text to toggle manual mode */}
+            <p
+              className="manual-toggle-text"
+              style={{ cursor: "pointer", marginTop: "1rem", marginBottom: "0", textDecoration: "underline" }}
+              onClick={() => setManualMode(true)}
+            >
+              Or enter your addresses manually (more tedious)
+            </p>
+          </>
+        ) : (
+          <>
+            {/* Manual address form */}
+            <div className="manual-address">
+              <div className="manual-field">
+                <input
+                  type="text"
+                  placeholder="Your Stargaze address (stars...)"
+                  value={manualStargazeAddress}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setManualStargazeAddress(val);
+                    setErrors(prev => ({ ...prev, stargaze: validateStargaze(val) ? "" : "Invalid Stargaze address" }));
+                  }}
+                  className="manual-input"
+                />
+                {errors.stargaze && <span className="manual-error">{errors.stargaze}</span>}
+              </div>
+
+              <div className="manual-field">
+                <input
+                  type="text"
+                  placeholder="Your Injective address (inj...)"
+                  value={manualInjectiveAddress}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setManualInjectiveAddress(val);
+                    setErrors(prev => ({ ...prev, injective: validateInjective(val) ? "" : "Invalid Injective address" }));
+                  }}
+                  className="manual-input"
+                />
+                {errors.injective && <span className="manual-error">{errors.injective}</span>}
+              </div>
+
+              <div className="manual-field">
+                <input
+                  type="text"
+                  placeholder="Your Initia address (initia...)"
+                  value={manualInitiaAddress}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setManualInitiaAddress(val);
+                    setErrors(prev => ({ ...prev, initia: validateInitia(val) ? "" : "Invalid Initia address" }));
+                  }}
+                  className="manual-input"
+                />
+                {errors.initia && <span className="manual-error">{errors.initia}</span>}
+              </div>
+
+              <button
+                onClick={connectManualAddress}
+                className="manual-submit-btn"
+                disabled={
+                  !manualStargazeAddress || !manualInjectiveAddress || !manualInitiaAddress ||
+                  errors.stargaze || errors.injective || errors.initia
+                }
+              >
+                Connect
+              </button>
+            </div>
+
+            <p
+              className="manual-toggle-text"
+              style={{ cursor: "pointer", marginTop: "1rem", marginBottom: "0", textDecoration: "underline" }}
+              onClick={() => setManualMode(false)}
+            >
+              Back to wallet connection
+            </p>
+          </>
+        )}
 
         {connecting && (
           <div className="connecting-message">
@@ -238,7 +347,7 @@ export default function WalletConnect({
         {error && <div className="error">{error}</div>}
       </div>
 
-      
+
     </div>
   );
 }

@@ -296,6 +296,9 @@ body {
     margin-bottom: 1rem;
   }
 
+
+
+
 }
 @media (max-width: 480px) {
   .wallet-connect {
@@ -1281,7 +1284,7 @@ body {
   overflow:hidden;
 }
 .welcome-text {
-  margin-top: 4rem;
+  margin-top: 3rem;
   margin-bottom:2rem;
   color:#10b981;
 }
@@ -1515,6 +1518,64 @@ body {
   text-decoration: underline;
   transform: translateY(-1px);
 }
+
+.manual-address {
+  margin:0;
+}
+.manual-field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.5rem;
+}
+
+.manual-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: white;
+  font-size: 0.875rem;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.manual-input:focus {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(0, 200, 100, 0.6);
+}
+
+.manual-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.manual-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.manual-submit-btn {
+  background: linear-gradient(45deg, #11cc88, #0d9668);
+  color: white;
+  border: none;
+  padding: 0.5rem 1.25rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.manual-submit-btn:hover {
+  box-shadow: 0 4px 12px rgba(255, 107, 157, 0.3);
+  transform: translateY(-1px);
+}
+.manual-error {
+  color: #ff4c7a;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  display: block;
+}
+
 
 .back-btn {
   padding: 0.5rem 1rem;
@@ -1976,7 +2037,12 @@ body {
   transition: all 0.3s ease;
   overflow: hidden;
 }
-
+.welcome-text {
+  margin-top: 1rem;
+  margin-bottom:1rem;
+  font-size:26px;
+  color:#10b981;
+}
 .desktop-token-balances.expanded {
   display: flex;
   flex-direction: column;
