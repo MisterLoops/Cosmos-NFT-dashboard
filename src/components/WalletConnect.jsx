@@ -161,7 +161,7 @@ const validateInitia = (addr) => validateBech32(addr, "init");
     }
 
     const walletInfo = {
-      name: "Stargaze Address",
+      name: "Wallet",
       type: "manual", // keep "keplr" type for consistency
       stargazeAddress: manualStargazeAddress,
       injectiveAddress: manualInjectiveAddress,
