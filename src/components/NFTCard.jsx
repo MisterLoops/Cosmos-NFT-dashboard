@@ -266,6 +266,8 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
           </div>
         )}
 
+
+
         {/* Slide-up info panel */}
         <div className="nft-hover-overlay">
           <div className="marketplace-link-info">
@@ -292,6 +294,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
             <ExternalLink size={20} />
           </a>
         </div>
+
       </div>
 
       <div className="nft-info">
@@ -472,6 +475,72 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
         )}
 
       </div>
+      {/* ✅ DAO Voting Overlay */}
+      {nft.daoStaked && nft.contract === "osmo16pwjh09s662a0j2ssmzauyvkvagjwd9kpwc0mtamlwr8dtznlhfqcweap6" && viewMode === "grid" && (
+        <div
+          style={{
+            position: "absolute",
+            top: "10px",
+            left: window.innerWidth <= 768 ? "20%" : "10%",
+            width: "80%",
+            width: window.innerWidth <= 768 ? "60%" : "80%",
+            maxHeight: "20%",
+            display: "flex",
+            borderRadius: "0.5rem",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "rgba(0,0,0,0.7)", // black with 70% opacity
+            color: "white",
+            textAlign: "center",
+            padding: "1rem",
+            zIndex: 50, // very high to sit above everything,
+          }}
+        >
+          <p style={{ fontWeight: 500, marginBottom: "0.5rem", fontSize: "15px", }}>
+            You can VOTE for the Cosmos NFT Hub in Mad Scientists DAO
+          </p>
+          <div style={{display:"flex", gap:"0.5rem", justifyContent:"center", alignItems:"center"}}>
+          👉
+          <a
+            href={`https://daodao.zone/dao/${nft.daoAddress}/proposals/B1`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              backgroundColor: "rgba(255, 255, 255, 1)",
+              padding: "0.4rem 0.75rem",
+              borderRadius: "0.5rem",
+              color: "black",
+              textDecoration: "none",
+              transition: "color 0.2s ease-in-out, background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out",// Combined transitions
+              zIndex: 99999999999
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "rgba(0, 0, 0, 1)";
+              e.currentTarget.style.color = "white"; // Fixed: was "Color" (capital C)
+              e.currentTarget.style.boxShadow = "0 0px 4px rgba(255, 255, 255, 1)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 1)";
+              e.currentTarget.style.color = "black"; // Reset color to original
+              e.currentTarget.style.boxShadow = "none";
+            }}
+          >
+            <img
+              src="./DAODAO.png" // replace with correct DAO logo path
+              alt="DAO Logo"
+              style={{ width: "16px", height: "16px" }} // ✅ reduced logo size
+            />
+            <span>Thank you</span>
+          </a>
+          👈
+          </div>
+        </div>
+
+      )}
     </div>
   );
 }
