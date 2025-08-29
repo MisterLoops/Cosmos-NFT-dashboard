@@ -303,7 +303,7 @@ const validateInitia = (addr) => validateBech32(addr, "init");
               <div className="manual-field">
                 <input
                   type="text"
-                  placeholder="Your Initia address (initia...)"
+                  placeholder="Your Initia address (init...)"
                   value={manualInitiaAddress}
                   onChange={(e) => {
                     const val = e.target.value;
