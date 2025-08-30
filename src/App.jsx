@@ -1052,9 +1052,7 @@ export default function App() {
         "interwoven-1",
         "neutron-1",
         "mantra-1",
-        "akashnet-2",
-        // do NOT include dungeon-1 when enabling with leap
-        ...(walletInfo.type === "leap" ? [] : ["dungeon-1"]),
+        "akashnet-2"
       ];
 
       const walletInstance = walletInfo.type === "leap" ? window.leap : window.keplr;
@@ -1069,7 +1067,7 @@ export default function App() {
 
       for (const [chainName, config] of Object.entries(CHAIN_CONFIGS)) {
         // Skip dungeon for leap, derive later
-        if (walletInfo.type === "leap" && config.chainId === "dungeon-1") {
+        if ( config.chainId === "dungeon-1") {
           continue;
         }
 
@@ -1078,7 +1076,7 @@ export default function App() {
       }
 
       // Derive dungeon manually if leap
-      if (walletInfo.type === "leap" && CHAIN_CONFIGS["dungeon"]) {
+      if ( CHAIN_CONFIGS["dungeon"]) {
         // pick one of the other keys, cosmoshub is safe
         const baseKey = await walletInstance.getKey("cosmoshub-4");
         const dungeonAddr = toBech32(

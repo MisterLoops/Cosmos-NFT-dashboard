@@ -63,8 +63,7 @@ const validateInitia = (addr) => validateBech32(addr, "init");
         "interwoven-1",
         "neutron-1",
         "mantra-1",
-        "akashnet-2",
-        "dungeon-1"
+        "akashnet-2"
       ];
 
       await window.keplr.enable(chainIds);
