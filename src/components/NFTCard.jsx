@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from "react";
-import { ExternalLink, Star } from "lucide-react";
+import { ExternalLink, Star, Plus } from "lucide-react";
 import { CHAIN_CONFIGS } from "../utils/constants.js";
 
 export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
@@ -10,7 +10,8 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
     injective: "#00d2ff",
     initia: "#4f46e5",
     neutron: "#000000",
-    dungeon: "#bd7202ff"
+    dungeon: "#925802ff",
+    omniflix: "#FF5B25"
   };
 
   // Import chain display names from constants
@@ -25,6 +26,8 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
   const [imageError, setImageError] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [showTraits, setShowTraits] = useState(false);
+  const [tooltipVisible, setTooltipVisible] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const imgRef = useRef(null);
 
   // Progressive intersection observer for staggered loading
@@ -282,6 +285,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
               {nft.chain === "initia" && "Intergaze"}
               {nft.chain === "cosmoshub" && "Ark Protocol"}
               {nft.chain === "dungeon" && "BackboneLabs"}
+              {nft.chain === "omniflix" && "Omniflix"}
             </div>
           </div>
           <a
@@ -444,7 +448,89 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
                     )})
                   </span>
                 )}
+              <span
+                style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", marginLeft: "0.25rem" }}
+                onClick={(e) => {
+                  if (
+                    priceMode === "floor" &&
+                    nft.floor?.floorPricesList &&
+                    Object.keys(nft.floor.floorPricesList).length
+                  ) {
+                    e.stopPropagation(); // prevent parent clicks
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    setTooltipPosition({ x: e.clientX - rect.left + 150, y: e.clientY - rect.top + 300 });
+                    setTooltipVisible(!tooltipVisible);
+                  }
+                }}
+              >
+                <Plus size={14} strokeWidth={2} color="rgba(255,255,255,0.8)" />
+              </span>
             </div>
+
+            {tooltipVisible && priceMode === "floor" && nft.floor?.floorPricesList && (
+              <div
+                style={{
+                  position: 'fixed',
+                  left: `${tooltipPosition.x}px`,
+                  top: `${tooltipPosition.y}px`,
+                  transform: 'translateX(-50%)',
+                  zIndex: 9999,
+                  pointerEvents: 'none',
+                  background: "rgba(30, 30, 47, 0.95)",
+                  border: "1px solid rgba(255, 255, 255, 0.3)",
+                  borderRadius: "8px",
+                  padding: "0.75rem",
+                  backdropFilter: "blur(15px)",
+                  boxShadow: "0 8px 32px rgba(0, 0, 0, 0.5)",
+                  minWidth: "150px",
+                  whiteSpace: "nowrap",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  textAlign: "center"
+                }}
+              >
+                <p style={{
+                  fontSize: "0.95rem",
+                  color: "rgba(255, 255, 255, 0.7)",
+                  fontWeight: "600",
+                  marginBottom: "10px",
+                  marginTop: "0",
+                  textAlign: "center"
+                }}
+                >More DENOMS</p>
+                {Object.entries(nft.floor.floorPricesList).map(([symbol, info]) => (
+                  <div key={symbol} style={{ marginBottom: "0.25rem", display: "flex", gap: "0.25rem", alignItems: "center", textAlign: "center", justifyContent: "center" }}>
+                    <span
+                      style={{
+                        fontWeight: 400,
+                        color: "rgba(255, 255, 255, 0.9)",
+                        fontSize: "0.8rem",
+                      }}
+                    >
+                      {formatPrice(info.amount)}
+                    </span>
+                    <span
+                      style={{
+                        fontWeight: 500,
+                        color: "rgba(255, 255, 255, 0.7)",
+                        fontSize: "0.8rem",
+                      }}
+                    >
+                      {symbol}
+                    </span>
+                    <span
+                      style={{
+                        fontWeight: 500,
+                        color: "white",
+                        fontSize: "0.8rem",
+                      }}
+                    >
+                      (${formatPriceUsd(info.amountUsd)})
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="last-sale-info">
               <span className="last-sale-label">Last sale: </span>
@@ -499,43 +585,43 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
           <p style={{ fontWeight: 500, marginBottom: "0.5rem", fontSize: "15px", }}>
             You can VOTE for the Cosmos NFT Hub in Mad Scientists DAO
           </p>
-          <div style={{display:"flex", gap:"0.5rem", justifyContent:"center", alignItems:"center"}}>
-          👉
-          <a
-            href={`https://daodao.zone/dao/${nft.daoAddress}/proposals/B1`}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              backgroundColor: "rgba(255, 255, 255, 1)",
-              padding: "0.4rem 0.75rem",
-              borderRadius: "0.5rem",
-              color: "black",
-              textDecoration: "none",
-              transition: "color 0.2s ease-in-out, background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out",// Combined transitions
-              zIndex: 99999999999
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "rgba(0, 0, 0, 1)";
-              e.currentTarget.style.color = "white"; // Fixed: was "Color" (capital C)
-              e.currentTarget.style.boxShadow = "0 0px 4px rgba(255, 255, 255, 1)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 1)";
-              e.currentTarget.style.color = "black"; // Reset color to original
-              e.currentTarget.style.boxShadow = "none";
-            }}
-          >
-            <img
-              src="./DAODAO.png" // replace with correct DAO logo path
-              alt="DAO Logo"
-              style={{ width: "16px", height: "16px" }} // ✅ reduced logo size
-            />
-            <span>Thank you</span>
-          </a>
-          👈
+          <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center", alignItems: "center" }}>
+            👉
+            <a
+              href={`https://daodao.zone/dao/${nft.daoAddress}/proposals/B1`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                backgroundColor: "rgba(255, 255, 255, 1)",
+                padding: "0.4rem 0.75rem",
+                borderRadius: "0.5rem",
+                color: "black",
+                textDecoration: "none",
+                transition: "color 0.2s ease-in-out, background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out",// Combined transitions
+                zIndex: 99999999999
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "rgba(0, 0, 0, 1)";
+                e.currentTarget.style.color = "white"; // Fixed: was "Color" (capital C)
+                e.currentTarget.style.boxShadow = "0 0px 4px rgba(255, 255, 255, 1)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 1)";
+                e.currentTarget.style.color = "black"; // Reset color to original
+                e.currentTarget.style.boxShadow = "none";
+              }}
+            >
+              <img
+                src="./DAODAO.png" // replace with correct DAO logo path
+                alt="DAO Logo"
+                style={{ width: "16px", height: "16px" }} // ✅ reduced logo size
+              />
+              <span>Thank you</span>
+            </a>
+            👈
           </div>
         </div>
 

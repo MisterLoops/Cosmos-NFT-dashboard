@@ -1727,8 +1727,7 @@ export default function App() {
           bosmoPrice={bosmoPrice}
           initPrice={initPrice}
           binjPrice={binjPrice}
-          ntrnPrice={assetPrices["NTRN"] || 0}
-          DGNPrice={assetPrices["DGN"] || 0}
+          assetPrices={assetPrices || 0}
           showDollarBalances={showDollarBalances}
           onManualAddressRemoved={handleManualAddressRemoved}
           onFetchStatusChange={(isFetching) => {

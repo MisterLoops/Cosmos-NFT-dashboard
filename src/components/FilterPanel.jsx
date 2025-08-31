@@ -402,8 +402,9 @@ export default function FilterPanel({ filters, setFilters, nfts, priceMode }) {
             return sourceAddresses.map(address => {
               const stats = getFilterStats('address', address);
               // Truncate address for display (show first 6 and last 4 characters)
-              const displayAddress = address.length > 16
-                ? `${address.slice(0, 6)}...${address.slice(-4)}`
+              const cleanAddress = String(address).trim();
+              const displayAddress = cleanAddress.length > 16
+                ? `${cleanAddress.slice(0, 6)}...${cleanAddress.slice(-4)}`
                 : address;
 
               return (

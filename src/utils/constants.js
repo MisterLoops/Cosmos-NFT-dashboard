@@ -8,6 +8,8 @@ export const API_ENDPOINTS = {
   INTERGAZE_API: "https://api.intergaze-apis.com/api/v1",
   BACKBONE_LABS_API: "https://warlock.backbonelabs.io/api/v1",
   SUPERBOLT_API: "https://api.superbolt.wtf/api/graphql",
+  OMNIFLIX_API:"https://data-api.omniflix.studio",
+  OMNIFLIX_ACTIVITY_API:"https://activity-api.omniflix.studio",
   IPFS_DAO_DAO_ZONE: "https://ipfs.dao.daodao.zone/ipfs/",
   DAO_DAO_INDEXER: "https://indexer.daodao.zone",
   NEUTRON_INDEXER: "https://rest-kralum.neutron-1.neutron.org",
