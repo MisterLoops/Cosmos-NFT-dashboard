@@ -349,7 +349,10 @@ export default function App() {
       'BTC': 'bitcoin',
       'USDC': 'usd-coin',
       'BIKE': 'bike',
-      'DGN': 'dragon-coin-2'
+      'DGN': 'dragon-coin-2',
+      'FLIX': 'omniflix-network',
+      'SPICE': 'spice-2',
+      'LAB' : 'mad-scientists'
     };
 
     const coingeckoIds = Object.values(symbolToCoinGeckoId)
@@ -1052,7 +1055,8 @@ export default function App() {
         "interwoven-1",
         "neutron-1",
         "mantra-1",
-        "akashnet-2"
+        "akashnet-2",
+        "omniflixhub-1"
       ];
 
       const walletInstance = walletInfo.type === "leap" ? window.leap : window.keplr;

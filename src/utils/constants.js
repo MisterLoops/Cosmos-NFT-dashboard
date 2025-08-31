@@ -130,6 +130,16 @@ export const CHAIN_CONFIGS = {
     symbol: "AKT",
     decimals: 6,
   },
+  omniflix: {
+    chainId: "omniflixhub-1",
+    prefix: "omniflix",
+    displayName: "OmniFlix",
+    rpc: "https://rpc-omniflixhub.keplr.app",
+    rest: "https://lcd-omniflixhub.keplr.app",
+    denom: "uflix",
+    symbol: "FLIX",
+    decimals: 6,
+  },
 };
 export const SYMBOL_TO_LOGO = {
   "STARS": "stargaze",
@@ -147,7 +157,9 @@ export const SYMBOL_TO_LOGO = {
   "bOSMO": "bOSMO",
   "LAB": "LAB",
   "BIKE": "BIKE",
-  "DGN": "dungeon"
+  "DGN": "dungeon",
+  "FLIX": "omniflix",
+  "SPICE": "SPICE"
 };
 
 // Token logos from Keplr's chain registry
@@ -167,7 +179,9 @@ export const TOKEN_LOGOS = {
   bOSMO: "https://raw.githubusercontent.com/cosmos/chain-registry/master/osmosis/images/bOSMO.png",
   LAB: "https://raw.githubusercontent.com/cosmos/chain-registry/master/osmosis/images/LAB.png",
   BIKE: "https://raw.githubusercontent.com/cosmostation/chainlist/master/chain/mantra/asset/BIKE.png",
-  dungeon:"https://raw.githubusercontent.com/cosmos/chain-registry/master/dungeon/images/DGN.png"
+  dungeon:"https://raw.githubusercontent.com/cosmos/chain-registry/master/dungeon/images/DGN.png",
+  omniflix: "https://raw.githubusercontent.com/cosmos/chain-registry/master/omniflixhub/images/flix.png",
+  SPICE: "https://raw.githubusercontent.com/cosmos/chain-registry/master/osmosis/images/spice.png"
 };
 
 export const IBC_TOKEN_MAPPINGS = {
@@ -177,6 +191,7 @@ export const IBC_TOKEN_MAPPINGS = {
   'ibc/C4CFF46FD6DE35CA4CF4CE031E643C8FDC9BA4B99AE598E9B0ED98FE3A2319F9': { symbol: 'ATOM', decimals: 6, originChain: 'cosmoshub' }, // ATOM on Injective
   'ibc/C4CFF46FD6DE35CA4CF4CE031E643C8FDC9BA4B99AE598E9B0ED98FE3A2319F9': { symbol: 'ATOM', decimals: 6, originChain: 'cosmoshub' }, // ATOM on Neutron
   'ibc/A4DB47A9D3CF9A068D454513891B526702455D3EF08FB9EB558C561F9DC2B701': { symbol: 'ATOM', decimals: 6, originChain: 'cosmoshub' }, // ATOM on Mantra
+  'ibc/A8C2D23A1E6F95DA4E48BA349667E322BD7A6C996D8A4AAE8BA72E190F3D1477': { symbol: 'ATOM', decimals: 6, originChain: 'cosmoshub' }, // ATOM on Omniflix
 
   // OSMO on other chains
   'ibc/ED07A3391A112B175915CD8FAF43A2DA8E4790EDE12566649D0C2F97716B8518': { symbol: 'OSMO', decimals: 6, originChain: 'osmosis' }, // OSMO on Stargaze
@@ -184,6 +199,7 @@ export const IBC_TOKEN_MAPPINGS = {
   'ibc/376222D6D9DAE23092E29740E56B758580935A6D77C24C2ABD57A6A78A1F3955': { symbol: 'OSMO', decimals: 6, originChain: 'osmosis' }, // OSMO on Neutron
   'ibc/14F9BC3E44B8A9C1BE1FB08980FAB87034C9905EF17CF2F5008FC085218811CC': { symbol: 'OSMO', decimals: 6, originChain: 'osmosis' }, // OSMO on Cosmos Hub
   'ibc/ED07A3391A112B175915CD8FAF43A2DA8E4790EDE12566649D0C2F97716B8518': { symbol: 'OSMO', decimals: 6, originChain: 'osmosis' }, // OSMO on Mantra
+  'ibc/0471F1C4E7AFD3F07702BEF6DC365268D64570F7C1FDC98EA6098DD6DE59817B': { symbol: 'OSMO', decimals: 6, originChain: 'osmosis' }, // OSMO on Omniflix
 
   // STARS on other chains  
   'ibc/987C17B11ABC2B20019178ACE62929FE9840202CE79498E29FE8E5CB02B7C0A4': { symbol: 'STARS', decimals: 6, originChain: 'stargaze' }, // STARS on Osmosis
@@ -200,9 +216,10 @@ export const IBC_TOKEN_MAPPINGS = {
   'ibc/0025F8A87464A471E66B234C4F93AEC5B4DA3D42D7986451A059273426290DD5': { symbol: 'NTRN', decimals: 6, originChain: 'neutron' }, // NTRN on Cosmos Hub
 
   // AKT on other chains
-  'ibc/84CF82F31F46BFBE392F50D7062BC95142F182A904BCAD3E3180C15B525444D8': { symbol: 'AKT', decimals: 6, originChain: 'akash' }, // OSMO on Stargaze
-  'ibc/1480B8FD20AD5FCAE81EA87584D269547DD4D436843C1D20F15E00EB64743EF4': { symbol: 'AKT', decimals: 6, originChain: 'akash' }, // ATOM on Osmosis
-  'ibc/2181AAB0218EAC24BC9F86BD1364FBBFA3E6E3FCC25E88E3E68C15DC6E752D86': { symbol: 'AKT', decimals: 6, originChain: 'akash' }, // OSMO on Cosmos Hub
+  'ibc/84CF82F31F46BFBE392F50D7062BC95142F182A904BCAD3E3180C15B525444D8': { symbol: 'AKT', decimals: 6, originChain: 'akash' }, // AKT on Stargaze
+  'ibc/1480B8FD20AD5FCAE81EA87584D269547DD4D436843C1D20F15E00EB64743EF4': { symbol: 'AKT', decimals: 6, originChain: 'akash' }, // AKT on Osmosis
+  'ibc/2181AAB0218EAC24BC9F86BD1364FBBFA3E6E3FCC25E88E3E68C15DC6E752D86': { symbol: 'AKT', decimals: 6, originChain: 'akash' }, // AKT on Cosmos Hub
+  'ibc/6901B45BC2C5418ED8B3C3C9F9A641A3DAF2D234230AFA9DF32D8F9F9434721C': { symbol: 'AKT', decimals: 6, originChain: 'akash' }, // AKT on Omniflix
 
   // OM on other chains
   'ibc/3BD86E80E000B52DA57C474A6A44E37F73D34E38A1FA79EE678E08D119FC555B': { symbol: 'OM', decimals: 6, originChain: 'mantra' }, // OM on Stargaze
@@ -218,6 +235,7 @@ export const IBC_TOKEN_MAPPINGS = {
   'ibc/B559A80D62249C8AA07A380E2A2BEA6E5CA9A6F079C912C3A9E9B494105E4F81': { symbol: 'USDC', decimals: 6, originChain: 'noble' }, // USDC on Neutron
   'ibc/F663521BF1836B00F5F177680F74BFB9A8B5654A694D0D2BC249E03CF2509013': { symbol: 'USDC', decimals: 6, originChain: 'noble' }, // USDC on Cosmos Hub
   'ibc/65D0BEC6DAD96C7F5043D1E54E54B6BB5D5B3AEC3FF6CEBB75B9E059F3580EA3': { symbol: 'USDC', decimals: 6, originChain: 'noble' }, // USDC on Mantra
+  'ibc/F47D6F6C38DC1B5B72FFB71CC4D8A12FC4C57A5A79BAFA65286723D56B85197D': { symbol: 'USDC', decimals: 6, originChain: 'noble' }, // USDC on Omniflix
 
   // TIA on other chains
   'ibc/14D1406D84227FDF4B055EA5CB2298095BBCA3F3BC3EF583AE6DF36F0FB179C8': { symbol: 'TIA', decimals: 6, originChain: 'celestia' }, // TIA on Stargaze
@@ -235,7 +253,8 @@ export const IBC_TOKEN_MAPPINGS = {
   'ibc/93B1AE0AD5E88242745B245064A2A51DDA1319C18176A966D5F8F9E02ED5373E': { symbol: 'LAB', decimals: 6, originChain: 'LAB' }, // LAB on Stargaze
   'ibc/1C1C7D78176056F3ADD028904EF29BD966F7A3F01526FDBDAC3AFB376A59733D': { symbol: 'LAB', decimals: 6, originChain: 'LAB' }, // LAB on Cosmoshub
   'ibc/C1F4520E07B9190EA08FBAA5E1D68109B9738B5B717904C62F0EE9CA89471EC0': { symbol: 'LAB', decimals: 6, originChain: 'LAB' }, // LAB on Neutron
-
+  'ibc/18B0967BE3E73DCCE3F10EDE6DEFC472AAA3339DBE536E77C0B8E7BCE2628966': { symbol: 'LAB', decimals: 6, originChain: 'LAB' }, // LAB on Omniflix
+  
   // bINJ on Injective
   'factory/inj1dxp690rd86xltejgfq2fa7f2nxtgmm5cer3hvu/bINJ': { symbol: 'bINJ', decimals: 18, originChain: 'bINJ' }, // bINJ on Injective
 
@@ -246,6 +265,18 @@ export const IBC_TOKEN_MAPPINGS = {
 
   // Dungeon on other chains
   'ibc/CD6412358F33B372A355CF22786D8C19477C15092B56BD56188679EED8556964': { symbol: 'DGN', decimals: 6, originChain: 'dungeon' }, // DGN on Osmosis
+
+  // FLIX on other chains
+  'ibc/0F6E0D58BBFB4B45376D19508D1C0A0156FB57DF25631071158C7B5B55D5D09E': { symbol: 'FLIX', decimals: 6, originChain: 'omniflix' }, // FLIX on Akash
+  'ibc/15B4D31D457B80DD46CA46F6B89FD6BB15CB92FE7BBF8763947417537C3A4C2E': { symbol: 'FLIX', decimals: 6, originChain: 'omniflix' }, // FLIX on Cosmos Hub
+  'ibc/CEE970BB3D26F4B907097B6B660489F13F3B0DA765B83CC7D9A0BC0CE220FA6F': { symbol: 'FLIX', decimals: 6, originChain: 'omniflix' }, // FLIX on Osmosis
+
+  // Spice
+  'ibc/ADD33E9703A911023E73181FCA39B022094A1832F0C2311152A927E580E28B5F': { symbol: 'SPICE', decimals: 6, originChain: 'SPICE' }, // SPICE on Omniflix
+  'factory/osmo1n6asrjy9754q8y9jsxqf557zmsv3s3xa5m9eg5/uspice': { symbol: 'SPICE', decimals: 6, originChain: 'SPICE' }, // SPICE on Osmosis
+  'ibc/61E1AE07E1436FB9F5F600D01CCE2842182A8C7A51B38B3D5CE015EB727522FF': { symbol: 'SPICE', decimals: 6, originChain: 'SPICE' }, // SPICE on Akash
+  'ibc/A0D3A4A443E253817F949EBE4BB3FC2B4DADDF103766397A85B7CF84E67B4F4B': { symbol: 'SPICE', decimals: 6, originChain: 'SPICE' }, // SPICE on Neutron
+  
 };
 
 // Derived configurations from CHAIN_CONFIGS

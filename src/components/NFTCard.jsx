@@ -482,7 +482,6 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
             position: "absolute",
             top: "10px",
             left: window.innerWidth <= 768 ? "20%" : "10%",
-            width: "80%",
             width: window.innerWidth <= 768 ? "60%" : "80%",
             maxHeight: "20%",
             display: "flex",
