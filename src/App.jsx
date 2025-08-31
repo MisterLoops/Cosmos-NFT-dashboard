@@ -352,7 +352,8 @@ export default function App() {
       'DGN': 'dragon-coin-2',
       'FLIX': 'omniflix-network',
       'SPICE': 'spice-2',
-      'LAB' : 'mad-scientists'
+      'LAB' : 'mad-scientists',
+      'YGATA': 'yield-gata'
     };
 
     const coingeckoIds = Object.values(symbolToCoinGeckoId)

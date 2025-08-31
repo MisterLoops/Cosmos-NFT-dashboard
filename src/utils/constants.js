@@ -159,7 +159,8 @@ export const SYMBOL_TO_LOGO = {
   "BIKE": "BIKE",
   "DGN": "dungeon",
   "FLIX": "omniflix",
-  "SPICE": "SPICE"
+  "SPICE": "SPICE",
+  "YGATA": "YGATA"
 };
 
 // Token logos from Keplr's chain registry
@@ -181,7 +182,8 @@ export const TOKEN_LOGOS = {
   BIKE: "https://raw.githubusercontent.com/cosmostation/chainlist/master/chain/mantra/asset/BIKE.png",
   dungeon:"https://raw.githubusercontent.com/cosmos/chain-registry/master/dungeon/images/DGN.png",
   omniflix: "https://raw.githubusercontent.com/cosmos/chain-registry/master/omniflixhub/images/flix.png",
-  SPICE: "https://raw.githubusercontent.com/cosmos/chain-registry/master/osmosis/images/spice.png"
+  SPICE: "https://raw.githubusercontent.com/cosmos/chain-registry/master/osmosis/images/spice.png",
+  YGATA: "https://raw.githubusercontent.com/cosmos/chain-registry/master/omniflixhub/images/ygata.png"
 };
 
 export const IBC_TOKEN_MAPPINGS = {
@@ -276,7 +278,12 @@ export const IBC_TOKEN_MAPPINGS = {
   'factory/osmo1n6asrjy9754q8y9jsxqf557zmsv3s3xa5m9eg5/uspice': { symbol: 'SPICE', decimals: 6, originChain: 'SPICE' }, // SPICE on Osmosis
   'ibc/61E1AE07E1436FB9F5F600D01CCE2842182A8C7A51B38B3D5CE015EB727522FF': { symbol: 'SPICE', decimals: 6, originChain: 'SPICE' }, // SPICE on Akash
   'ibc/A0D3A4A443E253817F949EBE4BB3FC2B4DADDF103766397A85B7CF84E67B4F4B': { symbol: 'SPICE', decimals: 6, originChain: 'SPICE' }, // SPICE on Neutron
-  
+
+  // YGATA
+  'factory/omniflix1fwphj5p6qd8gtkehkzfgac38eur4uqzgz97uwvf6hsc0vjl004gqfj0xnv/ygata': { symbol: 'YGATA', decimals: 6, originChain: 'YGATA' }, // YGATA on Omniflix
+  'ibc/50F886EFA15E1FF3D9226B177083A1EFF944176181C70B6131D74FE5AFB1F2C0': { symbol: 'YGATA', decimals: 6, originChain: 'YGATA' }, // YGATA on Osmosis
+  'ibc/2A56F95E2B74AB769816403D384E2199C7BC510BFD2F8352FAC6DF0294B83EBA': { symbol: 'YGATA', decimals: 6, originChain: 'YGATA' }, // YGATA on Osmosis
+
 };
 
 // Derived configurations from CHAIN_CONFIGS
