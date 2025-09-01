@@ -828,7 +828,10 @@ export default function NFTDashboard({
 
               const processedFloorList = Object.fromEntries(
                 Object.entries(floorList).map(([symbol, amount]) => {
-                  const price = assetPrices[symbol] || 0;
+                  const normalizedSymbol = String(symbol).toUpperCase(); // normalize
+      const price = assetPrices[normalizedSymbol] ?? assetPrices[symbol] ?? 0;
+
+      console.log("Symbol:", symbol, "Normalized:", normalizedSymbol, "Price:", price, "assetPrices", assetPrices);
                   return [
                     symbol,
                     {

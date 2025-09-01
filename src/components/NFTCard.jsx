@@ -448,23 +448,22 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
                     )})
                   </span>
                 )}
-              <span
-                style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", marginLeft: "0.25rem" }}
-                onClick={(e) => {
-                  if (
-                    priceMode === "floor" &&
-                    nft.floor?.floorPricesList &&
-                    Object.keys(nft.floor.floorPricesList).length
-                  ) {
-                    e.stopPropagation(); // prevent parent clicks
+              {nft.floor?.floorPricesList && Object.keys(nft.floor.floorPricesList).length > 0 &&
+                <span
+                  style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", marginLeft: "0.25rem" }}
+                  onMouseEnter={(e) => {
+                    if (priceMode === "floor" && nft.floor?.floorPricesList && Object.keys(nft.floor.floorPricesList).length) {
                     const rect = e.currentTarget.getBoundingClientRect();
-                    setTooltipPosition({ x: e.clientX - rect.left + 150, y: e.clientY - rect.top + 300 });
-                    setTooltipVisible(!tooltipVisible);
-                  }
-                }}
-              >
-                <Plus size={14} strokeWidth={2} color="rgba(255,255,255,0.8)" />
-              </span>
+                      setTooltipVisible(true);
+                      setTooltipPosition({ x: e.clientX - rect.left + 72, y: e.clientY - rect.top });
+                    }
+                  }}
+                  onMouseLeave={() => setTooltipVisible(false)}
+                >
+
+                  <Plus size={14} strokeWidth={2} color="rgba(255,255,255,0.8)" />
+                </span>
+              }
             </div>
 
             {tooltipVisible && priceMode === "floor" && nft.floor?.floorPricesList && (
@@ -472,7 +471,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
                 style={{
                   position: 'fixed',
                   left: `${tooltipPosition.x}px`,
-                  top: `${tooltipPosition.y}px`,
+                  bottom: `${tooltipPosition.y}px`,
                   transform: 'translateX(-50%)',
                   zIndex: 9999,
                   pointerEvents: 'none',
@@ -486,7 +485,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
                   whiteSpace: "nowrap",
                   justifyContent: "center",
                   alignItems: "center",
-                  textAlign: "center"
+                  textAlign: "center",
                 }}
               >
                 <p style={{
@@ -497,7 +496,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
                   marginTop: "0",
                   textAlign: "center"
                 }}
-                >More DENOMS</p>
+                >Floor per DENOM</p>
                 {Object.entries(nft.floor.floorPricesList).map(([symbol, info]) => (
                   <div key={symbol} style={{ marginBottom: "0.25rem", display: "flex", gap: "0.25rem", alignItems: "center", textAlign: "center", justifyContent: "center" }}>
                     <span
