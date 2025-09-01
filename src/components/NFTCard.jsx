@@ -448,7 +448,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
                     )})
                   </span>
                 )}
-              {nft.floor?.floorPricesList && Object.keys(nft.floor.floorPricesList).length > 0 &&
+              {nft.floor?.floorPricesList && Object.keys(nft.floor.floorPricesList).length > 0 &&  priceMode === 'floor' && 
                 <span
                   style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", marginLeft: "0.25rem" }}
                   onMouseEnter={(e) => {
@@ -466,7 +466,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
               }
             </div>
 
-            {tooltipVisible && priceMode === "floor" && nft.floor?.floorPricesList && (
+            {tooltipVisible && priceMode === "floor" && nft.floor?.floorPricesList &&(
               <div
                 style={{
                   position: 'fixed',
