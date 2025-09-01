@@ -63,6 +63,7 @@ export default function App() {
   const bosmoFetchingRef = useRef(false);
   const initFetchingRef = useRef(false);
   const binjFetchingRef = useRef(false); // Ref for bINJ price
+  const allAssetsFetchedRef = useRef(false);
 
   // Fetch bOSMO price on app load
   useEffect(() => {
@@ -223,6 +224,23 @@ export default function App() {
     fetchBinjPrice();
   }, []);
 
+
+useEffect(() => {
+  if (allAssetsFetchedRef.current) return; // skip if already fetched
+  allAssetsFetchedRef.current = true;
+
+  const fetchAndSetAssetPrices = async () => {
+    try {
+      const prices = await fetchAllAssetPrices();
+      setAssetPrices(prices); // immediately update assetPrices with fetched prices
+    } catch (error) {
+      console.error("[ERROR] Failed to fetch other asset prices:", error);
+    }
+  };
+
+  fetchAndSetAssetPrices();
+}, []);
+
   useEffect(() => {
     if (hasLoadedBalances && hasLoadedNFTs && !hasCompletedInitialLoad) {
       setHasCompletedInitialLoad(true);
@@ -349,7 +367,11 @@ export default function App() {
       'BTC': 'bitcoin',
       'USDC': 'usd-coin',
       'BIKE': 'bike',
-      'DGN': 'dragon-coin-2'
+      'DGN': 'dragon-coin-2',
+      'FLIX': 'omniflix-network',
+      'SPICE': 'spice-2',
+      'LAB' : 'mad-scientists',
+      'YGATA': 'yield-gata'
     };
 
     const coingeckoIds = Object.values(symbolToCoinGeckoId)
@@ -1052,7 +1074,8 @@ export default function App() {
         "interwoven-1",
         "neutron-1",
         "mantra-1",
-        "akashnet-2"
+        "akashnet-2",
+        "omniflixhub-1"
       ];
 
       const walletInstance = walletInfo.type === "leap" ? window.leap : window.keplr;
@@ -1105,18 +1128,18 @@ export default function App() {
       const allChainBalances = await fetchAllChainBalances(addresses);
 
       // Fetch all asset prices
-      const allAssetPrices = await fetchAllAssetPrices();
+      // const allAssetPrices = await fetchAllAssetPrices();
 
       // Calculate values for each chain
-      const balancesWithValues = calculateChainValues(allChainBalances, allAssetPrices);
+      const balancesWithValues = calculateChainValues(allChainBalances, assetPrices);
 
       setChainBalances(balancesWithValues);
-      setAssetPrices(allAssetPrices);
+      // setAssetPrices(allAssetPrices);
 
       // Fetch NFT offers only on initial load
       if (!hasCompletedInitialLoad) {
         try {
-          const offersData = await fetchAllOffers(addresses, allAssetPrices);
+          const offersData = await fetchAllOffers(addresses, assetPrices);
           setNftOffers(offersData);
         } catch (error) {
           console.error('Error fetching NFT offers:', error);
@@ -1722,8 +1745,7 @@ export default function App() {
           bosmoPrice={bosmoPrice}
           initPrice={initPrice}
           binjPrice={binjPrice}
-          ntrnPrice={assetPrices["NTRN"] || 0}
-          DGNPrice={assetPrices["DGN"] || 0}
+          assetPrices={assetPrices}
           showDollarBalances={showDollarBalances}
           onManualAddressRemoved={handleManualAddressRemoved}
           onFetchStatusChange={(isFetching) => {

@@ -16,6 +16,7 @@ It simply runs in your browser, no data is stored, no database is required at th
 * Injective 
 * Neutron 
 * Dungeon 
+* Omniflix
  
 **The dashboard:**
 * Offline connection to keplr/leap

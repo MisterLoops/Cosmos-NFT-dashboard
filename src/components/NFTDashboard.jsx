@@ -8,7 +8,7 @@ import {
   ArrowDown,
   DollarSign,
   Award,
-  
+
 } from "lucide-react";
 import NFTCard from "./NFTCard";
 import FilterPanel from "./FilterPanel";
@@ -20,9 +20,10 @@ import {
   fetchNeutronNFTs,
   fetchInitiaNFTs,
   fetchCosmosHubNFTs,
-  fetchDungeonNFTs
+  fetchDungeonNFTs,
+  fetchOmniFlixNFTs
 } from "../utils/fetchFunctions";
-import { CHAIN_CONFIGS, CHAINS, PAGINATION_CONFIG} from "../utils/constants.js";
+import { CHAIN_CONFIGS, CHAINS, PAGINATION_CONFIG } from "../utils/constants.js";
 
 // Function to process image URLs, handling potential GIF and IPFS cases
 const processImageUrl = (originalSrc) => {
@@ -69,14 +70,13 @@ export default function NFTDashboard({
   bosmoPrice,
   initPrice,
   binjPrice,
-  ntrnPrice,
-  DGNPrice,
+  assetPrices,
   onManualAddressRemoved,
   showDollarBalances,
   onFetchStatusChange,
   onInitialNFTLoadComplete
 }) {
-  
+
   const [nfts, setNfts] = useState([]);
   const [filteredNfts, setFilteredNfts] = useState([]);
   const [priceMode, setPriceMode] = useState("floor");
@@ -726,8 +726,8 @@ export default function NFTDashboard({
           const transformedNFTs = neutronNFTs.map((nft) => {
             let highestOfferUsd = nft.highestOffer?.amountUsd || 0;
 
-            if (nft.highestOffer && nft.highestOffer.amount && ntrnPrice) {
-              highestOfferUsd = (nft.highestOffer.amount * ntrnPrice).toFixed(2);
+            if (nft.highestOffer && nft.highestOffer.amount && assetPrices['NTRN']) {
+              highestOfferUsd = (nft.highestOffer.amount * assetPrices['NTRN']).toFixed(2);
             }
 
             return {
@@ -774,7 +774,7 @@ export default function NFTDashboard({
         }
       } else if (chain.name === "dungeon") {
         try {
-          const currentDGNPrice = DGNPrice || 0;
+          const currentDGNPrice = assetPrices["DGN"];
 
           const dungeonNfts = await fetchDungeonNFTs(validAddresses, currentDGNPrice);
           // Transform NFTs to include source address for tracking and process images
@@ -792,7 +792,69 @@ export default function NFTDashboard({
           return [];
         }
 
+      } else if (chain.name === "omniflix") {
+        try {
+          const omniflixHubNFTs = await fetchOmniFlixNFTs(validAddresses);
+
+          const transformedNFTs = omniflixHubNFTs.map((nft) => {
+            // normalize NFT
+            const processedNFT = {
+              ...nft,
+              image: processImageUrl(nft.image),
+            };
+
+            // default to null
+            let lastSalePriceUsd = null;
+
+            if (
+              nft.lastSalePrice &&
+              nft.lastSalePrice.symbol &&
+              assetPrices[nft.lastSalePrice.symbol]
+            ) {
+              lastSalePriceUsd =
+                parseFloat(nft.lastSalePrice.amount) *
+                parseFloat(assetPrices[nft.lastSalePrice.symbol]);
+            }
+
+            // attach safely
+            processedNFT.lastSalePrice = {
+              ...(nft.lastSalePrice || {}), // keep original fields if present
+              amountUsd: lastSalePriceUsd,
+            };
+
+            // process floorPricesList
+            if (nft.floor?.floorPricesList) {
+              const floorList = nft.floor.floorPricesList;
+
+              const processedFloorList = Object.fromEntries(
+                Object.entries(floorList).map(([symbol, amount]) => {
+                  const normalizedSymbol = String(symbol).toUpperCase(); // normalize
+      const price = assetPrices[normalizedSymbol] ?? assetPrices[symbol] ?? 0;
+
+      console.log("Symbol:", symbol, "Normalized:", normalizedSymbol, "Price:", price, "assetPrices", assetPrices);
+                  return [
+                    symbol,
+                    {
+                      amount: amount,
+                      amountUsd: amount * price,
+                    },
+                  ];
+                })
+              );
+
+              processedNFT.floor.floorPricesList = processedFloorList;
+            }
+
+            return processedNFT;
+          });
+
+          return transformedNFTs;
+        } catch (error) {
+          console.error(`[ERROR] Error fetching Omniflix NFTs:`, error);
+          return [];
+        }
       }
+
 
       // For other chains, return empty array for now
       // console.log(
@@ -900,6 +962,8 @@ export default function NFTDashboard({
       return `https://intergaze.xyz/m/${nft.contract}/${nft.tokenId}`;
     if (nft.chain === "neutron")
       return `https://app.superbolt.wtf/browse/${nft.collection?.collection_id}/${nft.tokenId}`;
+    if (nft.chain === "omniflix")
+      return `https://omniflix.market/c/${nft.contract}/${nft.tokenId}`;
     return "#";
   };
 
@@ -1180,25 +1244,29 @@ export default function NFTDashboard({
               )}
 
               {filters.addresses &&
-                filters.addresses.map((address) => (
-                  <div
-                    key={address}
-                    className="filter-tag-pill"
-                    onClick={() =>
-                      setFilters({
-                        ...filters,
-                        addresses: filters.addresses.filter((a) => a !== address),
-                      })
-                    }
-                  >
-                    <span className="filter-tag-text">
-                      {address.length > 16
-                        ? `${address.slice(0, 6)}...${address.slice(-4)}`
-                        : address}
-                    </span>
-                    <span className="filter-tag-icon">×</span>
-                  </div>
-                ))}
+                filters.addresses.map((address) => {
+                  const processedAddress = String(address).trim(); // process inside the function body
+
+                  return (
+                    <div
+                      key={processedAddress}
+                      className="filter-tag-pill"
+                      onClick={() =>
+                        setFilters({
+                          ...filters,
+                          addresses: filters.addresses.filter((a) => a !== address),
+                        })
+                      }
+                    >
+                      <span className="filter-tag-text">
+                        {processedAddress.length > 16
+                          ? `${processedAddress.slice(0, 6)}...${processedAddress.slice(-4)}`
+                          : processedAddress}
+                      </span>
+                      <span className="filter-tag-icon">×</span>
+                    </div>
+                  );
+                })}
             </div>
           ) : (
             <div className="filter-tags-container">
@@ -1389,7 +1457,7 @@ export default function NFTDashboard({
           )}
         </div>
       </div>
-      
+
 
     </div>
   );

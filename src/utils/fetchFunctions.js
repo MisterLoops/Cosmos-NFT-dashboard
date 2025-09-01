@@ -6,6 +6,7 @@ import {
   CORS_PROXIES,
   REQUEST_CONFIG,
   PAGINATION_CONFIG,
+  IBC_TOKEN_MAPPINGS
 } from "./constants.js";
 import pLimit from './pLimit.js';
 
@@ -5907,30 +5908,346 @@ export const fetchDungeonNFTs = async (addresses, DGNPrice = 0) => {
   );
 };
 
-// Get bOSMO price (placeholder - you'll need to implement this with a price API)
-export const getBOSMOPrice = async () => {
+// Fetch OmniFlix NFTs using OmniFlix API (Original function)
+const _fetchOmniFlixNFTs = async (address) => {
   try {
-    // This is a placeholder - you'll need to implement actual price fetching
-    // For now, returning a default value
-    return 1.0; // USD per bOSMO
+    console.log(`[DEBUG] Fetching OmniFlix NFTs for address: ${address}`);
+
+    // 1. Fetch owned NFTs
+    const response = await fetch(
+      `${API_ENDPOINTS.OMNIFLIX_API}/nfts?owner=${address}&sortBy=updated_at&order=desc&ipInfringement=false&mediaTypes[]=image/png&mediaTypes[]=image/jpg&mediaTypes[]=image/jpeg&mediaTypes[]=image/webp&limit=100`,
+    );
+
+    if (!response.ok) {
+      console.warn(`[WARNING] HTTP error for ${address}! status: ${response.status}`);
+      return [];
+    }
+
+    const data = await response.json();
+    if (!data?.success || !Array.isArray(data?.result?.list)) {
+      console.warn(`[WARNING] No valid NFTs data for ${address}`);
+      return [];
+    }
+
+    const nfts = data.result.list;
+
+    // 2. Fetch all activity for address once
+    let activities = [];
+    try {
+      const actRes = await fetch(
+        `${API_ENDPOINTS.OMNIFLIX_ACTIVITY_API}/activity?address=${address}&skip=0&limit=100`
+      );
+      if (actRes.ok) {
+        const actJson = await actRes.json();
+        activities = actJson?.result?.list || [];
+      } else {
+        console.warn(`[WARNING] Failed to fetch activities for ${address}, status ${actRes.status}`);
+      }
+    } catch (err) {
+      console.error(`[ERROR] Activity fetch failed for ${address}:`, err);
+    }
+
+    // Index last sale by NFT (denom_id + nft_id)
+    const lastSalesMap = {};
+    activities
+      .filter(act => act.type === "MsgBuyNFT")
+      .forEach(act => {
+        const denomId = act.denom_id?.id || act.denom_id; // normalize
+        const nftId = act.nft_id?.id || act.nft_id;      // normalize
+        const key = `${denomId}-${nftId}`;
+
+        if (
+          !lastSalesMap[key] ||
+          new Date(act.created_at) > new Date(lastSalesMap[key].created_at)
+        ) {
+          lastSalesMap[key] = act;
+        }
+      });
+
+    // 3. Get unique collections for floor data
+    const uniqueCollections = [...new Set(nfts.map(nft => nft.denom_id))];
+    const limit = pLimit(10);
+
+    const collectionDataResults = await Promise.allSettled(
+      uniqueCollections.map(denomId =>
+        limit(async () => {
+          try {
+            return await fetchOmniFlixCollectionData(denomId);
+          } catch (error) {
+            console.error(`[ERROR] Failed to fetch collection data for ${denomId}:`, error);
+            return { denomId, floorPriceUsd: 0, floorPriceUflix: 0 };
+          }
+        })
+      )
+    );
+
+    const collectionFloorPrices = {};
+    collectionDataResults.forEach(result => {
+      if (result.status === 'fulfilled' && result.value) {
+        const rawFloorPrices = Object.fromEntries(
+          Object.entries(result.value.floorPricesList).filter(([key]) => key !== "uflix")
+        );
+
+        // Process floorPricesList: replace denom with symbol and scale by decimals
+        const processedFloorPrices = Object.fromEntries(
+          Object.entries(rawFloorPrices).map(([denom, amount]) => {
+            const tokenInfo = denom === "uflix"
+              ? { symbol: "FLIX", decimals: 6 }
+              : IBC_TOKEN_MAPPINGS[denom] || { symbol: "UNKNOWN", decimals: 6 };
+
+            return [
+              tokenInfo.symbol,
+              Number(amount) / 10 ** tokenInfo.decimals
+            ];
+          })
+        );
+
+        collectionFloorPrices[result.value.denomId] = {
+          floorPriceUsd: result.value.floorPriceUsd,
+          floorPriceUflix: result.value.floorPriceUflix,
+          floorPricesList: processedFloorPrices,
+        };
+      }
+    });
+
+    // 4. Process NFTs
+    const nftLimit = pLimit(20);
+    const results = await Promise.allSettled(
+      nfts.map(nft =>
+        nftLimit(async () => {
+          try {
+            const isListed = nft.is_listed || false;
+            const floorData = collectionFloorPrices[nft.denom_id] || {};
+            const floorPriceUsd = floorData.floorPriceUsd || 0;
+            const floorPriceUflix = floorData.floorPriceUflix || 0;
+            const floorPricesList = floorData.floorPricesList || [];
+            const listPrice = nft.list ? {
+                    amount: nft.list.price.amount / 1000000,
+                    denom: nft.list.price.denom || "uflix",
+                    symbol: IBC_TOKEN_MAPPINGS[nft.list.price.denom]?.symbol || unknown,
+                    amountUsd: nft.list.fiat_price.usd,
+                  } : null;
+
+            // Traits
+            const rawTraits =
+              nft.attributes
+              || (nft.traits ? Object.entries(nft.traits).map(([name, value]) => ({ name, value })) : [])
+              || (nft.data_traits ? Object.entries(nft.data_traits).map(([name, value]) => ({ name, value })) : []);
+
+            const processedTraits = rawTraits.map((trait) => ({
+              name: trait.trait_type || trait.name,
+              value: trait.value,
+              rarity: undefined,
+            }));
+
+            // Image
+            let imageUrl = null;
+            if (nft.cloudflare_cdn?.variants?.length > 0) {
+              const mediumVariant = nft.cloudflare_cdn.variants.find(url => url.includes('/medium'));
+              imageUrl = mediumVariant || nft.cloudflare_cdn.variants[0];
+            } else if (nft.media_uri) {
+              imageUrl = nft.media_uri.startsWith('ipfs://')
+                ? `https://ipfs.io/ipfs/${nft.media_uri.replace('ipfs://', '')}`
+                : nft.media_uri;
+            } else if (nft.preview_uri) {
+              imageUrl = nft.preview_uri.startsWith('ipfs://')
+                ? `https://ipfs.io/ipfs/${nft.preview_uri.replace('ipfs://', '')}`
+                : nft.preview_uri;
+            }
+
+            // Last sale
+            // Last sale
+            const lastSaleKey = `${nft.denom_id}-${nft.id}`;
+            const lastSale = lastSalesMap[lastSaleKey];
+
+            let lastSalePrice = null;
+            if (lastSale) {
+              const denom = lastSale.price.denom || "uflix";
+              const symbol = denom === "uflix" ? "FLIX" : IBC_TOKEN_MAPPINGS[denom]?.symbol || unknown;
+              const saleAmount = Number(lastSale.price.amount || 0) / 1_000_000;
+
+              lastSalePrice = {
+                amount: saleAmount,
+                denom,
+                symbol,
+                amountUsd: 0, // you'd calculate via price feed if needed
+              };
+            }
+
+            return {
+              name: nft.name || `Token #${nft.id}`,
+              tokenId: nft.id || "unknown",
+              chain: "omniflix",
+              contract: nft.denom_id || "unknown-contract",
+              collection: nft.denom?.name || "Unknown Collection",
+              image: imageUrl,
+              listed: isListed,
+              listPrice: listPrice,
+              rarity: nft.rank || null,
+              traits: processedTraits,
+              floor: {
+                amount: floorPriceUflix / 1_000_000,
+                amountUsd: floorPriceUsd,
+                denom: "uflix",
+                symbol: "FLIX",
+                floorPricesList: floorPricesList
+              },
+              hasOffer: false,
+              highestOffer: {
+                highestOfferType: null,
+                amount: 0,
+                amountUsd: 0,
+                denom: null,
+                symbol: null,
+              },
+              lastSalePriceSpecified: lastSale ? true : false,
+              lastSalePrice,
+              sortUsd: floorPriceUsd,
+              daoStaked: false,
+              sourceAddress: address,
+              transferable: nft.transferable,
+              extensible: nft.extensible,
+              nsfw: nft.nsfw,
+              creator: nft.creator,
+              owner: nft.owner,
+              royaltyShare: nft.royalty_share,
+              rarityScore: nft.data_traits_rarity_score || nft.traits_rarity_score || 0,
+              rarityPercentage: nft.data_traits_rarity_percentage || nft.traits_rarity_percentage || 0,
+            };
+          } catch (nftError) {
+            console.error(`[ERROR] Error processing OmniFlix NFT ${nft.id}:`, nftError);
+            return null;
+          }
+        })
+      )
+    );
+
+    return results
+      .filter(res => res.status === "fulfilled" && res.value)
+      .map(res => res.value);
+
   } catch (error) {
-    console.error("Error fetching bOSMO price:", error);
-    return 1.0;
+    console.error(`[ERROR] Error fetching OmniFlix NFTs for ${address}:`, error);
+    return [];
   }
 };
 
-// Get bINJ price (placeholder - you'll need to implement this with a price API)
-export const getBINJPrice = async () => {
+
+
+// Fetch OmniFlix NFTs using OmniFlix API (with caching)
+export const fetchOmniFlixNFTs = async (address) => {
+  return cachedRequest("fetchOmniFlixNFTs", _fetchOmniFlixNFTs, address);
+};
+
+// Fetch collection data including floor price (Original function)
+const _fetchOmniFlixCollectionData = async (denomId) => {
   try {
-    // This is a placeholder - you'll need to implement actual price fetching
-    // For now, returning a default value
-    // Example: Fetching from a hypothetical price API
-    // const response = await fetch('https://api.example.com/price/binj');
-    // const data = await response.json();
-    // return data.price;
-    return 16.62; // Example USD per bINJ (updated to reflect current market price)
+    // console.log(`[DEBUG] Fetching OmniFlix collection data for: ${denomId}`);
+
+    let retries = 0;
+    const maxRetries = REQUEST_CONFIG.MAX_RETRIES;
+
+    while (retries <= maxRetries) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(
+          () => controller.abort(),
+          REQUEST_CONFIG.TIMEOUT,
+        );
+
+        const response = await fetch(
+          `${API_ENDPOINTS.OMNIFLIX_API}/collections/${denomId}`,
+          {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+            },
+            signal: controller.signal,
+          }
+        );
+
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          const data = await response.json();
+
+          if (data && data.success && data.result) {
+            const collection = data.result;
+            const floorPriceUsd = collection.floor_price_in_usd || 0;
+            const floorPriceUflix = collection.floor_prices.uflix || 0;
+            const floorPricesList = collection.floor_prices;
+
+            // console.log(`[DEBUG] Collection ${denomId} floor price: $${floorPriceUsd}`);
+
+            return {
+              denomId,
+              floorPriceUsd,
+              collectionName: collection.name,
+              floorPriceUflix,
+              usdFloorPrices: collection.usd_floor_prices || {},
+              floorPricesList: floorPricesList
+            };
+          } else {
+            console.warn(`[WARNING] No valid collection data for ${denomId}`);
+            return { denomId, floorPriceUsd: 0 };
+          }
+        } else if (
+          response.status === 408 ||
+          response.status === 429 ||
+          response.status >= 500
+        ) {
+          retries++;
+          if (retries <= maxRetries) {
+            const retryDelay = Math.min(
+              REQUEST_CONFIG.RETRY_DELAY_BASE * Math.pow(2, retries - 1),
+              REQUEST_CONFIG.MAX_RETRY_DELAY,
+            );
+            console.log(
+              `[DEBUG] OmniFlix collection API error ${response.status}, retrying in ${retryDelay}ms (attempt ${retries}/${maxRetries})`,
+            );
+            await delay(retryDelay);
+            continue;
+          }
+        }
+
+        console.warn(
+          `[WARNING] Failed to fetch OmniFlix collection data for ${denomId}: ${response.status} ${response.statusText}`,
+        );
+        return { denomId, floorPriceUsd: 0 };
+      } catch (error) {
+        retries++;
+        if (retries <= maxRetries) {
+          const retryDelay = Math.min(
+            REQUEST_CONFIG.RETRY_DELAY_BASE * Math.pow(2, retries - 1),
+            REQUEST_CONFIG.MAX_RETRY_DELAY,
+          );
+          console.log(
+            `[DEBUG] OmniFlix collection network error, retrying in ${retryDelay}ms (attempt ${retries}/${maxRetries}):`,
+            error.name === "AbortError" ? "Request timeout" : error.message,
+          );
+          await delay(retryDelay);
+          continue;
+        }
+
+        console.error(
+          `[ERROR] Error fetching OmniFlix collection data for ${denomId}:`,
+          error,
+        );
+        return { denomId, floorPriceUsd: 0 };
+      }
+    }
+
+    return { denomId, floorPriceUsd: 0 };
   } catch (error) {
-    console.error("Error fetching bINJ price:", error);
-    return 16.62; // Default to example price if fetching fails
+    console.error(
+      `[ERROR] Error fetching OmniFlix collection data for ${denomId}:`,
+      error,
+    );
+    return { denomId, floorPriceUsd: 0 };
   }
+};
+
+// Fetch collection data including floor price (with caching)
+export const fetchOmniFlixCollectionData = async (denomId) => {
+  return cachedRequest("fetchOmniFlixCollectionData", _fetchOmniFlixCollectionData, denomId);
 };
