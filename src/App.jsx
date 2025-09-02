@@ -21,6 +21,7 @@ import {
 export default function App() {
   const [wallet, setWallet] = useState(null);
   const [addresses, setAddresses] = useState({});
+  const [addressesForSkip, setAddressesForSkip] = useState({});
   const [signers, setSigners] = useState(null);
   const [hasAccess, setHasAccess] = useState(false);
   const [error, setError] = useState("");
@@ -1197,6 +1198,18 @@ export default function App() {
     return `${prefix}${mainPart.slice(0, 4)}...${mainPart.slice(-3)}`;
   };
 
+  const mapAddressesForSkip = (addresses) => {
+    const skipAddresses = {};
+
+    for (const [name, addr] of Object.entries(addresses)) {
+      if (CHAIN_CONFIGS[name] && CHAIN_CONFIGS[name].chainId) {
+        skipAddresses[CHAIN_CONFIGS[name].chainId] = addr;
+      }
+    }
+
+    return skipAddresses;
+  };
+
   const handleWalletConnect = async (walletInfo) => {
     setWallet(walletInfo);
 
@@ -1207,6 +1220,13 @@ export default function App() {
       const allAddresses = await getAddressesFromChains(walletInfo);
       setAddresses(allAddresses);
 
+      if (walletInfo.type !== "manual") {
+      // Convert chain names → chain IDs for Skip
+      const skipReadyAddresses = mapAddressesForSkip(allAddresses);
+      setAddressesForSkip(skipReadyAddresses);
+      } else {
+        setAddressesForSkip({});
+      }
       // No longer gating, so set hasAccess to true directly
       setHasAccess(true);
 
@@ -1219,29 +1239,13 @@ export default function App() {
   };
 
   // ✅ Create signer functions for SkipWidget
-  const getSkipWidgetSignerProps = () => {
-    if (!wallet || !signers) {
-      return {}; // No signers available
-    }
-
-    return {
-      connectedAddresses: addresses, // Your addresses object
-      signers: {
-        getCosmosSigner: async (chainId) => {
-          if (signers[chainId]) {
-            return signers[chainId];
-          }
-          throw new Error(`No signer available for chain ${chainId}`);
-        },
-        // Add other signer methods if needed for EVM/SVM
-        getEvmSigner: async () => {
-          throw new Error("EVM signer not implemented");
-        },
-        getSvmSigner: async () => {
-          throw new Error("SVM signer not implemented");
-        }
-      }
-    };
+  const widgetSigners = {
+    getCosmosSigner: async (chainId) => {
+      if (signers[chainId]) return signers[chainId]; // return the existing OfflineSigner
+      throw new Error(`No signer available for chain ${chainId}`);
+    },
+    getEvmSigner: async () => { throw new Error("EVM not implemented"); },
+    getSvmSigner: async () => { throw new Error("SVM not implemented"); },
   };
 
   const handleDisconnect = () => {
@@ -1477,9 +1481,10 @@ export default function App() {
 
   return (
     <div className={`${(hasCompletedInitialLoad) ? "app" : "app-connecting"}`}>
-      <SkipWidget showSkipWidget={showSkipWidget} 
-      onClose={() => setShowSkipWidget(false)}
-      {...getSkipWidgetSignerProps()}/>
+      <SkipWidget showSkipWidget={showSkipWidget}
+        onClose={() => setShowSkipWidget(false)}
+        connectedAddresses={addressesForSkip}
+        signers={widgetSigners} />
       <header className="app-header">
         <div className="app-title-container">
           <img src="/cosmosNFTHUBlogo.png" alt="Logo" className="app-logo" />

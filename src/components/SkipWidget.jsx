@@ -229,24 +229,8 @@ const SkipWidget = ({
         },
         // ✅ Conditional signer props - only add when signers are available
         ...(signers && connectedAddresses && Object.keys(connectedAddresses).length > 0 && {
-            connectedAddresses: connectedAddresses,
-            signers: {
-                getCosmosSigner: async (chainId) => {
-                    console.log(`[DEBUG] Getting Cosmos signer for chain: ${chainId}`);
-                    if (signers[chainId]) {
-                        return signers[chainId];
-                    }
-                    throw new Error(`No signer available for chain ${chainId}`);
-                },
-                // Add EVM signer if you support EVM chains
-                getEvmSigner: async () => {
-                    throw new Error("EVM signer not implemented");
-                },
-                // Add SVM signer if you support Solana
-                getSvmSigner: async () => {
-                    throw new Error("SVM signer not implemented");
-                }
-            }
+            connectedAddresses,
+            signers
         }),
         // ✅ Add callbacks for transaction events
         callbacks: {
@@ -294,7 +278,7 @@ const SkipWidget = ({
                     height: "100%",
                     background: "#1f1b2e",
                     opacity: 0.9, // adjust opacity here
-                    zIndex: -2,
+                    zIndex: 0,
                 }}
             />
             {/* background layer */}
@@ -314,7 +298,7 @@ const SkipWidget = ({
                     border: "1px solid rgba(255, 255, 255, 1)",
                     boxShadow: "0 0 5px rgba(205, 102, 255, 0.5)",
                     opacity: 1,                       // image opacity
-                    zIndex: -1,
+                    zIndex: 1,
                 }}
             />
             <div
@@ -328,7 +312,7 @@ const SkipWidget = ({
                     borderRadius: "20px",
                     background: "linear-gradient(90deg, #1f1b2e, #2b2340)",
                     opacity: 0.8,
-                    zIndex: -1, // sits above bg, below content
+                    zIndex: 2, // sits above bg, below content
                 }}
             />
             {/* content */}
@@ -344,6 +328,7 @@ const SkipWidget = ({
                         : "scale(0.9) translateY(-20px)",
                     opacity: isVisible ? 1 : 0,
                     transition: "all 0.3s ease-out",
+                    zIndex:5
                 }}
             >
                 {/* ✅ Widget with conditional signer props */}
