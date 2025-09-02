@@ -1,9 +1,0 @@
-[build]
-  command = "npm run build"
-  publish = "build"
-
-[[redirects]]
-  from = "/api/skip/*"
-  to = "/.netlify/functions/skip-proxy/:splat"
-  status = 200
-  force = true
