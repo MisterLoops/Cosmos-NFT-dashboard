@@ -1520,57 +1520,51 @@ export default function App() {
             </a>
           </div>
         </div>
-        <div className="skip-logo" data-tooltip="Swap directly from here to anywhere with skip widget!">
+        <div className="skip-logo" data-tooltip="Swap with skip widget and support the NFTHUB (2% fee)">
           <img
             src="/skip.png"
             alt="skip_logo"
             // title="Swap/Bridge from here to anywhere!"
-
+            className="skip-logo__img"
             onClick={() => setShowSkipWidget(!showSkipWidget)}
-            style={{
-              cursor: "pointer", maxWidth: "100px", transform: "scale(1.05)"
-            }}
           />
         </div>
         <style>{`
-        .skip-logo {
-        transition: transform 0.25s ease;}
-    .skip-logo img{
-      cursor: pointer;
-      max-width: 100px;
-    
-    }
-    .skip-logo:hover {
-      transform: scale(1.15);
-    }
+      .skip-logo { position: relative; display: inline-block; }
+  .skip-logo__img {
+    cursor: pointer;;
+    max-width: 100px;
+    display: block;
+    transform: scale(1.05);
+    transition: transform 0.25s ease;
+  }
+  /* ✅ scale only the image, not the tooltip */
+  .skip-logo:hover .skip-logo__img {
+    transform: scale(1.15);
+  }
 
-.skip-logo::after {
+  /* Tooltip */
+  .skip-logo::after {
     content: attr(data-tooltip);
-  position: absolute;
-  bottom: -40px;
-  /* position below logo */
-  left: 50%;
-  transform: translateX(-50%);
-  white-space: nowrap;
-  background: rgba(30, 30, 47, 0.95);
-  font-size: 0.75rem;
-  padding: 6px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 8px;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.7);
-  font-weight: 500;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s ease, transform 0.2s ease;
-  transform-origin: top center;
-  z-index: 1000;
+    position: absolute;
+    bottom: -50px;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    background: rgba(30,30,47,0.95);
+    padding: 6px 10px;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 8px;
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.7);
+    font-weight: 500;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 1000;
   }
+  .skip-logo:hover::after { opacity: 1; }
 
-  .skip-logo:hover::after {
-    opacity: 1;
-    transform: translateX(-50%) scale(1);
-  }
  
   `}</style>
         {<div className="wallet-info">
@@ -1881,8 +1875,7 @@ export default function App() {
             <div className="donation-content">
               <Heart className="donation-heart" />
               <h3>Thank you for supporting!</h3>
-              <p>I spent quite much time on this.</p>
-              <p>Any donation welcome 😉</p>
+              <p>Swap with Skip widget here to support (2% fee)</p>
               {DONATION_ADDRESSES &&
                 DONATION_ADDRESSES.map((info) => {
                   const isCopied = copiedChain === info.chain;
