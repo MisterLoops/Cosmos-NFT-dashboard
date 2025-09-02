@@ -224,7 +224,7 @@ export default function WalletConnect({
           The app simply runs in your browser, nothing's stored in a database.
         </p>
         <p className="offline-message">
-          It's an offline connection, no transaction EVER, you're safe 😉
+          Cosmos wallets connection is offline, it's not a transaction, you're safe 😉
         </p>
         <p className="connect-experiment">🧪 EVERYTHING IS AN EXPERIMENT 🧪</p>
 

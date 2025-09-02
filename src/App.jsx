@@ -1482,9 +1482,7 @@ export default function App() {
   return (
     <div className={`${(hasCompletedInitialLoad) ? "app" : "app-connecting"}`}>
       <SkipWidget showSkipWidget={showSkipWidget}
-        onClose={() => setShowSkipWidget(false)}
-        connectedAddresses={addressesForSkip}
-        signers={widgetSigners} />
+        onClose={() => setShowSkipWidget(false)} />
       <header className="app-header">
         <div className="app-title-container">
           <img src="/cosmosNFTHUBlogo.png" alt="Logo" className="app-logo" />

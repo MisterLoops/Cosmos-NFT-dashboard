@@ -5,8 +5,6 @@ import { useEffect, useState } from "react";
 const SkipWidget = ({ 
     showSkipWidget, 
     onClose, 
-    connectedAddresses = {}, 
-    signers = null 
 }) => {
     const [isVisible, setIsVisible] = useState(false);
     const [shouldRender, setShouldRender] = useState(false);
@@ -206,12 +204,7 @@ const SkipWidget = ({
                 text: '#ff1616',
             },
         },
-        defaultRoute: {
-            destChainId: 'mantra-1',
-            destAssetDenom: 'uom',
-            srcChainId: 'mantra-1',
-            srcAssetDenom: 'ibc/65D0BEC6DAD96C7F5043D1E54E54B6BB5D5B3AEC3FF6CEBB75B9E059F3580EA3',
-        },
+        defaultRoute: {},
         filter: {
             // source: {},
             // destination: {},
@@ -227,11 +220,6 @@ const SkipWidget = ({
             slippage: 1, // Fixed: regular number instead of BigInt
             useUnlimitedApproval: true,
         },
-        // ✅ Conditional signer props - only add when signers are available
-        ...(signers && connectedAddresses && Object.keys(connectedAddresses).length > 0 && {
-            connectedAddresses,
-            signers
-        }),
         // ✅ Add callbacks for transaction events
         callbacks: {
             onWalletConnected: (walletInfo) => {
@@ -254,7 +242,6 @@ const SkipWidget = ({
 
     return (
         <div
-            onClick={onClose}
             style={{
                 position: "fixed",
                 top: 0,
@@ -262,10 +249,11 @@ const SkipWidget = ({
                 width: "100%",
                 height: "100%",
                 display: "flex",
+                flexDirection:"column",
                 justifyContent: "center",
                 alignItems: "center",
                 zIndex: 10,
-                opacity: isVisible ? 1 : 0, // 👈 animation
+                opacity: isVisible ? 1 : 0,
                 transition: "opacity 0.3s ease-in-out",
             }}
         >
@@ -277,7 +265,7 @@ const SkipWidget = ({
                     width: "100%",
                     height: "100%",
                     background: "#1f1b2e",
-                    opacity: 0.9, // adjust opacity here
+                    opacity: 0.9,
                     zIndex: 0,
                 }}
             />
@@ -287,17 +275,17 @@ const SkipWidget = ({
                     position: "absolute",
                     top: "50%",
                     left: "50%",
-                    width: "500px",          // fixed square size (adjust as needed)
-                    height: "45%",         // same as width
-                    transform: "translate(-50%, -50%)", // center it
+                    width: "500px",
+                    height: "45%",
+                    transform: "translate(-50%, -50%)",
                     backgroundImage: "url('./dark-bg.svg')",
-                    backgroundSize: "cover",           // ensures the image fills the square
-                    backgroundPosition: "center center", // crop horizontally & vertically centered
+                    backgroundSize: "cover",
+                    backgroundPosition: "center center",
                     backgroundRepeat: "no-repeat",
-                    borderRadius: "20px",              // rounded corners
+                    borderRadius: "20px",
                     border: "1px solid rgba(255, 255, 255, 1)",
                     boxShadow: "0 0 5px rgba(205, 102, 255, 0.5)",
-                    opacity: 1,                       // image opacity
+                    opacity: 1,
                     zIndex: 1,
                 }}
             />
@@ -308,19 +296,55 @@ const SkipWidget = ({
                     left: "50%",
                     width: "500px",
                     height: "45%",
-                    transform: "translate(-50%, -50%)", // same centering
+                    transform: "translate(-50%, -50%)",
                     borderRadius: "20px",
                     background: "linear-gradient(90deg, #1f1b2e, #2b2340)",
                     opacity: 0.8,
-                    zIndex: 2, // sits above bg, below content
+                    zIndex: 2,
                 }}
             />
+            
+            {/* Close Button */}
+            <button
+                onClick={onClose}
+                style={{
+                    position: "absolute",
+                    top: "calc(27.5% - 75px)",
+                    right: "calc(50% - 20px)",
+                    width: "40px",
+                    height: "40px",
+                    background: "rgba(255, 255, 255, 0.1)",
+                    border: "1px solid rgba(255, 255, 255, 0.3)",
+                    borderRadius: "50%",
+                    color: "#ffffff",
+                    fontSize: "18px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: 6,
+                    transition: "all 0.2s ease",
+                    backdropFilter: "blur(10px)",
+                }}
+                onMouseOver={(e) => {
+                    e.target.style.background = "rgba(255, 102, 255, 0.3)";
+                    e.target.style.borderColor = "rgba(255, 102, 255, 0.6)";
+                    e.target.style.transform = "scale(1.1)";
+                }}
+                onMouseOut={(e) => {
+                    e.target.style.background = "rgba(255, 255, 255, 0.1)";
+                    e.target.style.borderColor = "rgba(255, 255, 255, 0.3)";
+                    e.target.style.transform = "scale(1)";
+                }}
+            >
+                ×
+            </button>
+
             {/* content */}
             <div
-                onClick={(e) => e.stopPropagation()}
                 style={{
                     maxWidth: "500px",
-                    width: "90%",
+                    width: "100%",
                     padding: "0 10px",
                     position: "relative",
                     transform: isVisible
