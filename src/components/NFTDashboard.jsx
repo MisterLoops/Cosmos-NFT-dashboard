@@ -831,7 +831,7 @@ export default function NFTDashboard({
                   const normalizedSymbol = String(symbol).toUpperCase(); // normalize
       const price = assetPrices[normalizedSymbol] ?? assetPrices[symbol] ?? 0;
 
-      console.log("Symbol:", symbol, "Normalized:", normalizedSymbol, "Price:", price, "assetPrices", assetPrices);
+      // console.log("Symbol:", symbol, "Normalized:", normalizedSymbol, "Price:", price, "assetPrices", assetPrices);
                   return [
                     symbol,
                     {
