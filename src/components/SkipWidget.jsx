@@ -13,6 +13,9 @@ const SkipWidget = ({
 
     useEffect(() => {
         setApiOptions({
+            apiURL: process.env.NODE_ENV === 'development' 
+                ? 'http://localhost:8888/.netlify/functions/skip-proxy'  // Netlify dev server
+                : '/.netlify/functions/skip-proxy',  
             cumulativeAffiliateFeeBps: "200",
             chainIdsToAffiliates: {
                 "interwoven-1": {
