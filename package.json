@@ -26,6 +26,7 @@
     "@cosmjs/proto-signing": "^0.34.0",
     "@cosmjs/stargate": "^0.34.0",
     "@keplr-wallet/types": "^0.12.263",
+    "@skip-go/widget": "^3.14.7",
     "axios": "^1.11.0",
     "bech32": "^2.0.0",
     "js-sha3": "^0.9.3",

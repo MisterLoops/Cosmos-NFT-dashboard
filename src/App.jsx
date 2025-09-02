@@ -5,6 +5,7 @@ import WalletConnect from "./components/WalletConnect";
 import NFTDashboard from "./components/NFTDashboard";
 import ChainBasedPortfolio from "./components/ChainBasedPortfolio";
 import DesktopChainPortfolio from "./components/DesktopChainPortfolio";
+import SkipWidget from "./components/SkipWidget";
 import { Trash2, Copy, Check, Heart, X } from "lucide-react";
 import {
   CHAIN_CONFIGS,
@@ -20,6 +21,7 @@ import {
 export default function App() {
   const [wallet, setWallet] = useState(null);
   const [addresses, setAddresses] = useState({});
+  const [signers, setSigners] = useState(null);
   const [hasAccess, setHasAccess] = useState(false);
   const [error, setError] = useState("");
   const [showTokens, setShowTokens] = useState(false);
@@ -54,6 +56,7 @@ export default function App() {
     isScrollable: false,
   });
   const [showDonation, setShowDonation] = useState(false);
+  const [showSkipWidget, setShowSkipWidget] = useState(false);
   const [copiedChain, setCopiedChain] = useState(null);
 
   // Refs to track if prices have been fetched to prevent duplicates
@@ -225,21 +228,21 @@ export default function App() {
   }, []);
 
 
-useEffect(() => {
-  if (allAssetsFetchedRef.current) return; // skip if already fetched
-  allAssetsFetchedRef.current = true;
+  useEffect(() => {
+    if (allAssetsFetchedRef.current) return; // skip if already fetched
+    allAssetsFetchedRef.current = true;
 
-  const fetchAndSetAssetPrices = async () => {
-    try {
-      const prices = await fetchAllAssetPrices();
-      setAssetPrices(prices); // immediately update assetPrices with fetched prices
-    } catch (error) {
-      console.error("[ERROR] Failed to fetch other asset prices:", error);
-    }
-  };
+    const fetchAndSetAssetPrices = async () => {
+      try {
+        const prices = await fetchAllAssetPrices();
+        setAssetPrices(prices); // immediately update assetPrices with fetched prices
+      } catch (error) {
+        console.error("[ERROR] Failed to fetch other asset prices:", error);
+      }
+    };
 
-  fetchAndSetAssetPrices();
-}, []);
+    fetchAndSetAssetPrices();
+  }, []);
 
   useEffect(() => {
     if (hasLoadedBalances && hasLoadedNFTs && !hasCompletedInitialLoad) {
@@ -370,7 +373,7 @@ useEffect(() => {
       'DGN': 'dragon-coin-2',
       'FLIX': 'omniflix-network',
       'SPICE': 'spice-2',
-      'LAB' : 'mad-scientists',
+      'LAB': 'mad-scientists',
       'YGATA': 'yield-gata'
     };
 
@@ -1090,7 +1093,7 @@ useEffect(() => {
 
       for (const [chainName, config] of Object.entries(CHAIN_CONFIGS)) {
         // Skip dungeon for leap, derive later
-        if ( config.chainId === "dungeon-1") {
+        if (config.chainId === "dungeon-1") {
           continue;
         }
 
@@ -1099,7 +1102,7 @@ useEffect(() => {
       }
 
       // Derive dungeon manually if leap
-      if ( CHAIN_CONFIGS["dungeon"]) {
+      if (CHAIN_CONFIGS["dungeon"]) {
         // pick one of the other keys, cosmoshub is safe
         const baseKey = await walletInstance.getKey("cosmoshub-4");
         const dungeonAddr = toBech32(
@@ -1197,6 +1200,9 @@ useEffect(() => {
   const handleWalletConnect = async (walletInfo) => {
     setWallet(walletInfo);
 
+    // ✅ Store signers in state
+    setSigners(walletInfo.signers);
+
     try {
       const allAddresses = await getAddressesFromChains(walletInfo);
       setAddresses(allAddresses);
@@ -1210,6 +1216,32 @@ useEffect(() => {
       console.error("Error connecting to chains:", error);
       setError("Failed to connect to all chains");
     }
+  };
+
+  // ✅ Create signer functions for SkipWidget
+  const getSkipWidgetSignerProps = () => {
+    if (!wallet || !signers) {
+      return {}; // No signers available
+    }
+
+    return {
+      connectedAddresses: addresses, // Your addresses object
+      signers: {
+        getCosmosSigner: async (chainId) => {
+          if (signers[chainId]) {
+            return signers[chainId];
+          }
+          throw new Error(`No signer available for chain ${chainId}`);
+        },
+        // Add other signer methods if needed for EVM/SVM
+        getEvmSigner: async () => {
+          throw new Error("EVM signer not implemented");
+        },
+        getSvmSigner: async () => {
+          throw new Error("SVM signer not implemented");
+        }
+      }
+    };
   };
 
   const handleDisconnect = () => {
@@ -1286,9 +1318,9 @@ useEffect(() => {
 
     if (!isAddressValid(trimmedAddress, prefix)) {
       // Handle special error message for Neutron
-        setError(
-          `Invalid address for ${selectedChain.toUpperCase()}.`,
-        );
+      setError(
+        `Invalid address for ${selectedChain.toUpperCase()}.`,
+      );
       return;
     }
 
@@ -1445,6 +1477,9 @@ useEffect(() => {
 
   return (
     <div className={`${(hasCompletedInitialLoad) ? "app" : "app-connecting"}`}>
+      <SkipWidget showSkipWidget={showSkipWidget} 
+      onClose={() => setShowSkipWidget(false)}
+      {...getSkipWidgetSignerProps()}/>
       <header className="app-header">
         <div className="app-title-container">
           <img src="/cosmosNFTHUBlogo.png" alt="Logo" className="app-logo" />
@@ -1482,6 +1517,59 @@ useEffect(() => {
             </a>
           </div>
         </div>
+        <div className="skip-logo" data-tooltip="Swap directly from here to anywhere with skip widget!">
+          <img
+            src="/skip.png"
+            alt="skip_logo"
+            // title="Swap/Bridge from here to anywhere!"
+
+            onClick={() => setShowSkipWidget(!showSkipWidget)}
+            style={{
+              cursor: "pointer", maxWidth: "100px", transform: "scale(1.05)"
+            }}
+          />
+        </div>
+        <style>{`
+        .skip-logo {
+        transition: transform 0.25s ease;}
+    .skip-logo img{
+      cursor: pointer;
+      max-width: 100px;
+    
+    }
+    .skip-logo:hover {
+      transform: scale(1.15);
+    }
+
+.skip-logo::after {
+    content: attr(data-tooltip);
+  position: absolute;
+  bottom: -40px;
+  /* position below logo */
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  background: rgba(30, 30, 47, 0.95);
+  font-size: 0.75rem;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  transform-origin: top center;
+  z-index: 1000;
+  }
+
+  .skip-logo:hover::after {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+ 
+  `}</style>
         {<div className="wallet-info">
           <button
             onClick={() => {
@@ -1735,6 +1823,7 @@ useEffect(() => {
         <DesktopChainPortfolio chainBalances={chainBalances} showDollarBalances={showDollarBalances}
           setShowDollarBalances={setShowDollarBalances} nftOffers={nftOffers} />
       )}
+
 
       {!wallet ? (
         <WalletConnect onConnect={handleWalletConnect} error={error} />

@@ -19,19 +19,19 @@ export default function WalletConnect({
     injective: "",
     initia: "",
   });
-const validateBech32 = (addr, prefix) => {
-  try {
-    const { prefix: decodedPrefix } = fromBech32(addr.toLowerCase());
-    return decodedPrefix === prefix;
-  } catch {
-    return false;
-  }
-};
+  const validateBech32 = (addr, prefix) => {
+    try {
+      const { prefix: decodedPrefix } = fromBech32(addr.toLowerCase());
+      return decodedPrefix === prefix;
+    } catch {
+      return false;
+    }
+  };
 
-// Specific validators
-const validateStargaze = (addr) => validateBech32(addr, "stars");
-const validateInjective = (addr) => validateBech32(addr, "inj");
-const validateInitia = (addr) => validateBech32(addr, "init");
+  // Specific validators
+  const validateStargaze = (addr) => validateBech32(addr, "stars");
+  const validateInjective = (addr) => validateBech32(addr, "inj");
+  const validateInitia = (addr) => validateBech32(addr, "init");
   // Detect mobile viewport
   useEffect(() => {
     const checkMobile = () => {
@@ -84,6 +84,8 @@ const validateInitia = (addr) => validateBech32(addr, "init");
         type: "keplr",
         address: "", // Will be populated with all addresses in App.jsx
         publicKey: key.pubKey,
+        signers: signers, // ✅ Pass signers along
+        walletProvider: window.keplr // ✅ Pass wallet provider for SkipWidget
       };
 
       onConnect(walletInfo);
@@ -135,6 +137,8 @@ const validateInitia = (addr) => validateBech32(addr, "init");
         type: "leap",
         address: "", // Will be populated with all addresses in App.jsx
         publicKey: key.pubKey,
+        signers: signers, // ✅ Pass signers along
+        walletProvider: window.leap // ✅ Pass wallet provider for SkipWidget
       };
 
       onConnect(walletInfo);
@@ -146,28 +150,30 @@ const validateInitia = (addr) => validateBech32(addr, "init");
     }
   };
 
-  // NEW: Manual address connect
+  // Manual address connect (no signers available)
   const connectManualAddress = () => {
     if (!manualStargazeAddress.trim()) {
       alert("Please enter a Stargaze address");
       return;
     }
     if (!manualInjectiveAddress.trim()) {
-      alert("Please enter a Stargaze address");
+      alert("Please enter an Injective address");
       return;
     }
     if (!manualInitiaAddress.trim()) {
-      alert("Please enter a Stargaze address");
+      alert("Please enter an Initia address");
       return;
     }
 
     const walletInfo = {
-      name: "Wallet",
-      type: "manual", // keep "keplr" type for consistency
+      name: "Manual Wallet",
+      type: "manual",
       stargazeAddress: manualStargazeAddress,
       injectiveAddress: manualInjectiveAddress,
       initiaAddress: manualInitiaAddress,
-      publicKey: null, // no pubKey available in manual mode
+      publicKey: null,
+      signers: null, // ✅ No signers for manual connection
+      walletProvider: null // ✅ No wallet provider for manual
     };
 
     onConnect(walletInfo);

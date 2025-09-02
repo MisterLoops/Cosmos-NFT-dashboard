@@ -5935,7 +5935,7 @@ const _fetchOmniFlixNFTs = async (address) => {
     let activities = [];
     try {
       const actRes = await fetch(
-        `${API_ENDPOINTS.OMNIFLIX_ACTIVITY_API}/activity?address=${address}&skip=0&limit=100`
+        `${API_ENDPOINTS.OMNIFLIX_ACTIVITY_API}/activity?address=${address}&skip=0&limit=10`
       );
       if (actRes.ok) {
         const actJson = await actRes.json();
