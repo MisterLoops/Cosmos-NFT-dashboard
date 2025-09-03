@@ -225,21 +225,21 @@ export default function App() {
   }, []);
 
 
-useEffect(() => {
-  if (allAssetsFetchedRef.current) return; // skip if already fetched
-  allAssetsFetchedRef.current = true;
+  useEffect(() => {
+    if (allAssetsFetchedRef.current) return; // skip if already fetched
+    allAssetsFetchedRef.current = true;
 
-  const fetchAndSetAssetPrices = async () => {
-    try {
-      const prices = await fetchAllAssetPrices();
-      setAssetPrices(prices); // immediately update assetPrices with fetched prices
-    } catch (error) {
-      console.error("[ERROR] Failed to fetch other asset prices:", error);
-    }
-  };
+    const fetchAndSetAssetPrices = async () => {
+      try {
+        const prices = await fetchAllAssetPrices();
+        setAssetPrices(prices); // immediately update assetPrices with fetched prices
+      } catch (error) {
+        console.error("[ERROR] Failed to fetch other asset prices:", error);
+      }
+    };
 
-  fetchAndSetAssetPrices();
-}, []);
+    fetchAndSetAssetPrices();
+  }, []);
 
   useEffect(() => {
     if (hasLoadedBalances && hasLoadedNFTs && !hasCompletedInitialLoad) {
@@ -250,8 +250,9 @@ useEffect(() => {
   const fetchAllChainBalances = async (addresses) => {
     const chainBalances = {}; // Structure: { chainName: { assets: [...], totalValue: 0 } }
 
-    const balancePromises = Object.entries(addresses).map(
+    const balancePromises = Object.entries(addresses).filter(([chainName]) => chainName !== "mantra_dukong_1").map(
       async ([chainName, address]) => {
+
         if (CHAIN_ENDPOINTS[chainName]) {
           try {
             const endpoint = CHAIN_ENDPOINTS[chainName];
@@ -370,7 +371,7 @@ useEffect(() => {
       'DGN': 'dragon-coin-2',
       'FLIX': 'omniflix-network',
       'SPICE': 'spice-2',
-      'LAB' : 'mad-scientists',
+      'LAB': 'mad-scientists',
       'YGATA': 'yield-gata'
     };
 
@@ -1043,18 +1044,17 @@ useEffect(() => {
   // updated to accept manualAddress if walletType is "manual"
   const getAddressesFromChains = async (walletInfo) => {
     const addresses = {};
-
     try {
       // Handle MANUAL ENTRY directly
       if (walletInfo.type === "manual") {
         if (!walletInfo.stargazeAddress || !walletInfo.injectiveAddress || !walletInfo.initiaAddress) {
-          throw new Error("Manual entry requires both Stargaze, Injective and Initia addresses");
+          throw new Error("Manual entry requires Stargaze, Injective and Initia addresses");
         }
 
         // 1️⃣ Derive all Cosmos SDK addresses from Stargaze
         const { data: cosmosBytes } = fromBech32(walletInfo.stargazeAddress.toLowerCase());
         for (const [chainName, config] of Object.entries(CHAIN_CONFIGS)) {
-          if (chainName !== "injective" && chainName !== "initia") {
+          if (chainName !== "injective" && chainName !== "initia" && chainName !== "mantra_dukong_1") {
             addresses[chainName] = toBech32(config.prefix, cosmosBytes);
           }
         }
@@ -1063,8 +1063,14 @@ useEffect(() => {
         addresses.injective = walletInfo.injectiveAddress;
         addresses.initia = walletInfo.initiaAddress;
 
+        // NEW: Add Loki EVM address if provided
+        if (walletInfo.lokiEvmAddress) {
+          addresses["mantra_dukong_1"] = walletInfo.lokiEvmAddress;
+        }
+
         return addresses;
       }
+
       // Otherwise, KEPLR or LEAP normal flow
       const chainIds = [
         "stargaze-1",
@@ -1090,7 +1096,7 @@ useEffect(() => {
 
       for (const [chainName, config] of Object.entries(CHAIN_CONFIGS)) {
         // Skip dungeon for leap, derive later
-        if ( config.chainId === "dungeon-1") {
+        if (config.chainId === "dungeon-1" || config.chainId === "mantra-dukong-1") {
           continue;
         }
 
@@ -1099,7 +1105,7 @@ useEffect(() => {
       }
 
       // Derive dungeon manually if leap
-      if ( CHAIN_CONFIGS["dungeon"]) {
+      if (CHAIN_CONFIGS["dungeon"]) {
         // pick one of the other keys, cosmoshub is safe
         const baseKey = await walletInstance.getKey("cosmoshub-4");
         const dungeonAddr = toBech32(
@@ -1108,6 +1114,12 @@ useEffect(() => {
         );
         addresses["dungeon"] = dungeonAddr;
       }
+
+      // NEW: Add Loki EVM address if provided
+      if (walletInfo.lokiEvmAddress) {
+        addresses["mantra_dukong_1"] = walletInfo.lokiEvmAddress;
+      }
+
     } catch (error) {
       console.error("Failed to connect to chains:", error);
       throw new Error(
@@ -1242,28 +1254,20 @@ useEffect(() => {
     setTokenBalancesClosing(false);
     setWalletDropdownClosing(false);
   };
-  const isAddressValid = (addr, prefix) => {
+  const isAddressValid = (addr, prefix, chainName) => {
     try {
+      // Special case: mantra_dukong_1 uses EVM addresses
+      if (chainName === "mantra_dukong_1") {
+        return /^0x[a-fA-F0-9]{40}$/.test(addr); // ✅ EVM regex
+      }
+
+      // Otherwise: Cosmos bech32 validation
       const { prefix: decodedPrefix } = fromBech32(addr.toLowerCase());
       return decodedPrefix === prefix;
     } catch {
       return false;
     }
   };
-  // const isAddressValid = (address, chainPrefix) => {
-  //   // Handle special case for Neutron addresses which use "neutron1" prefix
-  //   const expectedPrefix = chainPrefix === "neutron" ? "neutron1" : chainPrefix;
-
-  //   // Basic check for prefix and length (typical length is 39-65 characters for Neutron)
-  //   const minLength = chainPrefix === "neutron" ? 39 : 39;
-  //   const maxLength = chainPrefix === "neutron" ? 70 : 70;
-
-  //   return (
-  //     address.startsWith(expectedPrefix) &&
-  //     address.length >= minLength &&
-  //     address.length <= maxLength
-  //   );
-  // };
 
   const handleAddManualAddress = () => {
     if (!manualAddress.trim()) {
@@ -1279,32 +1283,32 @@ useEffect(() => {
     const prefix = CHAIN_CONFIGS[selectedChain]?.prefix;
     const trimmedAddress = manualAddress.trim();
 
-    if (!prefix) {
+    if (!prefix && selectedChain !== "mantra_dukong_1") {
       setError(`Chain configuration not found for ${selectedChain}.`);
       return;
     }
 
-    if (!isAddressValid(trimmedAddress, prefix)) {
-      // Handle special error message for Neutron
-        setError(
-          `Invalid address for ${selectedChain.toUpperCase()}.`,
-        );
+    if (!isAddressValid(trimmedAddress, prefix, selectedChain)) {
+      setError(
+        `Invalid address for ${selectedChain.toUpperCase()}.`
+      );
       return;
     }
 
-    // Clear any previous errors
+    // ✅ Clear any previous errors
     setError("");
 
-    // Add the valid address
+    // ✅ Save address for the selected chain
     setAddressLoading((prev) => ({ ...prev, [selectedChain]: true }));
     setManualAddresses((prev) => ({
       ...prev,
-      [selectedChain]: trimmedAddress,
+      [`${selectedChain}_manual`]: trimmedAddress,
     }));
     setManualAddress("");
     setShowManualAddressForm(false);
     setShowWalletDropdown(false);
   };
+
 
   const handleRemovalConfirmation = (chain) => {
     setConfirmingRemoval(chain);
@@ -1324,7 +1328,9 @@ useEffect(() => {
     ) {
       window.removeNFTsByManualAddress(chain, addressToRemove);
     }
-
+    if (window.clearFetchedAddress && addressToRemove) {
+      window.clearFetchedAddress(`${chain}-${addressToRemove}`);
+    }
     setManualAddresses((prev) => {
       const newAddresses = { ...prev };
       delete newAddresses[chain];
@@ -1400,19 +1406,7 @@ useEffect(() => {
 
   // Combine connected and manual addresses for NFT fetching
   const getAllAddresses = () => {
-    const combined = { ...addresses };
-
-    // Add manual addresses to their respective chains
-    Object.entries(manualAddresses).forEach(([chain, address]) => {
-      if (!combined[chain]) {
-        combined[chain] = address;
-      } else {
-        // If there's already a connected address, we'll handle both in fetchAllNFTs
-        combined[`${chain}_manual`] = address;
-      }
-    });
-
-    return combined;
+    return { ...addresses, ...manualAddresses };
   };
 
   // Close wallet dropdown when clicking outside

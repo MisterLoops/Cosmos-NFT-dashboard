@@ -14,24 +14,39 @@ export default function WalletConnect({
   const [manualInjectiveAddress, setManualInjectiveAddress] = useState("");
   const [manualInitiaAddress, setManualInitiaAddress] = useState("");
   const [manualMode, setManualMode] = useState(false);
+
+  // NEW: Loki EVM testnet states
+  const [lokiEnabled, setLokiEnabled] = useState(false);
+  const [lokiEvmAddress, setLokiEvmAddress] = useState("");
+
   const [errors, setErrors] = useState({
     stargaze: "",
     injective: "",
     initia: "",
+    lokiEvm: "", // NEW: EVM address error
   });
-const validateBech32 = (addr, prefix) => {
-  try {
-    const { prefix: decodedPrefix } = fromBech32(addr.toLowerCase());
-    return decodedPrefix === prefix;
-  } catch {
-    return false;
-  }
-};
 
-// Specific validators
-const validateStargaze = (addr) => validateBech32(addr, "stars");
-const validateInjective = (addr) => validateBech32(addr, "inj");
-const validateInitia = (addr) => validateBech32(addr, "init");
+  const validateBech32 = (addr, prefix) => {
+    try {
+      const { prefix: decodedPrefix } = fromBech32(addr.toLowerCase());
+      return decodedPrefix === prefix;
+    } catch {
+      return false;
+    }
+  };
+
+  // NEW: EVM address validator
+  const validateEvmAddress = (addr) => {
+    // Basic EVM address validation (0x followed by 40 hex characters)
+    const evmRegex = /^0x[a-fA-F0-9]{40}$/;
+    return evmRegex.test(addr);
+  };
+
+  // Specific validators
+  const validateStargaze = (addr) => validateBech32(addr, "stars");
+  const validateInjective = (addr) => validateBech32(addr, "inj");
+  const validateInitia = (addr) => validateBech32(addr, "init");
+
   // Detect mobile viewport
   useEffect(() => {
     const checkMobile = () => {
@@ -47,6 +62,12 @@ const validateInitia = (addr) => validateBech32(addr, "init");
   const connectKeplr = async () => {
     if (!window.keplr) {
       alert("Please install Keplr wallet extension");
+      return;
+    }
+
+    // Check if Loki is enabled but address is missing/invalid
+    if (lokiEnabled && (!lokiEvmAddress.trim() || !validateEvmAddress(lokiEvmAddress))) {
+      alert("Please enter a valid EVM address for Loki on Mantra Dukong testnet");
       return;
     }
 
@@ -84,6 +105,8 @@ const validateInitia = (addr) => validateBech32(addr, "init");
         type: "keplr",
         address: "", // Will be populated with all addresses in App.jsx
         publicKey: key.pubKey,
+        // NEW: Add Loki EVM address if enabled
+        ...(lokiEnabled && { lokiEvmAddress: lokiEvmAddress.trim() })
       };
 
       onConnect(walletInfo);
@@ -98,6 +121,12 @@ const validateInitia = (addr) => validateBech32(addr, "init");
   const connectLeap = async () => {
     if (!window.leap) {
       alert("Please install Leap wallet extension");
+      return;
+    }
+
+    // Check if Loki is enabled but address is missing/invalid
+    if (lokiEnabled && (!lokiEvmAddress.trim() || !validateEvmAddress(lokiEvmAddress))) {
+      alert("Please enter a valid EVM address for Loki on Mantra Dukong testnet");
       return;
     }
 
@@ -135,6 +164,8 @@ const validateInitia = (addr) => validateBech32(addr, "init");
         type: "leap",
         address: "", // Will be populated with all addresses in App.jsx
         publicKey: key.pubKey,
+        // NEW: Add Loki EVM address if enabled
+        ...(lokiEnabled && { lokiEvmAddress: lokiEvmAddress.trim() })
       };
 
       onConnect(walletInfo);
@@ -153,21 +184,29 @@ const validateInitia = (addr) => validateBech32(addr, "init");
       return;
     }
     if (!manualInjectiveAddress.trim()) {
-      alert("Please enter a Stargaze address");
+      alert("Please enter an Injective address");
       return;
     }
     if (!manualInitiaAddress.trim()) {
-      alert("Please enter a Stargaze address");
+      alert("Please enter an Initia address");
+      return;
+    }
+
+    // Check if Loki is enabled but address is missing/invalid
+    if (lokiEnabled && (!lokiEvmAddress.trim() || !validateEvmAddress(lokiEvmAddress))) {
+      alert("Please enter a valid EVM address for Loki on Mantra Dukong testnet");
       return;
     }
 
     const walletInfo = {
       name: "Wallet",
-      type: "manual", // keep "keplr" type for consistency
+      type: "manual",
       stargazeAddress: manualStargazeAddress,
       injectiveAddress: manualInjectiveAddress,
       initiaAddress: manualInitiaAddress,
-      publicKey: null, // no pubKey available in manual mode
+      publicKey: null,
+      // NEW: Add Loki EVM address if enabled
+      ...(lokiEnabled && { lokiEvmAddress: lokiEvmAddress.trim() })
     };
 
     onConnect(walletInfo);
@@ -176,34 +215,6 @@ const validateInitia = (addr) => validateBech32(addr, "init");
   return (
     <div className="wallet-connect">
       <h1 className="welcome-text">Welcome to the Cosmos NFTHUB!</h1>
-      {/* <div className="testing-container">
-        <div className="testing-message">
-          <h3>V1</h3>
-          <span className="testing-message-bold">
-          <h2>
-            Welcome the to the V1 of Cosmos NFTHUB.
-          </h2>
-          <br></br>
-          </span>
-          <p>A dashboard that displays all your NFTs holdings (including those staked in DAOS), tokens and NFT offers on marketplaces across Cosmos chains.</p>
-          <p>Your feedback is important to report anything that doesn't
-                work properly, what DAOs, chains and features you'd like to be added.</p>
-          <p>It's a simple app that runs in your browser, nothing's stored in a database, 
-          and the connection is an offline connection, so, you're safe!</p>
-          <p>
-            Please reach out to me on X for feedbacks.
-          </p>
-          <span className="testing-message-bold">
-          <p>
-            Thanks for trying it, hope you'll like using it!
-          </p><br></br>
-          </span>
-          <span className="testing-message-bold">
-          <p>🧪 EVERYTHING IS AN EXPERIMENT 🧪</p>
-          </span><br></br>
-          <p><strong><a href="https://x.com/MisterLoops" target="_blank" rel="noopener noreferrer">MisterLoops</a></strong></p>
-        </div>
-      </div> */}
 
       <div className="connect-container">
         <Wallet size={64} className="wallet-icon" />
@@ -211,9 +222,6 @@ const validateInitia = (addr) => validateBech32(addr, "init");
         <p>
           ... to admire your interchain NFT portfolio on 8 cosmos chains from one single place.
         </p>
-        {/* <p>
-          Watch all your offers and sort your NFTs with filters.
-        </p> */}
         <p>
           The app simply runs in your browser, nothing's stored in a database.
         </p>
@@ -222,18 +230,59 @@ const validateInitia = (addr) => validateBech32(addr, "init");
         </p>
         <p className="connect-experiment">🧪 EVERYTHING IS AN EXPERIMENT 🧪</p>
 
-        {isMobile && (
-          <div className="mobile-disclaimer">
-            <p>
-              It seems that you're on mobile, you should open this page directly in your wallet app browser to be able to connect...
-            </p>
-          </div>
-        )}
+        {/* Loki EVM Testnet Section */}
+        <div className="loki-section">
+          <label className="loki-checkbox-label">
+            <input
+              type="checkbox"
+              checked={lokiEnabled}
+              onChange={(e) => {
+                setLokiEnabled(e.target.checked);
+                if (!e.target.checked) {
+                  setLokiEvmAddress("");
+                  setErrors((prev) => ({ ...prev, lokiEvm: "" }));
+                }
+              }}
+            />
+            
+            <span>Loki on Mantra EVM Testnet?</span>
+            
+          </label>
 
+          {lokiEnabled && (
+            <div className="loki-input-container">
+              <input
+                type="text"
+                placeholder="Your EVM address (0x...)"
+                value={lokiEvmAddress}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setLokiEvmAddress(val);
+                  setErrors((prev) => ({
+                    ...prev,
+                    lokiEvm:
+                      val.trim() && !validateEvmAddress(val)
+                        ? "Invalid EVM address"
+                        : "",
+                  }));
+                }}
+                className="manual-input"
+                required
+              />
+              {errors.lokiEvm && (
+                <span className="manual-error">{errors.lokiEvm}</span>
+              )}
+            </div>
+          )}
+        </div>
         {!manualMode ? (
           <>
             <div className="wallet-options">
-              <button onClick={connectKeplr} disabled={connecting} className="wallet-option-btn">
+              <button
+                onClick={connectKeplr}
+                disabled={connecting || (lokiEnabled && (!lokiEvmAddress.trim() || errors.lokiEvm))}
+                className="wallet-option-btn"
+              >
                 <div className="wallet-option-content" title="Keplr wallet">
                   <div className="wallet-logo keplr-logo">
                     <img
@@ -245,7 +294,11 @@ const validateInitia = (addr) => validateBech32(addr, "init");
                 </div>
               </button>
 
-              <button onClick={connectLeap} disabled={connecting} className="wallet-option-btn">
+              <button
+                onClick={connectLeap}
+                disabled={connecting || (lokiEnabled && (!lokiEvmAddress.trim() || errors.lokiEvm))}
+                className="wallet-option-btn"
+              >
                 <div className="wallet-option-content" title="Leap wallet">
                   <div className="wallet-logo leap-logo">
                     <img
@@ -321,7 +374,8 @@ const validateInitia = (addr) => validateBech32(addr, "init");
                 className="manual-submit-btn"
                 disabled={
                   !manualStargazeAddress || !manualInjectiveAddress || !manualInitiaAddress ||
-                  errors.stargaze || errors.injective || errors.initia
+                  errors.stargaze || errors.injective || errors.initia ||
+                  (lokiEnabled && (!lokiEvmAddress.trim() || errors.lokiEvm)) // NEW: Disable if Loki enabled but invalid
                 }
               >
                 Connect
@@ -347,8 +401,6 @@ const validateInitia = (addr) => validateBech32(addr, "init");
 
         {error && <div className="error">{error}</div>}
       </div>
-
-
     </div>
   );
 }

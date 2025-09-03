@@ -1,12 +1,16 @@
 // Utility functions for fetching NFT data from various sources
 import daosConfig from "../daos.json";
+import { ethers } from "ethers";
 
 import {
   API_ENDPOINTS,
   CORS_PROXIES,
   REQUEST_CONFIG,
   PAGINATION_CONFIG,
-  IBC_TOKEN_MAPPINGS
+  IBC_TOKEN_MAPPINGS,
+  LOKI_NFT_ADDRESS,
+  LOKI_NFT_ABI,
+  MANTRA_TESTNET
 } from "./constants.js";
 import pLimit from './pLimit.js';
 
@@ -6022,11 +6026,11 @@ const _fetchOmniFlixNFTs = async (address) => {
             const floorPriceUflix = floorData.floorPriceUflix || 0;
             const floorPricesList = floorData.floorPricesList || [];
             const listPrice = nft.list ? {
-                    amount: nft.list.price.amount / 1000000,
-                    denom: nft.list.price.denom || "uflix",
-                    symbol: IBC_TOKEN_MAPPINGS[nft.list.price.denom]?.symbol || unknown,
-                    amountUsd: nft.list.fiat_price.usd,
-                  } : null;
+              amount: nft.list.price.amount / 1000000,
+              denom: nft.list.price.denom || "uflix",
+              symbol: IBC_TOKEN_MAPPINGS[nft.list.price.denom]?.symbol || unknown,
+              amountUsd: nft.list.fiat_price.usd,
+            } : null;
 
             // Traits
             const rawTraits =
@@ -6250,4 +6254,100 @@ const _fetchOmniFlixCollectionData = async (denomId) => {
 // Fetch collection data including floor price (with caching)
 export const fetchOmniFlixCollectionData = async (denomId) => {
   return cachedRequest("fetchOmniFlixCollectionData", _fetchOmniFlixCollectionData, denomId);
+};
+
+
+const _fetchLokiNFTs = async (address) => {
+  try {
+    console.log(`[DEBUG] Fetching Loki NFTs for address: ${address}`);
+
+    const provider = new ethers.JsonRpcProvider(MANTRA_TESTNET.rpcUrls[0]);
+    const contract = new ethers.Contract(LOKI_NFT_ADDRESS, LOKI_NFT_ABI, provider);
+
+    // 1. Get balance
+    const balance = await contract.balanceOf(address);
+    const balanceNum = Number(balance);
+    console.log(`[DEBUG] ${address} owns ${balanceNum} Loki NFTs`);
+
+    if (balanceNum === 0) return [];
+
+    // 2. Get token IDs via tokenOfOwnerByIndex
+    const ids = await Promise.all(
+      [...Array(balanceNum).keys()].map((i) =>
+        contract.tokenOfOwnerByIndex(address, i)
+      )
+    );
+
+    console.log(`[DEBUG] Token IDs for ${address}:`, ids.map((id) => id.toString()));
+
+    // 3. Fetch tokenURI for each ID with concurrency
+    const limit = pLimit(20);
+    const results = await Promise.allSettled(
+      ids.map((id) =>
+        limit(async () => {
+          const tokenId = id.toString();
+
+          try {
+            const uri = await contract.tokenURI(tokenId);
+
+            // Some tokenURI may contain "ipfs://" → normalize to HTTP gateway
+            const normalizedUri = uri.startsWith("ipfs://")
+              ? `https://ipfs.io/ipfs/${uri.replace("ipfs://", "")}`
+              : uri;
+
+            const res = await fetch(normalizedUri);
+            if (!res.ok) {
+              console.warn(`[WARNING] Failed to fetch metadata for #${tokenId}, status ${res.status}`);
+              return null;
+            }
+            const meta = await res.json();
+
+            return {
+              name: meta.name || `Loki #${tokenId}`,
+              tokenId,
+              chain: "mantra-dukong-1",
+              contract: LOKI_NFT_ADDRESS,
+              collection: "Loki",
+              image: meta.image?.startsWith("ipfs://")
+                ? `https://ipfs.io/ipfs/${meta.image.replace("ipfs://", "")}`
+                : meta.image,
+              listed: false,
+              listPrice: null,
+              rarity: null,
+              traits: meta.attributes || [],
+              floor: null,
+              hasOffer: false,
+              highestOffer: null,
+              lastSalePriceSpecified: false,
+              lastSalePrice: null,
+              sortUsd: 0,
+              daoStaked: false,
+              sourceAddress: address,
+            };
+          } catch (err) {
+            console.error(`[ERROR] Failed to fetch Loki metadata for token ${tokenId}:`, err);
+            return null;
+          }
+        })
+      )
+    );
+
+    const lokiNFTs = results
+      .filter((res) => res.status === "fulfilled" && res.value)
+      .map((res) => res.value);
+
+    console.log(`[DEBUG] Final Loki NFTs for ${address}:`, lokiNFTs);
+    return lokiNFTs;
+  } catch (err) {
+    console.error(`[ERROR] Error fetching Loki NFTs for ${address}:`, err);
+    return [];
+  }
+};
+
+
+
+
+// cached wrapper
+export const fetchLokiNFTs = async (address) => {
+  return cachedRequest("fetchLokiNFTs", _fetchLokiNFTs, address);
 };
