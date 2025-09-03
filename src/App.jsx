@@ -1564,7 +1564,10 @@ export default function App() {
     z-index: 1000;
   }
   .skip-logo:hover::after { opacity: 1; }
-
+          @media (max-width: 768px) {
+    .skip-logo {
+      display: none !important;
+    }
  
   `}</style>
         {<div className="wallet-info">

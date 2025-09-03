@@ -2,9 +2,9 @@ import { Widget } from "@skip-go/widget";
 import { setApiOptions } from "@skip-go/client";
 import { useEffect, useState } from "react";
 
-const SkipWidget = ({ 
-    showSkipWidget, 
-    onClose, 
+const SkipWidget = ({
+    showSkipWidget,
+    onClose,
 }) => {
     const [isVisible, setIsVisible] = useState(false);
     const [shouldRender, setShouldRender] = useState(false);
@@ -249,7 +249,7 @@ const SkipWidget = ({
                 width: "100%",
                 height: "100%",
                 display: "flex",
-                flexDirection:"column",
+                flexDirection: "column",
                 justifyContent: "center",
                 alignItems: "center",
                 zIndex: 10,
@@ -271,12 +271,13 @@ const SkipWidget = ({
             />
             {/* background layer */}
             <div
+                className="mobile-modal-bg"
                 style={{
                     position: "absolute",
                     top: "50%",
                     left: "50%",
                     width: "500px",
-                    height: "45%",
+                    height: "50%",
                     transform: "translate(-50%, -50%)",
                     backgroundImage: "url('./dark-bg.svg')",
                     backgroundSize: "cover",
@@ -295,7 +296,7 @@ const SkipWidget = ({
                     top: "50%",
                     left: "50%",
                     width: "500px",
-                    height: "45%",
+                    height: "50%",
                     transform: "translate(-50%, -50%)",
                     borderRadius: "20px",
                     background: "linear-gradient(90deg, #1f1b2e, #2b2340)",
@@ -303,9 +304,10 @@ const SkipWidget = ({
                     zIndex: 2,
                 }}
             />
-            
+
             {/* Close Button */}
             <button
+                className="mobile-close-btn"
                 onClick={onClose}
                 style={{
                     position: "absolute",
@@ -342,6 +344,7 @@ const SkipWidget = ({
 
             {/* content */}
             <div
+                className="mobile-modal-content"
                 style={{
                     maxWidth: "500px",
                     width: "100%",
@@ -352,13 +355,37 @@ const SkipWidget = ({
                         : "scale(0.9) translateY(-20px)",
                     opacity: isVisible ? 1 : 0,
                     transition: "all 0.3s ease-out",
-                    zIndex:5
+                    zIndex: 5
                 }}
             >
                 {/* ✅ Widget with conditional signer props */}
                 <Widget {...widgetProps} />
             </div>
+            <style>{`
+  /* 🔥 Mobile overrides */
+  @media (max-width: 768px) {
+    /* Scale modal background layers */
+    .mobile-modal-bg {
+      width: 90% !important;
+      height: auto !important;
+      max-height: 70% !important;
+    }
+
+    /* Scale content wrapper */
+    .mobile-modal-content {
+      width: 90% !important;
+      padding: 0 5px !important;
+    }
+
+    /* Move close button */
+    .mobile-close-btn {
+      top: 25px !important;
+      right: 10px !important;
+    }
+  }
+`}</style>
         </div>
+
     );
 };
 
