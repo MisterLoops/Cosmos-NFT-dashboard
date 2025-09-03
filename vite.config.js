@@ -1,3 +1,4 @@
+// vite.config.js
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
@@ -9,29 +10,13 @@ export default defineConfig({
       protocolImports: true,
     }),
   ],
-  server: {
-    host: '0.0.0.0',
-  },
-  optimizeDeps: {
-    include: [
-      '@cosmjs/crypto',
-      '@cosmjs/encoding',
-      '@cosmjs/proto-signing',
-      '@cosmjs/stargate',
-      '@keplr-wallet/types',
-      '@skip-go/widget',
-      'axios',
-      'bech32',
-      'js-sha3',
-      'lucide-react',
-      'vite-plugin-node-polyfills',
-      'ethers',
-    ],
-  },
-  build: {
-    rollupOptions: {
-      external: [],
+  resolve: {
+    alias: {
+      buffer: 'buffer', // Needed for ethers
+      process: 'process/browser',
     },
   },
+  build: {
+    target: 'esnext',
+  },
 });
-
