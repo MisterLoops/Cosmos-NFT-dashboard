@@ -8,8 +8,8 @@ export const API_ENDPOINTS = {
   INTERGAZE_API: "https://api.intergaze-apis.com/api/v1",
   BACKBONE_LABS_API: "https://warlock.backbonelabs.io/api/v1",
   SUPERBOLT_API: "https://api.superbolt.wtf/api/graphql",
-  OMNIFLIX_API: "https://data-api.omniflix.studio",
-  OMNIFLIX_ACTIVITY_API: "https://activity-api.omniflix.studio",
+  OMNIFLIX_API:"https://data-api.omniflix.studio",
+  OMNIFLIX_ACTIVITY_API:"https://activity-api.omniflix.studio",
   IPFS_DAO_DAO_ZONE: "https://ipfs.dao.daodao.zone/ipfs/",
   DAO_DAO_INDEXER: "https://indexer.daodao.zone",
   NEUTRON_INDEXER: "https://rest-kralum.neutron-1.neutron.org",
@@ -142,19 +142,6 @@ export const CHAIN_CONFIGS = {
     symbol: "FLIX",
     decimals: 6,
   },
-  mantra_dukong_1: {
-    chainId: "mantra-dukong-1",
-    prefix: null, // EVM chains don't use bech32 prefixes
-    displayName: "Loki (Mantra Dukong)",
-    rpc: "https://rpc.dukong.testnet.mantrachain.io",
-    rest: null, // EVM chains typically use JSON-RPC instead of REST
-    evmRpc: "https://rpc.dukong.testnet.mantrachain.io", // EVM JSON-RPC endpoint
-    denom: "uom",
-    symbol: "OM",
-    decimals: 18, // EVM chains typically use 18 decimals
-    isEvm: true, // Flag to indicate this is an EVM chain
-    networkType: "testnet"
-  }
 };
 export const SYMBOL_TO_LOGO = {
   "STARS": "stargaze",
@@ -195,7 +182,7 @@ export const TOKEN_LOGOS = {
   bOSMO: "https://raw.githubusercontent.com/cosmos/chain-registry/master/osmosis/images/bOSMO.png",
   LAB: "https://raw.githubusercontent.com/cosmos/chain-registry/master/osmosis/images/LAB.png",
   BIKE: "https://raw.githubusercontent.com/cosmostation/chainlist/master/chain/mantra/asset/BIKE.png",
-  dungeon: "https://raw.githubusercontent.com/cosmos/chain-registry/master/dungeon/images/DGN.png",
+  dungeon:"https://raw.githubusercontent.com/cosmos/chain-registry/master/dungeon/images/DGN.png",
   omniflix: "https://raw.githubusercontent.com/cosmos/chain-registry/master/omniflixhub/images/flix.png",
   SPICE: "https://raw.githubusercontent.com/cosmos/chain-registry/master/osmosis/images/spice.png",
   YGATA: "https://raw.githubusercontent.com/cosmos/chain-registry/master/omniflixhub/images/ygata.png"
@@ -271,7 +258,7 @@ export const IBC_TOKEN_MAPPINGS = {
   'ibc/1C1C7D78176056F3ADD028904EF29BD966F7A3F01526FDBDAC3AFB376A59733D': { symbol: 'LAB', decimals: 6, originChain: 'LAB' }, // LAB on Cosmoshub
   'ibc/C1F4520E07B9190EA08FBAA5E1D68109B9738B5B717904C62F0EE9CA89471EC0': { symbol: 'LAB', decimals: 6, originChain: 'LAB' }, // LAB on Neutron
   'ibc/18B0967BE3E73DCCE3F10EDE6DEFC472AAA3339DBE536E77C0B8E7BCE2628966': { symbol: 'LAB', decimals: 6, originChain: 'LAB' }, // LAB on Omniflix
-
+  
   // bINJ on Injective
   'factory/inj1dxp690rd86xltejgfq2fa7f2nxtgmm5cer3hvu/bINJ': { symbol: 'bINJ', decimals: 18, originChain: 'bINJ' }, // bINJ on Injective
 
@@ -343,71 +330,4 @@ export const DONATION_ADDRESSES = [
   { chain: "Akash", address: "akash1d2y72xglnyrphze97kqfmccysdqpf499rhezke" },
   { chain: "Atom", address: "cosmos1d2y72xglnyrphze97kqfmccysdqpf499wv590r" },
   { chain: "BTC (taproot)", address: "bc1pj2caj3hjsax74lx6dwlwp6rduxl9j0m7nfeh0fussul0pwa94u4qrlfj70" },
-];
-
-
-export const MANTRA_TESTNET = {
-  chainId: 0x2af8, // replace with actual Mantra EVM chainId in hex (example: 11000 for some Cosmos EVMs)
-  chainName: "Mantra EVM",
-  rpcUrls: ["https://evm.dukong.mantrachain.io/"], // ✅ replace with the correct Mantra RPC endpoint
-  nativeCurrency: {
-    name: "OM",
-    symbol: "OM",
-    decimals: 18,
-  },
-};
-
-export const LOKI_NFT_ADDRESS = "0xd9bc86bfff4fc67aa7a4618534495f4b102eeb23"; // ✅ your Loki NFT contract
-
-export const LOKI_METADATA_BASE_URL = "https://pub-29e67721f9b94aa8ab8b575fc3f58e3a.r2.dev/metadata/";
-
-export const LOKI_NFT_ABI = [
-  // balanceOf(address owner) → uint256
-  {
-    constant: true,
-    inputs: [{ name: "owner", type: "address" }],
-    name: "balanceOf",
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  // ownerOf(uint256 tokenId) → address
-  {
-    constant: true,
-    inputs: [{ name: "tokenId", type: "uint256" }],
-    name: "ownerOf",
-    outputs: [{ name: "", type: "address" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  // tokenOfOwnerByIndex(address owner, uint256 index) → uint256
-  {
-    constant: true,
-    inputs: [
-      { name: "owner", type: "address" },
-      { name: "index", type: "uint256" },
-    ],
-    name: "tokenOfOwnerByIndex",
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  // tokenURI(uint256 tokenId) → string
-  {
-    constant: true,
-    inputs: [{ name: "tokenId", type: "uint256" }],
-    name: "tokenURI",
-    outputs: [{ name: "", type: "string" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  // totalSupply() → uint256
-  {
-    constant: true,
-    inputs: [],
-    name: "totalSupply",
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
 ];

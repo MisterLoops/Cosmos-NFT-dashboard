@@ -32,6 +32,5 @@
     "js-sha3": "^0.9.3",
     "lucide-react": "^0.539.0",
     "vite-plugin-node-polyfills": "^0.24.0"
-    "ethers": "^6.15.0"
   }
 }

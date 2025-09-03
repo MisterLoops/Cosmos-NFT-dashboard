@@ -254,9 +254,8 @@ export default function App() {
   const fetchAllChainBalances = async (addresses) => {
     const chainBalances = {}; // Structure: { chainName: { assets: [...], totalValue: 0 } }
 
-    const balancePromises = Object.entries(addresses).filter(([chainName]) => chainName !== "mantra_dukong_1").map(
+    const balancePromises = Object.entries(addresses).map(
       async ([chainName, address]) => {
-
         if (CHAIN_ENDPOINTS[chainName]) {
           try {
             const endpoint = CHAIN_ENDPOINTS[chainName];
@@ -1048,17 +1047,18 @@ export default function App() {
   // updated to accept manualAddress if walletType is "manual"
   const getAddressesFromChains = async (walletInfo) => {
     const addresses = {};
+
     try {
       // Handle MANUAL ENTRY directly
       if (walletInfo.type === "manual") {
         if (!walletInfo.stargazeAddress || !walletInfo.injectiveAddress || !walletInfo.initiaAddress) {
-          throw new Error("Manual entry requires Stargaze, Injective and Initia addresses");
+          throw new Error("Manual entry requires both Stargaze, Injective and Initia addresses");
         }
 
         // 1️⃣ Derive all Cosmos SDK addresses from Stargaze
         const { data: cosmosBytes } = fromBech32(walletInfo.stargazeAddress.toLowerCase());
         for (const [chainName, config] of Object.entries(CHAIN_CONFIGS)) {
-          if (chainName !== "injective" && chainName !== "initia" && chainName !== "mantra_dukong_1") {
+          if (chainName !== "injective" && chainName !== "initia") {
             addresses[chainName] = toBech32(config.prefix, cosmosBytes);
           }
         }
@@ -1067,14 +1067,8 @@ export default function App() {
         addresses.injective = walletInfo.injectiveAddress;
         addresses.initia = walletInfo.initiaAddress;
 
-        // NEW: Add Loki EVM address if provided
-        if (walletInfo.lokiEvmAddress) {
-          addresses["mantra_dukong_1"] = walletInfo.lokiEvmAddress;
-        }
-
         return addresses;
       }
-
       // Otherwise, KEPLR or LEAP normal flow
       const chainIds = [
         "stargaze-1",
@@ -1100,7 +1094,7 @@ export default function App() {
 
       for (const [chainName, config] of Object.entries(CHAIN_CONFIGS)) {
         // Skip dungeon for leap, derive later
-        if (config.chainId === "dungeon-1" || config.chainId === "mantra-dukong-1") {
+        if (config.chainId === "dungeon-1") {
           continue;
         }
 
@@ -1118,12 +1112,6 @@ export default function App() {
         );
         addresses["dungeon"] = dungeonAddr;
       }
-
-      // NEW: Add Loki EVM address if provided
-      if (walletInfo.lokiEvmAddress) {
-        addresses["mantra_dukong_1"] = walletInfo.lokiEvmAddress;
-      }
-
     } catch (error) {
       console.error("Failed to connect to chains:", error);
       throw new Error(
@@ -1290,20 +1278,28 @@ export default function App() {
     setTokenBalancesClosing(false);
     setWalletDropdownClosing(false);
   };
-  const isAddressValid = (addr, prefix, chainName) => {
+  const isAddressValid = (addr, prefix) => {
     try {
-      // Special case: mantra_dukong_1 uses EVM addresses
-      if (chainName === "mantra_dukong_1") {
-        return /^0x[a-fA-F0-9]{40}$/.test(addr); // ✅ EVM regex
-      }
-
-      // Otherwise: Cosmos bech32 validation
       const { prefix: decodedPrefix } = fromBech32(addr.toLowerCase());
       return decodedPrefix === prefix;
     } catch {
       return false;
     }
   };
+  // const isAddressValid = (address, chainPrefix) => {
+  //   // Handle special case for Neutron addresses which use "neutron1" prefix
+  //   const expectedPrefix = chainPrefix === "neutron" ? "neutron1" : chainPrefix;
+
+  //   // Basic check for prefix and length (typical length is 39-65 characters for Neutron)
+  //   const minLength = chainPrefix === "neutron" ? 39 : 39;
+  //   const maxLength = chainPrefix === "neutron" ? 70 : 70;
+
+  //   return (
+  //     address.startsWith(expectedPrefix) &&
+  //     address.length >= minLength &&
+  //     address.length <= maxLength
+  //   );
+  // };
 
   const handleAddManualAddress = () => {
     if (!manualAddress.trim()) {
@@ -1319,32 +1315,32 @@ export default function App() {
     const prefix = CHAIN_CONFIGS[selectedChain]?.prefix;
     const trimmedAddress = manualAddress.trim();
 
-    if (!prefix && selectedChain !== "mantra_dukong_1") {
+    if (!prefix) {
       setError(`Chain configuration not found for ${selectedChain}.`);
       return;
     }
 
-    if (!isAddressValid(trimmedAddress, prefix, selectedChain)) {
+    if (!isAddressValid(trimmedAddress, prefix)) {
+      // Handle special error message for Neutron
       setError(
-        `Invalid address for ${selectedChain.toUpperCase()}.`
+        `Invalid address for ${selectedChain.toUpperCase()}.`,
       );
       return;
     }
 
-    // ✅ Clear any previous errors
+    // Clear any previous errors
     setError("");
 
-    // ✅ Save address for the selected chain
+    // Add the valid address
     setAddressLoading((prev) => ({ ...prev, [selectedChain]: true }));
     setManualAddresses((prev) => ({
       ...prev,
-      [`${selectedChain}_manual`]: trimmedAddress,
+      [selectedChain]: trimmedAddress,
     }));
     setManualAddress("");
     setShowManualAddressForm(false);
     setShowWalletDropdown(false);
   };
-
 
   const handleRemovalConfirmation = (chain) => {
     setConfirmingRemoval(chain);
@@ -1364,9 +1360,7 @@ export default function App() {
     ) {
       window.removeNFTsByManualAddress(chain, addressToRemove);
     }
-    if (window.clearFetchedAddress && addressToRemove) {
-      window.clearFetchedAddress(`${chain}-${addressToRemove}`);
-    }
+
     setManualAddresses((prev) => {
       const newAddresses = { ...prev };
       delete newAddresses[chain];
@@ -1442,7 +1436,19 @@ export default function App() {
 
   // Combine connected and manual addresses for NFT fetching
   const getAllAddresses = () => {
-    return { ...addresses, ...manualAddresses };
+    const combined = { ...addresses };
+
+    // Add manual addresses to their respective chains
+    Object.entries(manualAddresses).forEach(([chain, address]) => {
+      if (!combined[chain]) {
+        combined[chain] = address;
+      } else {
+        // If there's already a connected address, we'll handle both in fetchAllNFTs
+        combined[`${chain}_manual`] = address;
+      }
+    });
+
+    return combined;
   };
 
   // Close wallet dropdown when clicking outside

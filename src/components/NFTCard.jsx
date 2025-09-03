@@ -561,7 +561,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
 
       </div>
       {/* ✅ DAO Voting Overlay */}
-      {/* {nft.daoStaked && nft.contract === "osmo16pwjh09s662a0j2ssmzauyvkvagjwd9kpwc0mtamlwr8dtznlhfqcweap6" && viewMode === "grid" && (
+      {nft.daoStaked && nft.contract === "osmo16pwjh09s662a0j2ssmzauyvkvagjwd9kpwc0mtamlwr8dtznlhfqcweap6" && viewMode === "grid" && (
         <div
           style={{
             position: "absolute",
@@ -624,7 +624,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
           </div>
         </div>
 
-      )} */}
+      )}
     </div>
   );
 }
