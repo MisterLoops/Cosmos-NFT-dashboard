@@ -30,20 +30,7 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      external: [
-        '@cosmjs/crypto',
-        '@cosmjs/encoding',
-        '@cosmjs/proto-signing',
-        '@cosmjs/stargate',
-        '@keplr-wallet/types',
-        '@skip-go/widget',
-        'axios',
-        'bech32',
-        'js-sha3',
-        'lucide-react',
-        'vite-plugin-node-polyfills',
-        'ethers',
-      ],
+      external: [],
     },
   },
 });
