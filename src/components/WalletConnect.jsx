@@ -108,9 +108,9 @@ export default function WalletConnect({
         address: "", // Will be populated with all addresses in App.jsx
         publicKey: key.pubKey,
         signers: signers, // ✅ Pass signers along
-        walletProvider: window.keplr, // ✅ Pass wallet provider for SkipWidget
+        walletProvider: window.keplr // ✅ Pass wallet provider for SkipWidget
         // NEW: Add Loki EVM address if enabled
-        ...(lokiEnabled ? { lokiEvmAddress: lokiEvmAddress.trim() } : {}),
+        ...(lokiEnabled && { lokiEvmAddress: lokiEvmAddress.trim() })
       };
 
       onConnect(walletInfo);
@@ -169,9 +169,9 @@ export default function WalletConnect({
         address: "", // Will be populated with all addresses in App.jsx
         publicKey: key.pubKey,
         signers: signers, // ✅ Pass signers along
-        walletProvider: window.leap, // ✅ Pass wallet provider for SkipWidget
+        walletProvider: window.leap // ✅ Pass wallet provider for SkipWidget
         // NEW: Add Loki EVM address if enabled
-        ...(lokiEnabled ? { lokiEvmAddress: lokiEvmAddress.trim() } : {}),
+        ...(lokiEnabled && { lokiEvmAddress: lokiEvmAddress.trim() })
       };
 
       onConnect(walletInfo);
@@ -212,9 +212,9 @@ export default function WalletConnect({
       initiaAddress: manualInitiaAddress,
       publicKey: null,
       signers: null, // ✅ No signers for manual connection
-      walletProvider: null, // ✅ No wallet provider for manual
+      walletProvider: null // ✅ No wallet provider for manual
       // NEW: Add Loki EVM address if enabled
-      ...(lokiEnabled ? { lokiEvmAddress: lokiEvmAddress.trim() } : {}),
+      ...(lokiEnabled && { lokiEvmAddress: lokiEvmAddress.trim() })
 
     };
 
