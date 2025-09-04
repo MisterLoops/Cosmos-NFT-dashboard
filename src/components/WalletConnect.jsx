@@ -14,10 +14,16 @@ export default function WalletConnect({
   const [manualInjectiveAddress, setManualInjectiveAddress] = useState("");
   const [manualInitiaAddress, setManualInitiaAddress] = useState("");
   const [manualMode, setManualMode] = useState(false);
+
+  // NEW: Loki EVM testnet states
+  const [lokiEnabled, setLokiEnabled] = useState(false);
+  const [lokiEvmAddress, setLokiEvmAddress] = useState("");
+
   const [errors, setErrors] = useState({
     stargaze: "",
     injective: "",
     initia: "",
+    lokiEvm: "", // NEW: EVM address error
   });
   const validateBech32 = (addr, prefix) => {
     try {
@@ -26,6 +32,13 @@ export default function WalletConnect({
     } catch {
       return false;
     }
+  };
+
+  // NEW: EVM address validator
+  const validateEvmAddress = (addr) => {
+    // Basic EVM address validation (0x followed by 40 hex characters)
+    const evmRegex = /^0x[a-fA-F0-9]{40}$/;
+    return evmRegex.test(addr);
   };
 
   // Specific validators
@@ -47,6 +60,12 @@ export default function WalletConnect({
   const connectKeplr = async () => {
     if (!window.keplr) {
       alert("Please install Keplr wallet extension");
+      return;
+    }
+
+    // Check if Loki is enabled but address is missing/invalid
+    if (lokiEnabled && (!lokiEvmAddress.trim() || !validateEvmAddress(lokiEvmAddress))) {
+      alert("Please enter a valid EVM address for Loki on Mantra Dukong testnet");
       return;
     }
 
@@ -84,6 +103,7 @@ export default function WalletConnect({
         type: "keplr",
         address: "", // Will be populated with all addresses in App.jsx
         publicKey: key.pubKey,
+        ...(lokiEnabled && { lokiEvmAddress: lokiEvmAddress.trim() }),
         signers: signers, // ✅ Pass signers along
         walletProvider: window.keplr // ✅ Pass wallet provider for SkipWidget
       };
@@ -100,6 +120,12 @@ export default function WalletConnect({
   const connectLeap = async () => {
     if (!window.leap) {
       alert("Please install Leap wallet extension");
+      return;
+    }
+
+    // Check if Loki is enabled but address is missing/invalid
+    if (lokiEnabled && (!lokiEvmAddress.trim() || !validateEvmAddress(lokiEvmAddress))) {
+      alert("Please enter a valid EVM address for Loki on Mantra Dukong testnet");
       return;
     }
 
@@ -137,6 +163,7 @@ export default function WalletConnect({
         type: "leap",
         address: "", // Will be populated with all addresses in App.jsx
         publicKey: key.pubKey,
+        ...(lokiEnabled && { lokiEvmAddress: lokiEvmAddress.trim() }),
         signers: signers, // ✅ Pass signers along
         walletProvider: window.leap // ✅ Pass wallet provider for SkipWidget
       };
@@ -165,6 +192,12 @@ export default function WalletConnect({
       return;
     }
 
+    // Check if Loki is enabled but address is missing/invalid
+    if (lokiEnabled && (!lokiEvmAddress.trim() || !validateEvmAddress(lokiEvmAddress))) {
+      alert("Please enter a valid EVM address for Loki on Mantra Dukong testnet");
+      return;
+    }
+
     const walletInfo = {
       name: "Manual Wallet",
       type: "manual",
@@ -172,6 +205,7 @@ export default function WalletConnect({
       injectiveAddress: manualInjectiveAddress,
       initiaAddress: manualInitiaAddress,
       publicKey: null,
+      ...(lokiEnabled && { lokiEvmAddress: lokiEvmAddress.trim() }),
       signers: null, // ✅ No signers for manual connection
       walletProvider: null // ✅ No wallet provider for manual
     };
@@ -227,7 +261,51 @@ export default function WalletConnect({
           Cosmos wallets connection is offline, it's not a transaction, you're safe 😉
         </p>
         <p className="connect-experiment">🧪 EVERYTHING IS AN EXPERIMENT 🧪</p>
+        {/* Loki EVM Testnet Section */}
+        <div className="loki-section">
+          <label className="loki-checkbox-label">
+            <input
+              type="checkbox"
+              checked={lokiEnabled}
+              onChange={(e) => {
+                setLokiEnabled(e.target.checked);
+                if (!e.target.checked) {
+                  setLokiEvmAddress("");
+                  setErrors((prev) => ({ ...prev, lokiEvm: "" }));
+                }
+              }}
+            />
 
+            <span>Loki on Mantra EVM Testnet?</span>
+
+          </label>
+
+          {lokiEnabled && (
+            <div className="loki-input-container">
+              <input
+                type="text"
+                placeholder="Your EVM address (0x...)"
+                value={lokiEvmAddress}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setLokiEvmAddress(val);
+                  setErrors((prev) => ({
+                    ...prev,
+                    lokiEvm:
+                      val.trim() && !validateEvmAddress(val)
+                        ? "Invalid EVM address"
+                        : "",
+                  }));
+                }}
+                className="manual-input"
+                required
+              />
+              {errors.lokiEvm && (
+                <span className="manual-error">{errors.lokiEvm}</span>
+              )}
+            </div>
+          )}
+        </div>
         {isMobile && (
           <div className="mobile-disclaimer">
             <p>
@@ -239,7 +317,11 @@ export default function WalletConnect({
         {!manualMode ? (
           <>
             <div className="wallet-options">
-              <button onClick={connectKeplr} disabled={connecting} className="wallet-option-btn">
+              <button
+                onClick={connectKeplr}
+                disabled={connecting || (lokiEnabled && (!lokiEvmAddress.trim() || errors.lokiEvm))}
+                className="wallet-option-btn"
+              >
                 <div className="wallet-option-content" title="Keplr wallet">
                   <div className="wallet-logo keplr-logo">
                     <img
@@ -251,7 +333,11 @@ export default function WalletConnect({
                 </div>
               </button>
 
-              <button onClick={connectLeap} disabled={connecting} className="wallet-option-btn">
+              <button
+                onClick={connectLeap}
+                disabled={connecting || (lokiEnabled && (!lokiEvmAddress.trim() || errors.lokiEvm))}
+                className="wallet-option-btn"
+              >
                 <div className="wallet-option-content" title="Leap wallet">
                   <div className="wallet-logo leap-logo">
                     <img
@@ -327,7 +413,8 @@ export default function WalletConnect({
                 className="manual-submit-btn"
                 disabled={
                   !manualStargazeAddress || !manualInjectiveAddress || !manualInitiaAddress ||
-                  errors.stargaze || errors.injective || errors.initia
+                  errors.stargaze || errors.injective || errors.initia ||
+                  (lokiEnabled && (!lokiEvmAddress.trim() || errors.lokiEvm))
                 }
               >
                 Connect

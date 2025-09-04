@@ -1,12 +1,16 @@
 // Utility functions for fetching NFT data from various sources
 import daosConfig from "../daos.json";
+import { createPublicClient, http, parseAbi } from 'viem';
 
 import {
   API_ENDPOINTS,
   CORS_PROXIES,
   REQUEST_CONFIG,
   PAGINATION_CONFIG,
-  IBC_TOKEN_MAPPINGS
+  IBC_TOKEN_MAPPINGS,
+  LOKI_NFT_ADDRESS,
+  LOKI_NFT_ABI,
+  MANTRA_TESTNET
 } from "./constants.js";
 import pLimit from './pLimit.js';
 
@@ -5935,7 +5939,7 @@ const _fetchOmniFlixNFTs = async (address) => {
     let activities = [];
     try {
       const actRes = await fetch(
-        `${API_ENDPOINTS.OMNIFLIX_ACTIVITY_API}/activity?address=${address}&skip=0&limit=10`
+        `${API_ENDPOINTS.OMNIFLIX_ACTIVITY_API}/activity?address=${address}&skip=0&limit=30`
       );
       if (actRes.ok) {
         const actJson = await actRes.json();
@@ -6250,4 +6254,101 @@ const _fetchOmniFlixCollectionData = async (denomId) => {
 // Fetch collection data including floor price (with caching)
 export const fetchOmniFlixCollectionData = async (denomId) => {
   return cachedRequest("fetchOmniFlixCollectionData", _fetchOmniFlixCollectionData, denomId);
+};
+
+
+export const _fetchLokiNFTs = async (address) => {
+  try {
+    console.log(`[DEBUG] Fetching Loki NFTs for ${address}`);
+
+    // Create a fresh client each call
+    const client = createPublicClient({
+      transport: http(MANTRA_TESTNET.rpcUrls[0]),
+    });
+
+    // 1. Get balance
+    const balance = await client.readContract({
+      address: LOKI_NFT_ADDRESS,
+      abi: LOKI_NFT_ABI,
+      functionName: 'balanceOf',
+      args: [address],
+    });
+    const balanceNum = Number(balance);
+    console.log(`[DEBUG] ${address} owns ${balanceNum} Loki NFTs`);
+    if (balanceNum === 0) return [];
+
+    // 2. Get token IDs
+    const ids = await Promise.all(
+      Array.from({ length: balanceNum }, (_, i) =>
+        client.readContract({
+          address: LOKI_NFT_ADDRESS,
+          abi: LOKI_NFT_ABI,
+          functionName: 'tokenOfOwnerByIndex',
+          args: [address, BigInt(i)],
+        })
+      )
+    );
+
+    // 3. Fetch metadata
+    const limit = pLimit(20);
+    const results = await Promise.allSettled(
+      ids.map((id) =>
+        limit(async () => {
+          const tokenId = id.toString();
+          const uri = await client.readContract({
+            address: LOKI_NFT_ADDRESS,
+            abi: LOKI_NFT_ABI,
+            functionName: 'tokenURI',
+            args: [id],
+          });
+
+          const normalizedUri = uri.startsWith('ipfs://')
+            ? `https://ipfs.io/ipfs/${uri.slice(7)}`
+            : uri;
+
+          const res = await fetch(normalizedUri);
+          if (!res.ok) return null;
+          const meta = await res.json();
+
+          return {
+            name: meta.name || `Loki #${tokenId}`,
+            tokenId,
+            chain: 'mantra-dukong-1',
+            contract: LOKI_NFT_ADDRESS,
+            collection: 'Loki',
+            image: meta.image?.startsWith('ipfs://')
+              ? `https://ipfs.io/ipfs/${meta.image.slice(7)}`
+              : meta.image,
+            traits: meta.attributes || [],
+            sourceAddress: address,
+            listed: false,
+            listPrice: null,
+            rarity: null,
+            floor: null,
+            hasOffer: false,
+            highestOffer: null,
+            lastSalePriceSpecified: false,
+            lastSalePrice: null,
+            sortUsd: 0,
+            daoStaked: false,
+          };
+        })
+      )
+    );
+
+    return results
+      .filter((r) => r.status === 'fulfilled' && r.value)
+      .map((r) => r.value);
+  } catch (err) {
+    console.error(`[ERROR] Fetching Loki NFTs failed:`, err);
+    return [];
+  }
+};
+
+
+
+
+// cached wrapper
+export const fetchLokiNFTs = async (address) => {
+  return cachedRequest("fetchLokiNFTs", _fetchLokiNFTs, address);
 };

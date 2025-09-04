@@ -254,7 +254,7 @@ export default function App() {
   const fetchAllChainBalances = async (addresses) => {
     const chainBalances = {}; // Structure: { chainName: { assets: [...], totalValue: 0 } }
 
-    const balancePromises = Object.entries(addresses).map(
+    const balancePromises = Object.entries(addresses).filter(([chainName]) => chainName !== "mantra_dukong_1").map(
       async ([chainName, address]) => {
         if (CHAIN_ENDPOINTS[chainName]) {
           try {
@@ -1058,7 +1058,7 @@ export default function App() {
         // 1️⃣ Derive all Cosmos SDK addresses from Stargaze
         const { data: cosmosBytes } = fromBech32(walletInfo.stargazeAddress.toLowerCase());
         for (const [chainName, config] of Object.entries(CHAIN_CONFIGS)) {
-          if (chainName !== "injective" && chainName !== "initia") {
+          if (chainName !== "injective" && chainName !== "initia" && chainName !== "mantra_dukong_1") {
             addresses[chainName] = toBech32(config.prefix, cosmosBytes);
           }
         }
@@ -1066,6 +1066,10 @@ export default function App() {
         // derive Injective and Initia bech32 addresses
         addresses.injective = walletInfo.injectiveAddress;
         addresses.initia = walletInfo.initiaAddress;
+
+        if (walletInfo.lokiEvmAddress) {
+          addresses["mantra_dukong_1"] = walletInfo.lokiEvmAddress;
+        }
 
         return addresses;
       }
@@ -1094,7 +1098,7 @@ export default function App() {
 
       for (const [chainName, config] of Object.entries(CHAIN_CONFIGS)) {
         // Skip dungeon for leap, derive later
-        if (config.chainId === "dungeon-1") {
+        if (config.chainId === "dungeon-1" || config.chainId === "mantra-dukong-1") {
           continue;
         }
 
@@ -1111,6 +1115,10 @@ export default function App() {
           baseKey.address // Uint8Array
         );
         addresses["dungeon"] = dungeonAddr;
+      }
+      // NEW: Add Loki EVM address if provided
+      if (walletInfo.lokiEvmAddress) {
+        addresses["mantra_dukong_1"] = walletInfo.lokiEvmAddress;
       }
     } catch (error) {
       console.error("Failed to connect to chains:", error);
@@ -1221,9 +1229,9 @@ export default function App() {
       setAddresses(allAddresses);
 
       if (walletInfo.type !== "manual") {
-      // Convert chain names → chain IDs for Skip
-      const skipReadyAddresses = mapAddressesForSkip(allAddresses);
-      setAddressesForSkip(skipReadyAddresses);
+        // Convert chain names → chain IDs for Skip
+        const skipReadyAddresses = mapAddressesForSkip(allAddresses);
+        setAddressesForSkip(skipReadyAddresses);
       } else {
         setAddressesForSkip({});
       }
@@ -1278,8 +1286,14 @@ export default function App() {
     setTokenBalancesClosing(false);
     setWalletDropdownClosing(false);
   };
-  const isAddressValid = (addr, prefix) => {
+  const isAddressValid = (addr, prefix, chainName) => {
     try {
+      // Special case: mantra_dukong_1 uses EVM addresses
+      if (chainName === "mantra_dukong_1") {
+        return /^0x[a-fA-F0-9]{40}$/.test(addr); // ✅ EVM regex
+      }
+
+      // Otherwise: Cosmos bech32 validation
       const { prefix: decodedPrefix } = fromBech32(addr.toLowerCase());
       return decodedPrefix === prefix;
     } catch {
@@ -1315,12 +1329,12 @@ export default function App() {
     const prefix = CHAIN_CONFIGS[selectedChain]?.prefix;
     const trimmedAddress = manualAddress.trim();
 
-    if (!prefix) {
+    if (!prefix && selectedChain !== "mantra_dukong_1") {
       setError(`Chain configuration not found for ${selectedChain}.`);
       return;
     }
 
-    if (!isAddressValid(trimmedAddress, prefix)) {
+    if (!isAddressValid(trimmedAddress, prefix, selectedChain)) {
       // Handle special error message for Neutron
       setError(
         `Invalid address for ${selectedChain.toUpperCase()}.`,
@@ -1335,7 +1349,7 @@ export default function App() {
     setAddressLoading((prev) => ({ ...prev, [selectedChain]: true }));
     setManualAddresses((prev) => ({
       ...prev,
-      [selectedChain]: trimmedAddress,
+      [`${selectedChain}_manual`]: trimmedAddress,
     }));
     setManualAddress("");
     setShowManualAddressForm(false);
@@ -1360,7 +1374,9 @@ export default function App() {
     ) {
       window.removeNFTsByManualAddress(chain, addressToRemove);
     }
-
+    if (window.clearFetchedAddress && addressToRemove) {
+      window.clearFetchedAddress(`${chain}-${addressToRemove}`);
+    }
     setManualAddresses((prev) => {
       const newAddresses = { ...prev };
       delete newAddresses[chain];
@@ -1436,475 +1452,476 @@ export default function App() {
 
   // Combine connected and manual addresses for NFT fetching
   const getAllAddresses = () => {
-    const combined = { ...addresses };
+    return { ...addresses, ...manualAddresses }
 
-    // Add manual addresses to their respective chains
-    Object.entries(manualAddresses).forEach(([chain, address]) => {
-      if (!combined[chain]) {
-        combined[chain] = address;
-      } else {
-        // If there's already a connected address, we'll handle both in fetchAllNFTs
-        combined[`${chain}_manual`] = address;
-      }
-    });
 
-    return combined;
+  // Add manual addresses to their respective chains
+  // Object.entries(manualAddresses).forEach(([chain, address]) => {
+  //   if (!combined[chain]) {
+  //     combined[chain] = address;
+  //   } else {
+  //     // If there's already a connected address, we'll handle both in fetchAllNFTs
+  //     combined[`${chain}_manual`] = address;
+  //   }
+  // });
+
+  // return combined;
+};
+
+// Close wallet dropdown when clicking outside
+useEffect(() => {
+  const handleClickOutside = (event) => {
+    if (
+      showWalletDropdown &&
+      !event.target.closest(".wallet-dropdown-container")
+    ) {
+      setWalletDropdownClosing(true);
+      setTimeout(() => {
+        setShowWalletDropdown(false);
+        setWalletDropdownClosing(false);
+      }, 200);
+    }
   };
 
-  // Close wallet dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        showWalletDropdown &&
-        !event.target.closest(".wallet-dropdown-container")
-      ) {
-        setWalletDropdownClosing(true);
-        setTimeout(() => {
-          setShowWalletDropdown(false);
-          setWalletDropdownClosing(false);
-        }, 200);
-      }
-    };
+  document.addEventListener("mousedown", handleClickOutside);
+  return () => {
+    document.removeEventListener("mousedown", handleClickOutside);
+  };
+}, [showWalletDropdown]);
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showWalletDropdown]);
+// if (!wallet) {
+//   return <WalletConnect onConnect={handleWalletConnect} error={error} />;
+// }
 
-  // if (!wallet) {
-  //   return <WalletConnect onConnect={handleWalletConnect} error={error} />;
-  // }
+// Removed gating logic, access is granted if wallet is connected.
+// The "Access Denied" view is removed.
 
-  // Removed gating logic, access is granted if wallet is connected.
-  // The "Access Denied" view is removed.
-
-  return (
-    <div className={`${(hasCompletedInitialLoad) ? "app" : "app-connecting"}`}>
-      <SkipWidget showSkipWidget={showSkipWidget}
-        onClose={() => setShowSkipWidget(false)} />
-      <header className="app-header">
-        <div className="app-title-container">
-          <img src="/cosmosNFTHUBlogo.png" alt="Logo" className="app-logo" />
-          <div className="app-title">
-            <div className="title-main">NFTHUB</div>
-            <div className="title-sub">COSMOS</div>
-          </div>
+return (
+  <div className={`${(hasCompletedInitialLoad) ? "app" : "app-connecting"}`}>
+    <SkipWidget showSkipWidget={showSkipWidget}
+      onClose={() => setShowSkipWidget(false)} />
+    <header className="app-header">
+      <div className="app-title-container">
+        <img src="/cosmosNFTHUBlogo.png" alt="Logo" className="app-logo" />
+        <div className="app-title">
+          <div className="title-main">NFTHUB</div>
+          <div className="title-sub">COSMOS</div>
         </div>
-        <div className="marketplace-links desktop-only">
-          <div className="marketplace-logos">
-            <a href="https://www.madscientists.io/" target="_blank" rel="noopener noreferrer" data-tooltip="Mad Scientists, OSMOSIS genesis collection on Osmosis/Stargaze">
-              <img src="/MadScientist.png" alt="Mad Scientist" className="header-character" style={{ height: '70px', opacity: 1 }} />
-            </a>
+      </div>
+      <div className="marketplace-links desktop-only">
+        <div className="marketplace-logos">
+          <a href="https://www.madscientists.io/" target="_blank" rel="noopener noreferrer" data-tooltip="Mad Scientists, OSMOSIS genesis collection on Osmosis/Stargaze">
+            <img src="/MadScientist.png" alt="Mad Scientist" className="header-character" style={{ height: '70px', opacity: 1 }} />
+          </a>
 
-            <a href="https://www.stargaze.zone" target="_blank" rel="noopener noreferrer" data-tooltip="Stargaze Marketplace on Stargaze">
-              <img src="/Stargaze.svg" alt="Stargaze" />
-            </a>
-            <a href="https://intergaze.xyz" target="_blank" rel="noopener noreferrer" data-tooltip="Intergaze Marketplace on Initia">
-              <img src="/Intergaze.png" alt="Intergaze" />
-            </a>
-            <a href="https://app.backbonelabs.io" target="_blank" rel="noopener noreferrer" data-tooltip="BackBoneLabs Marketplace on Osmosis, Injective and Dungeon">
-              <img src="/BackBoneLabs.png" alt="BackBoneLabs" />
-            </a>
-            <a href="https://app.superbolt.wtf" target="_blank" rel="noopener noreferrer" data-tooltip="Superbolt Marketplace on Neutron">
-              <img src="/Superbolt.png" alt="Superbolt" />
-            </a>
-            <a href="https://app.arkprotocol.io/" target="_blank" rel="noopener noreferrer" data-tooltip="Ark Protocol, Interchain NFT transfers">
-              <img src="/Ark.png" alt="Ark Protocol" />
-            </a>
-            <a href="https://daodao.zone" target="_blank" rel="noopener noreferrer" data-tooltip="DAODAO, DAOs on Cosmos chains">
-              <img src="/DAODAO.png" alt="DAODAO" />
-            </a>
-            <a href="https://www.stargaze.zone/m/onchain-omies/tokens" target="_blank" rel="noopener noreferrer" data-tooltip="Onchain OMies, MANTRA genesis collection on Stargaze">
-              <img src="/OMie.png" alt="Omie" className="header-character" style={{ height: '70px', opacity: 1 }} />
-            </a>
-          </div>
+          <a href="https://www.stargaze.zone" target="_blank" rel="noopener noreferrer" data-tooltip="Stargaze Marketplace on Stargaze">
+            <img src="/Stargaze.svg" alt="Stargaze" />
+          </a>
+          <a href="https://intergaze.xyz" target="_blank" rel="noopener noreferrer" data-tooltip="Intergaze Marketplace on Initia">
+            <img src="/Intergaze.png" alt="Intergaze" />
+          </a>
+          <a href="https://app.backbonelabs.io" target="_blank" rel="noopener noreferrer" data-tooltip="BackBoneLabs Marketplace on Osmosis, Injective and Dungeon">
+            <img src="/BackBoneLabs.png" alt="BackBoneLabs" />
+          </a>
+          <a href="https://app.superbolt.wtf" target="_blank" rel="noopener noreferrer" data-tooltip="Superbolt Marketplace on Neutron">
+            <img src="/Superbolt.png" alt="Superbolt" />
+          </a>
+          <a href="https://app.arkprotocol.io/" target="_blank" rel="noopener noreferrer" data-tooltip="Ark Protocol, Interchain NFT transfers">
+            <img src="/Ark.png" alt="Ark Protocol" />
+          </a>
+          <a href="https://daodao.zone" target="_blank" rel="noopener noreferrer" data-tooltip="DAODAO, DAOs on Cosmos chains">
+            <img src="/DAODAO.png" alt="DAODAO" />
+          </a>
+          <a href="https://www.stargaze.zone/m/onchain-omies/tokens" target="_blank" rel="noopener noreferrer" data-tooltip="Onchain OMies, MANTRA genesis collection on Stargaze">
+            <img src="/OMie.png" alt="Omie" className="header-character" style={{ height: '70px', opacity: 1 }} />
+          </a>
         </div>
-        <div className="skip-logo" data-tooltip="Swap with skip widget and support the NFTHUB (2% fee)">
-          <img
-            src="/skip.png"
-            alt="skip_logo"
-            // title="Swap/Bridge from here to anywhere!"
-            className="skip-logo__img"
-            onClick={() => setShowSkipWidget(!showSkipWidget)}
-          />
-        </div>
-        <style>{`
-      .skip-logo { position: relative; display: inline-block; }
-  .skip-logo__img {
-    cursor: pointer;;
-    max-width: 100px;
-    display: block;
-    transform: scale(1.05);
-    transition: transform 0.25s ease;
-  }
-  /* ✅ scale only the image, not the tooltip */
-  .skip-logo:hover .skip-logo__img {
-    transform: scale(1.15);
-  }
+      </div>
+      <div className="skip-logo" data-tooltip="Swap with skip widget and support the NFTHUB (2% fee)">
+        <img
+          src="/skip.png"
+          alt="skip_logo"
+          // title="Swap/Bridge from here to anywhere!"
+          className="skip-logo__img"
+          onClick={() => setShowSkipWidget(!showSkipWidget)}
+        />
+      </div>
+      <style>{`
+              .skip-logo { position: relative; display: inline-block; }
+          .skip-logo__img {
+            cursor: pointer;;
+            max-width: 100px;
+            display: block;
+            transform: scale(1.05);
+            transition: transform 0.25s ease;
+          }
+          /* ✅ scale only the image, not the tooltip */
+          .skip-logo:hover .skip-logo__img {
+            transform: scale(1.15);
+          }
 
-  /* Tooltip */
-  .skip-logo::after {
-    content: attr(data-tooltip);
-    position: absolute;
-    bottom: -50px;
-    left: 50%;
-    transform: translateX(-50%);
-    white-space: nowrap;
-    background: rgba(30,30,47,0.95);
-    padding: 6px 10px;
-    border: 1px solid rgba(255,255,255,0.3);
-    border-radius: 8px;
-    font-size: 0.8rem;
-    color: rgba(255,255,255,0.7);
-    font-weight: 500;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
-    z-index: 1000;
-  }
-  .skip-logo:hover::after { opacity: 1; }
+          /* Tooltip */
+          .skip-logo::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: -50px;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            background: rgba(30,30,47,0.95);
+            padding: 6px 10px;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.7);
+            font-weight: 500;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            z-index: 1000;
+          }
+          .skip-logo:hover::after { opacity: 1; }
           @media (max-width: 768px) {
-    .skip-logo {
-      display: none !important;
-    }
- 
-  `}</style>
-        {<div className="wallet-info">
+            .skip-logo {
+              display: none !important;
+            }
+          }
+          `}</style>
+      {<div className="wallet-info">
+        <button
+          onClick={() => {
+            if (showTokens) {
+              setTokenBalancesClosing(true);
+              setTimeout(() => {
+                setShowTokens(false);
+                setTokenBalancesClosing(false);
+              }, 250);
+            } else {
+              setShowTokens(true);
+            }
+          }}
+          className="tokens-btn mobile-only"
+          disabled={Object.keys(chainBalances).length === 0}
+        >
+          Portfolio
+        </button>
+        <div className="wallet-dropdown-container">
           <button
             onClick={() => {
-              if (showTokens) {
-                setTokenBalancesClosing(true);
+              if (showWalletDropdown) {
+                setWalletDropdownClosing(true);
                 setTimeout(() => {
-                  setShowTokens(false);
-                  setTokenBalancesClosing(false);
-                }, 250);
+                  setShowWalletDropdown(false);
+                  setWalletDropdownClosing(false);
+                }, 200);
               } else {
-                setShowTokens(true);
+                setShowWalletDropdown(true);
               }
             }}
-            className="tokens-btn mobile-only"
-            disabled={Object.keys(chainBalances).length === 0}
+            className="wallet-btn"
+            disabled={(!hasCompletedInitialLoad && isFetchingNFTs)}
           >
-            Portfolio
+            {hasCompletedInitialLoad ? wallet.name : "....."}
           </button>
-          <div className="wallet-dropdown-container">
-            <button
-              onClick={() => {
-                if (showWalletDropdown) {
-                  setWalletDropdownClosing(true);
-                  setTimeout(() => {
-                    setShowWalletDropdown(false);
-                    setWalletDropdownClosing(false);
-                  }, 200);
-                } else {
-                  setShowWalletDropdown(true);
-                }
-              }}
-              className="wallet-btn"
-              disabled={(!hasCompletedInitialLoad && isFetchingNFTs)}
-            >
-              {hasCompletedInitialLoad ? wallet.name : "....."}
-            </button>
 
-            {(showWalletDropdown || walletDropdownClosing) && (
+          {(showWalletDropdown || walletDropdownClosing) && (
+            <div
+              className={`wallet-dropdown ${showWalletDropdown && !walletDropdownClosing ? "visible" : ""} ${walletDropdownClosing ? "closing" : ""}`}
+            >
+              <div className="dropdown-header">
+                <h4>Connected Addresses</h4>
+              </div>
+
               <div
-                className={`wallet-dropdown ${showWalletDropdown && !walletDropdownClosing ? "visible" : ""} ${walletDropdownClosing ? "closing" : ""}`}
+                className={`addresses-list ${scrollState.isScrollable ? "scrollable" : ""} ${scrollState.canScrollUp ? "can-scroll-up" : ""} ${scrollState.canScrollDown ? "can-scroll-down" : ""}`}
+                onScroll={handleAddressListScroll}
+                ref={(el) => {
+                  if (el && showWalletDropdown) {
+                    // Check scroll state when dropdown opens
+                    setTimeout(() => checkScrollState(el), 100);
+                  }
+                }}
               >
-                <div className="dropdown-header">
-                  <h4>Connected Addresses</h4>
+                <div className="address-category">
+                  <div className="category-title">Connected Wallet</div>
+                  {Object.entries(addresses).map(([chain, address]) => (
+                    <div key={chain} className="address-item connected">
+                      <div className="address-details">
+                        <div className="chain-label">
+                          {chain.toUpperCase()}
+                        </div>
+                        <div className="address-value">
+                          {formatAddress(address)}
+                        </div>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          copyToClipboard(address);
+                        }}
+                        className={`copy-address-btn ${copiedAddress === address ? "copied" : ""}`}
+                        title="Copy address"
+                      >
+                        <Copy size={14} className="copy-icon" />
+                        <Check size={14} className="check-icon" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
 
-                <div
-                  className={`addresses-list ${scrollState.isScrollable ? "scrollable" : ""} ${scrollState.canScrollUp ? "can-scroll-up" : ""} ${scrollState.canScrollDown ? "can-scroll-down" : ""}`}
-                  onScroll={handleAddressListScroll}
-                  ref={(el) => {
-                    if (el && showWalletDropdown) {
-                      // Check scroll state when dropdown opens
-                      setTimeout(() => checkScrollState(el), 100);
-                    }
-                  }}
-                >
+                {Object.keys(manualAddresses).length > 0 && (
                   <div className="address-category">
-                    <div className="category-title">Connected Wallet</div>
-                    {Object.entries(addresses).map(([chain, address]) => (
-                      <div key={chain} className="address-item connected">
-                        <div className="address-details">
-                          <div className="chain-label">
-                            {chain.toUpperCase()}
-                          </div>
-                          <div className="address-value">
-                            {formatAddress(address)}
-                          </div>
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            copyToClipboard(address);
-                          }}
-                          className={`copy-address-btn ${copiedAddress === address ? "copied" : ""}`}
-                          title="Copy address"
-                        >
-                          <Copy size={14} className="copy-icon" />
-                          <Check size={14} className="check-icon" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-
-                  {Object.keys(manualAddresses).length > 0 && (
-                    <div className="address-category">
-                      <div className="category-title">Manual Addresses</div>
-                      {Object.entries(manualAddresses).map(
-                        ([chain, address]) => (
-                          <div key={chain} className="address-item-container">
-                            <div
-                              className={`address-item manual ${addressLoading[chain] ? "loading" : ""}`}
-                            >
-                              <div className="address-details">
-                                <div className="chain-label">
-                                  {chain.toUpperCase()}
-                                </div>
-                                <div className="address-value">
-                                  {formatAddress(address)}
-                                </div>
+                    <div className="category-title">Manual Addresses</div>
+                    {Object.entries(manualAddresses).map(
+                      ([chain, address]) => (
+                        <div key={chain} className="address-item-container">
+                          <div
+                            className={`address-item manual ${addressLoading[chain] ? "loading" : ""}`}
+                          >
+                            <div className="address-details">
+                              <div className="chain-label">
+                                {chain.toUpperCase()}
                               </div>
-
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  copyToClipboard(address);
-                                }}
-                                className={`copy-address-btn ${copiedAddress === address ? "copied" : ""}`}
-                                title="Copy address"
-                              >
-                                <Copy size={14} className="copy-icon" />
-                                <Check size={14} className="check-icon" />
-                              </button>
-
-                              {addressLoading[chain] && (
-                                <div className="address-loading">
-                                  <div className="spinner"></div>
-                                </div>
-                              )}
-
-                              {!addressLoading[chain] && (
-                                <div
-                                  className="remove-overlay"
-                                  onClick={() =>
-                                    handleRemovalConfirmation(chain)
-                                  }
-                                >
-                                  <Trash2 size={24} />
-                                </div>
-                              )}
+                              <div className="address-value">
+                                {formatAddress(address)}
+                              </div>
                             </div>
 
-                            {confirmingRemoval === chain && (
-                              <div className="removal-confirmation">
-                                <div
-                                  className="confirmation-backdrop"
-                                  onClick={cancelRemoval}
-                                ></div>
-                                <div className="confirmation-popup">
-                                  <p>
-                                    Remove address{" "}
-                                    <strong>{formatAddress(address)}</strong>?
-                                  </p>
-                                  <div className="confirmation-buttons">
-                                    <button
-                                      className="confirm-btn"
-                                      onClick={() =>
-                                        confirmRemovalAddress(chain)
-                                      }
-                                    >
-                                      Yes
-                                    </button>
-                                    <button
-                                      className="cancel-btn"
-                                      onClick={cancelRemoval}
-                                    >
-                                      Cancel
-                                    </button>
-                                  </div>
-                                </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                copyToClipboard(address);
+                              }}
+                              className={`copy-address-btn ${copiedAddress === address ? "copied" : ""}`}
+                              title="Copy address"
+                            >
+                              <Copy size={14} className="copy-icon" />
+                              <Check size={14} className="check-icon" />
+                            </button>
+
+                            {addressLoading[chain] && (
+                              <div className="address-loading">
+                                <div className="spinner"></div>
+                              </div>
+                            )}
+
+                            {!addressLoading[chain] && (
+                              <div
+                                className="remove-overlay"
+                                onClick={() =>
+                                  handleRemovalConfirmation(chain)
+                                }
+                              >
+                                <Trash2 size={24} />
                               </div>
                             )}
                           </div>
-                        ),
-                      )}
-                    </div>
-                  )}
-                </div>
 
-                <div className="dropdown-actions">
-                  <button
-                    onClick={() =>
-                      setShowManualAddressForm(!showManualAddressForm)
-                    }
-                    className={`add-address-btn ${isFetchingNFTs ? "disabled" : ""}`}
-                    disabled={isFetchingNFTs}
-                  >
-                    {isFetchingNFTs
-                      ? "Fetching NFTs..."
-                      : "Add Address Manually"}
-                  </button>
-
-                  <button
-                    onClick={handleDisconnect}
-                    className="disconnect-btn-dropdown"
-                  >
-                    <span>Disconnect</span>
-                  </button>
-                </div>
-
-                {showManualAddressForm && (
-                  <div className="manual-address-form">
-                    <h5>Add Manual Address</h5>
-                    <select
-                      value={selectedChain}
-                      onChange={(e) => setSelectedChain(e.target.value)}
-                      className="chain-select"
-                    >
-                      {Object.keys(CHAIN_CONFIGS)
-                        .filter(
-                          (chain) => chain !== "akash" && chain !== "mantra",
-                        )
-                        .map((chain) => (
-                          <option key={chain} value={chain}>
-                            {chain.toUpperCase()}
-                          </option>
-                        ))}
-                    </select>
-                    <input
-                      type="text"
-                      value={manualAddress}
-                      onChange={(e) => setManualAddress(e.target.value)}
-                      placeholder="Paste address here..."
-                      className="address-input"
-                    />
-                    {error && <div className="error-message">{error}</div>}
-                    <div className="form-actions">
-                      <button
-                        onClick={handleAddManualAddress}
-                        className="add-btn"
-                        disabled={isFetchingNFTs || !hasCompletedInitialLoad}
-                      >
-                        Add
-                      </button>
-                      <button
-                        onClick={() => setShowManualAddressForm(false)}
-                        className="cancel-btn"
-
-                      >
-                        Cancel
-                      </button>
-                    </div>
+                          {confirmingRemoval === chain && (
+                            <div className="removal-confirmation">
+                              <div
+                                className="confirmation-backdrop"
+                                onClick={cancelRemoval}
+                              ></div>
+                              <div className="confirmation-popup">
+                                <p>
+                                  Remove address{" "}
+                                  <strong>{formatAddress(address)}</strong>?
+                                </p>
+                                <div className="confirmation-buttons">
+                                  <button
+                                    className="confirm-btn"
+                                    onClick={() =>
+                                      confirmRemovalAddress(chain)
+                                    }
+                                  >
+                                    Yes
+                                  </button>
+                                  <button
+                                    className="cancel-btn"
+                                    onClick={cancelRemoval}
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ),
+                    )}
                   </div>
                 )}
               </div>
-            )}
-          </div>
-        </div>}
-      </header>
 
-      {/* Mobile Chain-Based Portfolio */}
-      {(showTokens || tokenBalancesClosing) && hasCompletedInitialLoad && (
-        <ChainBasedPortfolio
-          chainBalances={chainBalances}
-          showTokens={showTokens}
-          tokenBalancesClosing={tokenBalancesClosing}
-          nftOffers={nftOffers}
-        />
-      )}
+              <div className="dropdown-actions">
+                <button
+                  onClick={() =>
+                    setShowManualAddressForm(!showManualAddressForm)
+                  }
+                  className={`add-address-btn ${isFetchingNFTs ? "disabled" : ""}`}
+                  disabled={isFetchingNFTs}
+                >
+                  {isFetchingNFTs
+                    ? "Fetching NFTs..."
+                    : "Add Address Manually"}
+                </button>
 
-      {/* Desktop Chain-Based Portfolio */}
-      {Object.keys(chainBalances).length > 0 && hasCompletedInitialLoad && (
-        <DesktopChainPortfolio chainBalances={chainBalances} showDollarBalances={showDollarBalances}
-          setShowDollarBalances={setShowDollarBalances} nftOffers={nftOffers} />
-      )}
+                <button
+                  onClick={handleDisconnect}
+                  className="disconnect-btn-dropdown"
+                >
+                  <span>Disconnect</span>
+                </button>
+              </div>
 
+              {showManualAddressForm && (
+                <div className="manual-address-form">
+                  <h5>Add Manual Address</h5>
+                  <select
+                    value={selectedChain}
+                    onChange={(e) => setSelectedChain(e.target.value)}
+                    className="chain-select"
+                  >
+                    {Object.keys(CHAIN_CONFIGS)
+                      .filter(
+                        (chain) => chain !== "akash" && chain !== "mantra",
+                      )
+                      .map((chain) => (
+                        <option key={chain} value={chain}>
+                          {chain.toUpperCase()}
+                        </option>
+                      ))}
+                  </select>
+                  <input
+                    type="text"
+                    value={manualAddress}
+                    onChange={(e) => setManualAddress(e.target.value)}
+                    placeholder="Paste address here..."
+                    className="address-input"
+                  />
+                  {error && <div className="error-message">{error}</div>}
+                  <div className="form-actions">
+                    <button
+                      onClick={handleAddManualAddress}
+                      className="add-btn"
+                      disabled={isFetchingNFTs || !hasCompletedInitialLoad}
+                    >
+                      Add
+                    </button>
+                    <button
+                      onClick={() => setShowManualAddressForm(false)}
+                      className="cancel-btn"
 
-      {!wallet ? (
-        <WalletConnect onConnect={handleWalletConnect} error={error} />
-      ) : (
-        <NFTDashboard
-          addresses={getAllAddresses()}
-          onAddressFetched={clearAddressLoading}
-          bosmoPrice={bosmoPrice}
-          initPrice={initPrice}
-          binjPrice={binjPrice}
-          assetPrices={assetPrices}
-          showDollarBalances={showDollarBalances}
-          onManualAddressRemoved={handleManualAddressRemoved}
-          onFetchStatusChange={(isFetching) => {
-            setIsFetchingNFTs(isFetching);
-          }}
-          onInitialNFTLoadComplete={() => setHasLoadedNFTs(true)}
-        />
-
-      )}
-      <footer className="footer">
-        <div className="footer-inner">
-          <div className="footer-title">Cosmos NFTHUB DASHBOARD V1 @2025</div>
-          <div className="footer-bottom">
-            <div className="footer-logo">
-              <span>Built with love by</span>
-              <a href="https://x.com/MisterLoops" target="_blank" rel="noopener noreferrer">
-                <img src="loops-logo.png" alt="Cosmonaut logo" />
-              </a>
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-            <button
-              onClick={() => setShowDonation(true)}
-              className="donate-btn"
-              title="Support this project"
-            >
-              <Heart className="donate-icon" />
-            </button>
-          </div>
+          )}
         </div>
-      </footer>
-      {/* Donation Modal */}
-      {showDonation && (
-        <div className="donation-overlay" onClick={() => setShowDonation(false)}>
-          <div className="donation-modal" onClick={(e) => e.stopPropagation()}>
-            <button
-              className="close-btn"
-              onClick={() => setShowDonation(false)}
-            >
-              <X size={20} />
-            </button>
+      </div>}
+    </header>
 
-            <div className="donation-content">
-              <Heart className="donation-heart" />
-              <h3>Thank you for supporting!</h3>
-              <p>Swap with Skip widget here to support (2% fee)</p>
-              {DONATION_ADDRESSES &&
-                DONATION_ADDRESSES.map((info) => {
-                  const isCopied = copiedChain === info.chain;
+    {/* Mobile Chain-Based Portfolio */}
+    {(showTokens || tokenBalancesClosing) && hasCompletedInitialLoad && (
+      <ChainBasedPortfolio
+        chainBalances={chainBalances}
+        showTokens={showTokens}
+        tokenBalancesClosing={tokenBalancesClosing}
+        nftOffers={nftOffers}
+      />
+    )}
 
-                  return (
-                    <div key={info.chain} className="address-container">
-                      <div className="address-box">
-                        <span className="address-text">{info.chain}</span>
-                        <button
-                          onClick={() => copyAddress(info.chain, info.address)}
-                          className="copy-btn"
-                          title={isCopied ? "Copied!" : "Copy address"}
-                        >
-                          {isCopied ? <Check size={16} /> : <Copy size={16} />}
-                        </button>
-                      </div>
-                      {isCopied && (
-                        <span className="copied-text">Address copied to clipboard!</span>
-                      )}
+    {/* Desktop Chain-Based Portfolio */}
+    {Object.keys(chainBalances).length > 0 && hasCompletedInitialLoad && (
+      <DesktopChainPortfolio chainBalances={chainBalances} showDollarBalances={showDollarBalances}
+        setShowDollarBalances={setShowDollarBalances} nftOffers={nftOffers} />
+    )}
+
+
+    {!wallet ? (
+      <WalletConnect onConnect={handleWalletConnect} error={error} />
+    ) : (
+      <NFTDashboard
+        addresses={getAllAddresses()}
+        onAddressFetched={clearAddressLoading}
+        bosmoPrice={bosmoPrice}
+        initPrice={initPrice}
+        binjPrice={binjPrice}
+        assetPrices={assetPrices}
+        showDollarBalances={showDollarBalances}
+        onManualAddressRemoved={handleManualAddressRemoved}
+        onFetchStatusChange={(isFetching) => {
+          setIsFetchingNFTs(isFetching);
+        }}
+        onInitialNFTLoadComplete={() => setHasLoadedNFTs(true)}
+      />
+
+    )}
+    <footer className="footer">
+      <div className="footer-inner">
+        <div className="footer-title">Cosmos NFTHUB DASHBOARD V1 @2025</div>
+        <div className="footer-bottom">
+          <div className="footer-logo">
+            <span>Built with love by</span>
+            <a href="https://x.com/MisterLoops" target="_blank" rel="noopener noreferrer">
+              <img src="loops-logo.png" alt="Cosmonaut logo" />
+            </a>
+          </div>
+          <button
+            onClick={() => setShowDonation(true)}
+            className="donate-btn"
+            title="Support this project"
+          >
+            <Heart className="donate-icon" />
+          </button>
+        </div>
+      </div>
+    </footer>
+    {/* Donation Modal */}
+    {showDonation && (
+      <div className="donation-overlay" onClick={() => setShowDonation(false)}>
+        <div className="donation-modal" onClick={(e) => e.stopPropagation()}>
+          <button
+            className="close-btn"
+            onClick={() => setShowDonation(false)}
+          >
+            <X size={20} />
+          </button>
+
+          <div className="donation-content">
+            <Heart className="donation-heart" />
+            <h3>Thank you for supporting!</h3>
+            <p>Swap with Skip widget here to support (2% fee)</p>
+            {DONATION_ADDRESSES &&
+              DONATION_ADDRESSES.map((info) => {
+                const isCopied = copiedChain === info.chain;
+
+                return (
+                  <div key={info.chain} className="address-container">
+                    <div className="address-box">
+                      <span className="address-text">{info.chain}</span>
+                      <button
+                        onClick={() => copyAddress(info.chain, info.address)}
+                        className="copy-btn"
+                        title={isCopied ? "Copied!" : "Copy address"}
+                      >
+                        {isCopied ? <Check size={16} /> : <Copy size={16} />}
+                      </button>
                     </div>
-                  );
-                })}
-            </div>
+                    {isCopied && (
+                      <span className="copied-text">Address copied to clipboard!</span>
+                    )}
+                  </div>
+                );
+              })}
           </div>
         </div>
-      )}
-    </div>
-  );
+      </div>
+    )}
+  </div>
+);
 }

@@ -142,6 +142,19 @@ export const CHAIN_CONFIGS = {
     symbol: "FLIX",
     decimals: 6,
   },
+  mantra_dukong_1: {
+    chainId: "mantra-dukong-1",
+    prefix: null, // EVM chains don't use bech32 prefixes
+    displayName: "Loki (Mantra Dukong)",
+    rpc: "https://rpc.dukong.testnet.mantrachain.io",
+    rest: null, // EVM chains typically use JSON-RPC instead of REST
+    evmRpc: "https://rpc.dukong.testnet.mantrachain.io", // EVM JSON-RPC endpoint
+    denom: "uom",
+    symbol: "OM",
+    decimals: 18, // EVM chains typically use 18 decimals
+    isEvm: true, // Flag to indicate this is an EVM chain
+    networkType: "testnet"
+  }
 };
 export const SYMBOL_TO_LOGO = {
   "STARS": "stargaze",
@@ -330,4 +343,71 @@ export const DONATION_ADDRESSES = [
   { chain: "Akash", address: "akash1d2y72xglnyrphze97kqfmccysdqpf499rhezke" },
   { chain: "Atom", address: "cosmos1d2y72xglnyrphze97kqfmccysdqpf499wv590r" },
   { chain: "BTC (taproot)", address: "bc1pj2caj3hjsax74lx6dwlwp6rduxl9j0m7nfeh0fussul0pwa94u4qrlfj70" },
+];
+
+
+export const MANTRA_TESTNET = {
+  chainId: 0x2af8, // replace with actual Mantra EVM chainId in hex (example: 11000 for some Cosmos EVMs)
+  chainName: "Mantra EVM",
+  rpcUrls: ["https://evm.dukong.mantrachain.io/"], // ✅ replace with the correct Mantra RPC endpoint
+  nativeCurrency: {
+    name: "OM",
+    symbol: "OM",
+    decimals: 18,
+  },
+};
+
+export const LOKI_NFT_ADDRESS = "0xd9bc86bfff4fc67aa7a4618534495f4b102eeb23"; // ✅ your Loki NFT contract
+
+export const LOKI_METADATA_BASE_URL = "https://pub-29e67721f9b94aa8ab8b575fc3f58e3a.r2.dev/metadata/";
+
+export const LOKI_NFT_ABI = [
+  // balanceOf(address owner) → uint256
+  {
+    constant: true,
+    inputs: [{ name: "owner", type: "address" }],
+    name: "balanceOf",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  // ownerOf(uint256 tokenId) → address
+  {
+    constant: true,
+    inputs: [{ name: "tokenId", type: "uint256" }],
+    name: "ownerOf",
+    outputs: [{ name: "", type: "address" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  // tokenOfOwnerByIndex(address owner, uint256 index) → uint256
+  {
+    constant: true,
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "index", type: "uint256" },
+    ],
+    name: "tokenOfOwnerByIndex",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  // tokenURI(uint256 tokenId) → string
+  {
+    constant: true,
+    inputs: [{ name: "tokenId", type: "uint256" }],
+    name: "tokenURI",
+    outputs: [{ name: "", type: "string" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  // totalSupply() → uint256
+  {
+    constant: true,
+    inputs: [],
+    name: "totalSupply",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
 ];
