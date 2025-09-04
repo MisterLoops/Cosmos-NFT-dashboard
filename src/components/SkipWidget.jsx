@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 const SkipWidget = ({ showSkipWidget, onClose, connectedAddresses, getCosmosSigner, defaultRoute }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
+  const [isFooterVisible, setIsFooterVisible] = useState(false);
   useEffect(() => {
     setApiOptions({
       cumulativeAffiliateFeeBps: "200",
@@ -121,9 +122,11 @@ const SkipWidget = ({ showSkipWidget, onClose, connectedAddresses, getCosmosSign
   useEffect(() => {
     if (showSkipWidget) {
       setShouldRender(true);
-      setTimeout(() => setIsVisible(true), 10); // Small delay to trigger CSS transition
+      setTimeout(() => setIsVisible(true), 100); // Small delay to trigger CSS transition
+      setTimeout(() => setIsFooterVisible(true), 400);
     } else {
       setIsVisible(false);
+      setIsFooterVisible(false);
       const timer = setTimeout(() => {
         setShouldRender(false);
       }, 300); // Match transition duration
@@ -179,8 +182,9 @@ const SkipWidget = ({ showSkipWidget, onClose, connectedAddresses, getCosmosSign
       defaultRoute: {
         destChainId: undefined,
         destAssetDenom: undefined,
-      }}
-  ),
+      }
+    }
+    ),
   };
 
   return (
@@ -298,15 +302,38 @@ const SkipWidget = ({ showSkipWidget, onClose, connectedAddresses, getCosmosSign
           width: "100%",
           padding: "0 10px",
           position: "relative",
-          transform: isVisible
-            ? "scale(1) translateY(0)"
-            : "scale(0.9) translateY(-20px)",
           opacity: isVisible ? 1 : 0,
-          transition: "all 0.3s ease-out",
+          transition: "opacity 1s ease-in-out",
           zIndex: 5,
         }}
       >
         <Widget {...widgetProps} />
+
+        <div
+          style={{
+            marginTop: "10px",
+            bottom: "10px",
+            textAlign: "center",
+            fontSize: "0.85rem",
+            color: "rgba(255,255,255,0.7)",
+            opacity: isFooterVisible ? 1 : 0,
+            transition: "opacity 3s ease-in-out",
+          }}
+        >
+          <a
+            href="https://go.skip.build/"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: "#FF66FF",
+              textDecoration: "none",
+              fontWeight: "bold",
+            }}
+          >
+            go.skip.build
+          </a>{" "}
+          is powered by Cosmos Hub, IBC Eureka & Skip:Go ❤️
+        </div>
       </div>
 
       <style>{`

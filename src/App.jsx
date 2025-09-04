@@ -1942,7 +1942,7 @@ export default function App() {
             <div className="donation-content">
               <Heart className="donation-heart" />
               <h3>Thank you for supporting!</h3>
-              <p>Swap with Skip widget here to support (2% fee)</p>
+              <p>Swap with Skip widget here to support the NFTHUB (2% fee)</p>
               {DONATION_ADDRESSES &&
                 DONATION_ADDRESSES.map((info) => {
                   const isCopied = copiedChain === info.chain;
