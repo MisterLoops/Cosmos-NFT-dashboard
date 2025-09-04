@@ -58,7 +58,7 @@ export default function App() {
   });
   const [showDonation, setShowDonation] = useState(false);
   const [showSkipWidget, setShowSkipWidget] = useState(false);
-  const [skipDefaultRoute, setSkipDefaultfRoute] = useState({});
+  const [skipDefaultRoute, setSkipDefaultRoute] = useState(undefined);
   const [copiedChain, setCopiedChain] = useState(null);
 
   // Refs to track if prices have been fetched to prevent duplicates
@@ -1199,6 +1199,13 @@ export default function App() {
 
   const formatAddress = (address) => {
     if (!address) return "";
+
+    // ✅ Detect EVM address (0x + 40 hex chars)
+    if (/^0x[a-fA-F0-9]{40}$/.test(address)) {
+      return `${address.slice(0, 6)}...${address.slice(-4)}`;
+    }
+
+    // ✅ Assume Cosmos bech32 otherwise
     const parts = address.split("1");
     if (parts.length < 2) return address;
     const prefix = parts[0] + "1";
@@ -1248,15 +1255,14 @@ export default function App() {
   };
 
   // ✅ Create signer functions for SkipWidget
-  const widgetSigners = {
-    getCosmosSigner: async (chainId) => {
-      if (signers && signers[chainId]) {
-      return signers[chainId]; // return the existing OfflineSigner
-    }
-    throw new Error(`No signer available for chain ${chainId}`);
-  },
-    getEvmSigner: async () => { throw new Error("EVM not implemented"); },
-    getSvmSigner: async () => { throw new Error("SVM not implemented"); },
+  const getCosmosSigner = async (chainId) => {
+    const signer = signers?.[chainId];
+    if (signer) return signer;
+    console.warn(`[Skip] No signer available for chain ${chainId}`);
+    return undefined; // Instead of throw
+
+    // getEvmSigner: async () => undefined,
+    // getSvmSigner: async () => undefined,
   };
 
   const handleDisconnect = () => {
@@ -1499,17 +1505,23 @@ export default function App() {
   // Removed gating logic, access is granted if wallet is connected.
   // The "Access Denied" view is removed.
   const handleBalanceClick = async (defaultRoute) => {
-    setSkipDefaultfRoute(defaultRoute);
-    console.log(defaultRoute);
+    const safeDefaultRoute = defaultRoute?.destChainId
+      ? {
+        destChainId: defaultRoute.destChainId,
+        destAssetDenom: defaultRoute.destAssetDenom || "",
+      }
+      : undefined;
+    setSkipDefaultRoute(safeDefaultRoute);
     if (!showSkipWidget) {
       setShowSkipWidget(true);
     }
-  }
+  };
+
   return (
     <div className={`${(hasCompletedInitialLoad) ? "app" : "app-connecting"}`}>
       <SkipWidget showSkipWidget={showSkipWidget}
         connectedAddresses={mapAddressesForSkip(addresses)}
-        signers={widgetSigners}
+        getCosmosSigner={getCosmosSigner}
         defaultRoute={skipDefaultRoute}
         onClose={() => setShowSkipWidget(false)} />
       <header className="app-header">
@@ -1563,6 +1575,9 @@ export default function App() {
             className="skip-logo__img"
             onClick={() => {
               if (!isFetchingNFTs || hasLoadedNFTs) {
+                if (!showSkipWidget) {
+                  setSkipDefaultRoute(undefined);
+                }
                 setShowSkipWidget(!showSkipWidget);
               }
             }}
@@ -1712,7 +1727,7 @@ export default function App() {
                             >
                               <div className="address-details">
                                 <div className="chain-label">
-                                  {chain.toUpperCase()}
+                                  {chain.replace(/_manual$/, '').toUpperCase()}
                                 </div>
                                 <div className="address-value">
                                   {formatAddress(address)}
@@ -1870,7 +1885,7 @@ export default function App() {
       {/* Desktop Chain-Based Portfolio */}
       {Object.keys(chainBalances).length > 0 && hasCompletedInitialLoad && (
         <DesktopChainPortfolio chainBalances={chainBalances} showDollarBalances={showDollarBalances}
-          setShowDollarBalances={setShowDollarBalances} nftOffers={nftOffers} onBalanceClick={handleBalanceClick}/>
+          setShowDollarBalances={setShowDollarBalances} nftOffers={nftOffers} onBalanceClick={handleBalanceClick} />
       )}
 
 

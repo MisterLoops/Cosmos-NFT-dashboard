@@ -2,10 +2,9 @@ import { Widget } from "@skip-go/widget";
 import { setApiOptions } from "@skip-go/client";
 import { useEffect, useState } from "react";
 
-const SkipWidget = ({ showSkipWidget, onClose, connectedAddresses, signers, defaultRoute }) => {
+const SkipWidget = ({ showSkipWidget, onClose, connectedAddresses, getCosmosSigner, defaultRoute }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
-
   useEffect(() => {
     setApiOptions({
       cumulativeAffiliateFeeBps: "200",
@@ -18,10 +17,106 @@ const SkipWidget = ({ showSkipWidget, onClose, connectedAddresses, signers, defa
             },
           ],
         },
-        // ... all your affiliate configs unchanged
+        "injective-1": {
+          affiliates: [
+            {
+              address: "inj1xrrwujj7yph2kh803x4nu8s90m2nd8dgs5cfmy",
+              basisPointsFee: "200",
+            },
+          ],
+        },
+        "neutron-1": {
+          affiliates: [
+            {
+              address: "neutron1d2y72xglnyrphze97kqfmccysdqpf4992na84y",
+              basisPointsFee: "200",
+            },
+          ],
+        },
+        "osmosis-1": {
+          affiliates: [
+            {
+              address: "osmo1d2y72xglnyrphze97kqfmccysdqpf499xh84e3",
+              basisPointsFee: "200",
+            },
+          ],
+        },
+        "elys-1": {
+          affiliates: [
+            {
+              address: "elys1d2y72xglnyrphze97kqfmccysdqpf499wvdzzp",
+              basisPointsFee: "200",
+            },
+          ],
+        },
+        "archway-1": {
+          affiliates: [
+            {
+              address: "archway1d2y72xglnyrphze97kqfmccysdqpf499m8gp95",
+              basisPointsFee: "200",
+            },
+          ],
+        },
+        "bbn-1": {
+          affiliates: [
+            {
+              address: "bbn1d2y72xglnyrphze97kqfmccysdqpf499ej95s6",
+              basisPointsFee: "200",
+            },
+          ],
+        },
+        "chihuahua-1": {
+          affiliates: [
+            {
+              address: "chihuahua1d2y72xglnyrphze97kqfmccysdqpf499deetwp",
+              basisPointsFee: "200",
+            },
+          ],
+        },
+        "migaloo-1": {
+          affiliates: [
+            {
+              address: "migaloo1d2y72xglnyrphze97kqfmccysdqpf499rcal6d",
+              basisPointsFee: "200",
+            },
+          ],
+        },
+        "core-1": {
+          affiliates: [
+            {
+              address: "persistence1d2y72xglnyrphze97kqfmccysdqpf499qqjkp8",
+              basisPointsFee: "200",
+            },
+          ],
+        },
+        "pryzm-1": {
+          affiliates: [
+            {
+              address: "pryzm1d2y72xglnyrphze97kqfmccysdqpf499kurz3s",
+              basisPointsFee: "200",
+            },
+          ],
+        },
+        "phoenix-1": {
+          affiliates: [
+            {
+              address: "terra13zxrmk824fuv8v6t4tedmpctqe64re9m52u678",
+              basisPointsFee: "200",
+            },
+          ],
+        },
+        "pacific-1": {
+          affiliates: [
+            {
+              address: "sei1d2y72xglnyrphze97kqfmccysdqpf499rq9nfz",
+              basisPointsFee: "200",
+            },
+          ],
+        },
       },
     });
   }, []);
+
 
   useEffect(() => {
     if (showSkipWidget) {
@@ -74,11 +169,18 @@ const SkipWidget = ({ showSkipWidget, onClose, connectedAddresses, signers, defa
       useUnlimitedApproval: true,
     },
     connectedAddresses,
-    signers,
-    defaultRoute:{
-      destChainId: defaultRoute.destChainId ? defaultRoute.destChainId : "",
-      destAssetDenom: defaultRoute.destAssetDenom ? defaultRoute.destAssetDenom : "",
-    }
+    getCosmosSigner,
+    ...(defaultRoute ? {
+      defaultRoute: {
+        destChainId: defaultRoute?.destChainId || undefined,
+        destAssetDenom: defaultRoute?.destAssetDenom || undefined,
+      },
+    } : {
+      defaultRoute: {
+        destChainId: undefined,
+        destAssetDenom: undefined,
+      }}
+  ),
   };
 
   return (
