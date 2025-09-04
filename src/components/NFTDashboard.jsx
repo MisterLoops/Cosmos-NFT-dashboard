@@ -142,6 +142,7 @@ export default function NFTDashboard({
     }
   }, [hasLoadedNFTs, onInitialNFTLoadComplete]);
 
+
   // Function to remove NFTs associated with a manual address
   const removeNFTsByManualAddress = useCallback(
     (chainName, manualAddress) => {
@@ -238,7 +239,7 @@ export default function NFTDashboard({
   // Expose the removal function to parent component
   useEffect(() => {
     if (typeof window !== "undefined") {
-      window.removeNFTsByManualAddress = removeNFTsByManualAddress; 
+      window.removeNFTsByManualAddress = removeNFTsByManualAddress;
     }
   }, [removeNFTsByManualAddress]);
 
@@ -397,9 +398,9 @@ export default function NFTDashboard({
                 key: addressKey,
               });
             }
+
           }
         });
-
 
         if (chainAddresses.length > 0) {
           chainsToProcess.push({ chain, chainAddresses });
@@ -419,17 +420,12 @@ export default function NFTDashboard({
       chainAddresses.some(({ type }) => type === "connected")
     );
 
-    // Check if we're ONLY processing new manual addresses (not initial connected addresses)
-    // const isOnlyNewManualAddresses = hasManualAddresses && !hasConnectedAddresses;
-    // Also check if this is a subsequent fetch (not the initial load)
-    // const hasExistingNFTs = nfts.length > 0;
-
     // Set appropriate fetching state
     if (hasManualAddresses && !hasConnectedAddresses) {
-      // Manual addresses only OR adding manual addresses to existing collection - use compact animation
+      // Only manual addresses - use compact animation
       setIsManualAddressFetching(true);
     } else if (hasConnectedAddresses) {
-      // Initial connected addresses fetch - use main loading animation
+      // Connected addresses (first fetch) - use main loading animation
       setIsFetchingNFTs(true);
       if (onFetchStatusChange) {
         onFetchStatusChange(true);
@@ -650,7 +646,6 @@ export default function NFTDashboard({
       // console.log(
       //   `[DEBUG] Fetching NFTs for chain: "${chain.name}" with ${chainAddresses.length} addresses`,
       // );
-
       // Don't skip if there are manual Loki addresses
       if (
         chain.name === "mantra_dukong_1" &&
@@ -662,7 +657,6 @@ export default function NFTDashboard({
         console.log("[DEBUG] Loki chain skipped - no connected or manual address");
         return [];
       }
-
       // Validate addresses for this chain
       const validAddresses = [];
       const chainPrefix = CHAIN_CONFIGS[chain.name]?.prefix;
@@ -856,6 +850,8 @@ export default function NFTDashboard({
                 Object.entries(floorList).map(([symbol, amount]) => {
                   const normalizedSymbol = String(symbol).toUpperCase(); // normalize
                   const price = assetPrices[normalizedSymbol] ?? assetPrices[symbol] ?? 0;
+
+                  // console.log("Symbol:", symbol, "Normalized:", normalizedSymbol, "Price:", price, "assetPrices", assetPrices);
                   return [
                     symbol,
                     {
@@ -877,7 +873,6 @@ export default function NFTDashboard({
           console.error(`[ERROR] Error fetching Omniflix NFTs:`, error);
           return [];
         }
-
       } else if (chain.name === "mantra_dukong_1") {
         try {
           const allNFTs = [];
@@ -902,6 +897,8 @@ export default function NFTDashboard({
           return [];
         }
       }
+
+
       // For other chains, return empty array for now
       // console.log(
       //   `[DEBUG] Chain ${chain.name} not implemented yet, returning empty array`,

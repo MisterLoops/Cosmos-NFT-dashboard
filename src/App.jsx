@@ -5,6 +5,7 @@ import WalletConnect from "./components/WalletConnect";
 import NFTDashboard from "./components/NFTDashboard";
 import ChainBasedPortfolio from "./components/ChainBasedPortfolio";
 import DesktopChainPortfolio from "./components/DesktopChainPortfolio";
+import SkipWidget from "./components/SkipWidget";
 import { Trash2, Copy, Check, Heart, X } from "lucide-react";
 import {
   CHAIN_CONFIGS,
@@ -20,6 +21,8 @@ import {
 export default function App() {
   const [wallet, setWallet] = useState(null);
   const [addresses, setAddresses] = useState({});
+  const [addressesForSkip, setAddressesForSkip] = useState({});
+  const [signers, setSigners] = useState(null);
   const [hasAccess, setHasAccess] = useState(false);
   const [error, setError] = useState("");
   const [showTokens, setShowTokens] = useState(false);
@@ -45,7 +48,7 @@ export default function App() {
   const [binjPrice, setBinjPrice] = useState(1.0);
   const [tokenPrices, setTokenPrices] = useState({});
   const [confirmingRemoval, setConfirmingRemoval] = useState(null);
-  const [isFetchingNFTs, setIsFetchingNFTs] = useState(true);
+  const [isFetchingNFTs, setIsFetchingNFTs] = useState(false);
   const [hasCompletedInitialLoad, setHasCompletedInitialLoad] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState(null);
   const [scrollState, setScrollState] = useState({
@@ -54,6 +57,8 @@ export default function App() {
     isScrollable: false,
   });
   const [showDonation, setShowDonation] = useState(false);
+  const [showSkipWidget, setShowSkipWidget] = useState(false);
+  const [skipDefaultRoute, setSkipDefaultRoute] = useState(undefined);
   const [copiedChain, setCopiedChain] = useState(null);
 
   // Refs to track if prices have been fetched to prevent duplicates
@@ -252,7 +257,6 @@ export default function App() {
 
     const balancePromises = Object.entries(addresses).filter(([chainName]) => chainName !== "mantra_dukong_1").map(
       async ([chainName, address]) => {
-
         if (CHAIN_ENDPOINTS[chainName]) {
           try {
             const endpoint = CHAIN_ENDPOINTS[chainName];
@@ -1044,11 +1048,12 @@ export default function App() {
   // updated to accept manualAddress if walletType is "manual"
   const getAddressesFromChains = async (walletInfo) => {
     const addresses = {};
+
     try {
       // Handle MANUAL ENTRY directly
       if (walletInfo.type === "manual") {
         if (!walletInfo.stargazeAddress || !walletInfo.injectiveAddress || !walletInfo.initiaAddress) {
-          throw new Error("Manual entry requires Stargaze, Injective and Initia addresses");
+          throw new Error("Manual entry requires both Stargaze, Injective and Initia addresses");
         }
 
         // 1️⃣ Derive all Cosmos SDK addresses from Stargaze
@@ -1063,14 +1068,12 @@ export default function App() {
         addresses.injective = walletInfo.injectiveAddress;
         addresses.initia = walletInfo.initiaAddress;
 
-        // NEW: Add Loki EVM address if provided
         if (walletInfo.lokiEvmAddress) {
           addresses["mantra_dukong_1"] = walletInfo.lokiEvmAddress;
         }
 
         return addresses;
       }
-
       // Otherwise, KEPLR or LEAP normal flow
       const chainIds = [
         "stargaze-1",
@@ -1114,12 +1117,10 @@ export default function App() {
         );
         addresses["dungeon"] = dungeonAddr;
       }
-
       // NEW: Add Loki EVM address if provided
       if (walletInfo.lokiEvmAddress) {
         addresses["mantra_dukong_1"] = walletInfo.lokiEvmAddress;
       }
-
     } catch (error) {
       console.error("Failed to connect to chains:", error);
       throw new Error(
@@ -1198,6 +1199,13 @@ export default function App() {
 
   const formatAddress = (address) => {
     if (!address) return "";
+
+    // ✅ Detect EVM address (0x + 40 hex chars)
+    if (/^0x[a-fA-F0-9]{40}$/.test(address)) {
+      return `${address.slice(0, 6)}...${address.slice(-4)}`;
+    }
+
+    // ✅ Assume Cosmos bech32 otherwise
     const parts = address.split("1");
     if (parts.length < 2) return address;
     const prefix = parts[0] + "1";
@@ -1206,13 +1214,35 @@ export default function App() {
     return `${prefix}${mainPart.slice(0, 4)}...${mainPart.slice(-3)}`;
   };
 
+  const mapAddressesForSkip = (addresses) => {
+    const skipAddresses = {};
+
+    for (const [name, addr] of Object.entries(addresses)) {
+      if (CHAIN_CONFIGS[name] && CHAIN_CONFIGS[name].chainId) {
+        skipAddresses[CHAIN_CONFIGS[name].chainId] = addr;
+      }
+    }
+
+    return skipAddresses;
+  };
+
   const handleWalletConnect = async (walletInfo) => {
     setWallet(walletInfo);
+
+    // ✅ Store signers in state
+    setSigners(walletInfo.signers);
 
     try {
       const allAddresses = await getAddressesFromChains(walletInfo);
       setAddresses(allAddresses);
 
+      if (walletInfo.type !== "manual") {
+        // Convert chain names → chain IDs for Skip
+        const skipReadyAddresses = mapAddressesForSkip(allAddresses);
+        setAddressesForSkip(skipReadyAddresses);
+      } else {
+        setAddressesForSkip({});
+      }
       // No longer gating, so set hasAccess to true directly
       setHasAccess(true);
 
@@ -1222,6 +1252,17 @@ export default function App() {
       console.error("Error connecting to chains:", error);
       setError("Failed to connect to all chains");
     }
+  };
+
+  // ✅ Create signer functions for SkipWidget
+  const getCosmosSigner = async (chainId) => {
+    const signer = signers?.[chainId];
+    if (signer) return signer;
+    console.warn(`[Skip] No signer available for chain ${chainId}`);
+    return undefined; // Instead of throw
+
+    // getEvmSigner: async () => undefined,
+    // getSvmSigner: async () => undefined,
   };
 
   const handleDisconnect = () => {
@@ -1268,6 +1309,20 @@ export default function App() {
       return false;
     }
   };
+  // const isAddressValid = (address, chainPrefix) => {
+  //   // Handle special case for Neutron addresses which use "neutron1" prefix
+  //   const expectedPrefix = chainPrefix === "neutron" ? "neutron1" : chainPrefix;
+
+  //   // Basic check for prefix and length (typical length is 39-65 characters for Neutron)
+  //   const minLength = chainPrefix === "neutron" ? 39 : 39;
+  //   const maxLength = chainPrefix === "neutron" ? 70 : 70;
+
+  //   return (
+  //     address.startsWith(expectedPrefix) &&
+  //     address.length >= minLength &&
+  //     address.length <= maxLength
+  //   );
+  // };
 
   const handleAddManualAddress = () => {
     if (!manualAddress.trim()) {
@@ -1289,16 +1344,17 @@ export default function App() {
     }
 
     if (!isAddressValid(trimmedAddress, prefix, selectedChain)) {
+      // Handle special error message for Neutron
       setError(
-        `Invalid address for ${selectedChain.toUpperCase()}.`
+        `Invalid address for ${selectedChain.toUpperCase()}.`,
       );
       return;
     }
 
-    // ✅ Clear any previous errors
+    // Clear any previous errors
     setError("");
 
-    // ✅ Save address for the selected chain
+    // Add the valid address
     setAddressLoading((prev) => ({ ...prev, [selectedChain]: true }));
     setManualAddresses((prev) => ({
       ...prev,
@@ -1308,7 +1364,6 @@ export default function App() {
     setShowManualAddressForm(false);
     setShowWalletDropdown(false);
   };
-
 
   const handleRemovalConfirmation = (chain) => {
     setConfirmingRemoval(chain);
@@ -1406,7 +1461,20 @@ export default function App() {
 
   // Combine connected and manual addresses for NFT fetching
   const getAllAddresses = () => {
-    return { ...addresses, ...manualAddresses };
+    return { ...addresses, ...manualAddresses }
+
+
+    // Add manual addresses to their respective chains
+    // Object.entries(manualAddresses).forEach(([chain, address]) => {
+    //   if (!combined[chain]) {
+    //     combined[chain] = address;
+    //   } else {
+    //     // If there's already a connected address, we'll handle both in fetchAllNFTs
+    //     combined[`${chain}_manual`] = address;
+    //   }
+    // });
+
+    // return combined;
   };
 
   // Close wallet dropdown when clicking outside
@@ -1436,9 +1504,26 @@ export default function App() {
 
   // Removed gating logic, access is granted if wallet is connected.
   // The "Access Denied" view is removed.
+  const handleBalanceClick = async (defaultRoute) => {
+    const safeDefaultRoute = defaultRoute?.destChainId
+      ? {
+        destChainId: defaultRoute.destChainId,
+        destAssetDenom: defaultRoute.destAssetDenom || "",
+      }
+      : undefined;
+    setSkipDefaultRoute(safeDefaultRoute);
+    if (!showSkipWidget) {
+      setShowSkipWidget(true);
+    }
+  };
 
   return (
     <div className={`${(hasCompletedInitialLoad) ? "app" : "app-connecting"}`}>
+      <SkipWidget showSkipWidget={showSkipWidget}
+        connectedAddresses={mapAddressesForSkip(addresses)}
+        getCosmosSigner={getCosmosSigner}
+        defaultRoute={skipDefaultRoute}
+        onClose={() => setShowSkipWidget(false)} />
       <header className="app-header">
         <div className="app-title-container">
           <img src="/cosmosNFTHUBlogo.png" alt="Logo" className="app-logo" />
@@ -1476,6 +1561,79 @@ export default function App() {
             </a>
           </div>
         </div>
+        <div
+          className={`skip-logo ${isFetchingNFTs && !hasLoadedNFTs ? "disabled" : ""}`}
+          data-tooltip={
+            isFetchingNFTs
+              ? "To swap with Skip, please wait for the NFTs fetch to end 😉"
+              : "Swap with Skip widget and support the NFTHUB (2% fee)"
+          }
+        >
+          <img
+            src="/skip.png"
+            alt="skip_logo"
+            className="skip-logo__img"
+            onClick={() => {
+              if (!isFetchingNFTs || hasLoadedNFTs) {
+                if (!showSkipWidget) {
+                  setSkipDefaultRoute(undefined);
+                }
+                setShowSkipWidget(!showSkipWidget);
+              }
+            }}
+          />
+        </div>
+        <style>{`
+        .skip-logo { position: relative; display: inline-block; }
+
+        .skip-logo__img {
+          cursor: pointer;
+          max-width: 100px;
+          display: block;
+          transform: scale(1.05);
+          transition: transform 0.25s ease;
+        }
+
+        /* Scale only if not disabled */
+        .skip-logo:not(.disabled):hover .skip-logo__img {
+          transform: scale(1.15);
+        }
+
+        /* Disabled state */
+        .skip-logo.disabled .skip-logo__img {
+          cursor: not-allowed;
+          opacity: 0.6;
+          pointer-events: none;
+        }
+
+        /* Tooltip */
+        .skip-logo::after {
+          content: attr(data-tooltip);
+          position: absolute;
+          bottom: -50px;
+          left: 50%;
+          transform: translateX(-50%);
+          white-space: nowrap;
+          background: rgba(30,30,47,0.95);
+          padding: 6px 10px;
+          border: 1px solid rgba(255,255,255,0.3);
+          border-radius: 8px;
+          font-size: 0.8rem;
+          color: rgba(255,255,255,0.7);
+          font-weight: 500;
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 0.2s ease;
+          z-index: 1000;
+        }
+        .skip-logo:hover::after { opacity: 1; }
+
+        @media (max-width: 768px) {
+          .skip-logo {
+            display: none !important;
+          }
+        }
+`}</style>
         {<div className="wallet-info">
           <button
             onClick={() => {
@@ -1569,7 +1727,7 @@ export default function App() {
                             >
                               <div className="address-details">
                                 <div className="chain-label">
-                                  {chain.toUpperCase()}
+                                  {chain.replace(/_manual$/, '').toUpperCase()}
                                 </div>
                                 <div className="address-value">
                                   {formatAddress(address)}
@@ -1727,8 +1885,9 @@ export default function App() {
       {/* Desktop Chain-Based Portfolio */}
       {Object.keys(chainBalances).length > 0 && hasCompletedInitialLoad && (
         <DesktopChainPortfolio chainBalances={chainBalances} showDollarBalances={showDollarBalances}
-          setShowDollarBalances={setShowDollarBalances} nftOffers={nftOffers} />
+          setShowDollarBalances={setShowDollarBalances} nftOffers={nftOffers} onBalanceClick={handleBalanceClick} />
       )}
+
 
       {!wallet ? (
         <WalletConnect onConnect={handleWalletConnect} error={error} />
@@ -1783,8 +1942,7 @@ export default function App() {
             <div className="donation-content">
               <Heart className="donation-heart" />
               <h3>Thank you for supporting!</h3>
-              <p>I spent quite much time on this.</p>
-              <p>Any donation welcome 😉</p>
+              <p>Swap with Skip widget here to support the NFTHUB (2% fee)</p>
               {DONATION_ADDRESSES &&
                 DONATION_ADDRESSES.map((info) => {
                   const isCopied = copiedChain === info.chain;

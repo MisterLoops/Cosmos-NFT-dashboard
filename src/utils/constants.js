@@ -8,8 +8,8 @@ export const API_ENDPOINTS = {
   INTERGAZE_API: "https://api.intergaze-apis.com/api/v1",
   BACKBONE_LABS_API: "https://warlock.backbonelabs.io/api/v1",
   SUPERBOLT_API: "https://api.superbolt.wtf/api/graphql",
-  OMNIFLIX_API: "https://data-api.omniflix.studio",
-  OMNIFLIX_ACTIVITY_API: "https://activity-api.omniflix.studio",
+  OMNIFLIX_API:"https://data-api.omniflix.studio",
+  OMNIFLIX_ACTIVITY_API:"https://activity-api.omniflix.studio",
   IPFS_DAO_DAO_ZONE: "https://ipfs.dao.daodao.zone/ipfs/",
   DAO_DAO_INDEXER: "https://indexer.daodao.zone",
   NEUTRON_INDEXER: "https://rest-kralum.neutron-1.neutron.org",
@@ -195,7 +195,7 @@ export const TOKEN_LOGOS = {
   bOSMO: "https://raw.githubusercontent.com/cosmos/chain-registry/master/osmosis/images/bOSMO.png",
   LAB: "https://raw.githubusercontent.com/cosmos/chain-registry/master/osmosis/images/LAB.png",
   BIKE: "https://raw.githubusercontent.com/cosmostation/chainlist/master/chain/mantra/asset/BIKE.png",
-  dungeon: "https://raw.githubusercontent.com/cosmos/chain-registry/master/dungeon/images/DGN.png",
+  dungeon:"https://raw.githubusercontent.com/cosmos/chain-registry/master/dungeon/images/DGN.png",
   omniflix: "https://raw.githubusercontent.com/cosmos/chain-registry/master/omniflixhub/images/flix.png",
   SPICE: "https://raw.githubusercontent.com/cosmos/chain-registry/master/osmosis/images/spice.png",
   YGATA: "https://raw.githubusercontent.com/cosmos/chain-registry/master/omniflixhub/images/ygata.png"
@@ -271,7 +271,7 @@ export const IBC_TOKEN_MAPPINGS = {
   'ibc/1C1C7D78176056F3ADD028904EF29BD966F7A3F01526FDBDAC3AFB376A59733D': { symbol: 'LAB', decimals: 6, originChain: 'LAB' }, // LAB on Cosmoshub
   'ibc/C1F4520E07B9190EA08FBAA5E1D68109B9738B5B717904C62F0EE9CA89471EC0': { symbol: 'LAB', decimals: 6, originChain: 'LAB' }, // LAB on Neutron
   'ibc/18B0967BE3E73DCCE3F10EDE6DEFC472AAA3339DBE536E77C0B8E7BCE2628966': { symbol: 'LAB', decimals: 6, originChain: 'LAB' }, // LAB on Omniflix
-
+  
   // bINJ on Injective
   'factory/inj1dxp690rd86xltejgfq2fa7f2nxtgmm5cer3hvu/bINJ': { symbol: 'bINJ', decimals: 18, originChain: 'bINJ' }, // bINJ on Injective
 

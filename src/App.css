@@ -8,7 +8,12 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   background: linear-gradient(135deg, #1e1e2f 0%, #2d2d44 100%);
   color: white;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;
   /* max-height: 100vh; */
+}
+body::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .app {
@@ -94,6 +99,7 @@ body {
   transform-origin: top center;
   z-index: 1000;
 }
+
 
 /* Tooltip arrow */
 .marketplace-logos a::before {
@@ -186,8 +192,8 @@ body {
 .token-balances {
   position: absolute;
   top: 5.4rem;
-  left: 0.5rem;
-  right: 0.5rem;
+  /* left: 0.5rem;
+  right: 0.5rem; */
   background: #1e1e2f;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -197,25 +203,26 @@ body {
   padding: 0 1.5rem;
   opacity: 0;
   transform: translateY(-20px);
-  transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  z-index: 2000;
+  /* transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94); */
+  z-index: 10;
   scrollbar-width: thin;
   scrollbar-color: rgba(16, 185, 129, 0.5) rgba(255, 255, 255, 0.1);
 }
 
 .token-balances.visible {
-  max-height: 600px;
+  max-height: 100%;
   padding: 1.5rem;
   opacity: 1;
-  transform: translateY(0);
+  min-width:100%;
 }
 
 .token-balances.closing {
-  max-height: 0;
+  max-height: 100%;
+  min-width:100%;
   padding: 0 1.5rem;
   opacity: 0;
-  transform: translateY(-10px);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.6, 1);
+  /* transform: translateY(+10px); */
+  /* transition: all 0.25s cubic-bezier(0.4, 0, 0.6, 1); */
 }
 
 .token-balances::-webkit-scrollbar {
@@ -238,9 +245,15 @@ body {
 }
 
 @media (max-width: 768px) {
+  .skip-logo {
+    display: none;
+  }
   .token-balances.visible {
-    max-height: 400px;
+    /* max-height: 400px; */
     overflow-y: visible;
+    min-width:100%;
+    margin-left:0;
+    
   }
   .app-connecting {
   height: auto;
@@ -1639,7 +1652,6 @@ body {
   display: block;
 }
 
-
 .access-denied {
   display: flex;
   flex-direction: column;
@@ -1712,7 +1724,7 @@ body {
   justify-content: center;
   color: white;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  z-index: 500;
+  z-index: 1;
   overflow-y: hidden;
   margin-bottom:0;
   /* Highest z-index to ensure it appears above everything */
