@@ -1668,7 +1668,7 @@ export default function App() {
               className="wallet-btn"
               disabled={(!hasCompletedInitialLoad && isFetchingNFTs)}
             >
-              {hasCompletedInitialLoad ? wallet.name : "....."}
+              {hasCompletedInitialLoad && wallet ? wallet.name : "....."}
             </button>
 
             {(showWalletDropdown || walletDropdownClosing) && (
