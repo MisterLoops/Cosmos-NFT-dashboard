@@ -158,15 +158,44 @@ const SkipWidget = ({ showSkipWidget, onClose, connectedAddresses, getCosmosSign
 
   const widgetProps = {
     theme: {
-      brandColor: "#FF66FF",
-      borderRadius: {
-        main: "25px",
-        selectionButton: "10px",
-        ghostButton: "30px",
-        modalContainer: "20px",
-        rowItem: "12px",
+    brandColor: '#ff66ff',
+    borderRadius: {
+      main: '25px',
+      selectionButton: '10px',
+      ghostButton: '30px',
+      modalContainer: '20px',
+      rowItem: '12px',
+    },
+    primary: {
+      background: {
+        normal: '#000000',
+      },
+      text: {
+        normal: '#ffffff',
+        lowContrast: '#ffffff80',
+        ultraLowContrast: '#ffffff4D',
+      },
+      ghostButtonHover: '#000000ff',
+    },
+    secondary: {
+      background: {
+        normal: '#141414',
+        transparent: '#252525B3',
+        hover: '#4A4A4A',
       },
     },
+    success: {
+      text: '#6fde00',
+    },
+    warning: {
+      background: '#411f00',
+      text: '#ff7a00',
+    },
+    error: {
+      background: '#430000',
+      text: '#ff1616',
+    },
+  },
     settings: {
       slippage: 1,
       useUnlimitedApproval: true,
