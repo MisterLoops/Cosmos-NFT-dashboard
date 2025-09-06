@@ -163,7 +163,7 @@ export default function DesktopChainPortfolio({ chainBalances, showDollarBalance
             </div>
           )}
         </div>
-        {(omGendrop.amount < 0 && daysRemaining !== null) && (
+        {(omGendrop.amount > 0 && daysRemaining !== null) && (
           <div className="gendrop-alert-wrapper">
             <a
               href="https://mantra.zone/my-overview"

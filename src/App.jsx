@@ -1703,7 +1703,7 @@ export default function App() {
                 setShowTokens(true);
               }
             }}
-            className="tokens-btn mobile-only"
+            className={`tokens-btn mobile-only ${hasCompletedInitialLoad ? "highlight" : ""}`}
             disabled={Object.keys(chainBalances).length === 0}
           >
             Portfolio
@@ -1935,6 +1935,7 @@ export default function App() {
           showTokens={showTokens}
           tokenBalancesClosing={tokenBalancesClosing}
           nftOffers={nftOffers}
+          omGendrop={omGendrop}
         />
       )}
 

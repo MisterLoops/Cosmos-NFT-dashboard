@@ -2131,6 +2131,63 @@ body::-webkit-scrollbar {
   animation: gradientMove 6s ease infinite;
   transition: transform 0.2s ease;
 }
+.tokens-btn {
+  display: inline-flex;           /* flex inside button */
+  align-items: center;            /* center vertically */
+  justify-content: center;        /* center horizontally */
+  
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border: none;
+  background: #333;
+  color: white;
+  transition: transform 0.1s ease;
+  text-align: center;
+
+  -webkit-tap-highlight-color: transparent; /* mobile fix */
+  outline: none;
+}
+
+.tokens-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 🌈 Highlight state (gradient only) */
+.tokens-btn.highlight {
+  background: linear-gradient(270deg, #ff97d6, #f9b995, #ff97d6);
+  background-size: 300% 300%;
+  animation: gradientMove 6s ease infinite;
+  color: #302f2d;
+  overflow: hidden;
+}
+
+/* 📏 Pulse only the label, not the button container */
+.tokens-btn.highlight .btn-label {
+  display: inline-block;
+  animation: pulseSize 2s ease-in-out infinite;
+}
+/* ✅ Keep gradient + animation active on press */
+.tokens-btn.highlight:focus,
+.tokens-btn.highlight:hover {
+  background: linear-gradient(270deg, #ff97d6, #f9b995, #ff97d6);
+  background-size: 300% 300%;
+  animation: gradientMove 6s ease infinite;
+  transform: scale(0.95); /* press effect */
+  color: #302f2d;
+}
+/* ✅ On press: shrink the whole button */
+.tokens-btn.highlight:active {
+  transform: scale(0.9);
+  background: linear-gradient(270deg, #ff97d6, #f9b995, #ff97d6);
+  background-size: 300% 300%;
+  animation: gradientMove 6s ease infinite;
+  color: #302f2d;
+  overflow: hidden;
+}
 
 .gendrop-alert:hover {
   transform: scale(1.03);
@@ -2145,6 +2202,15 @@ body::-webkit-scrollbar {
   }
   100% {
     background-position: 0% 50%;
+  }
+}
+/* 📏 Gentle size pulse animation */
+@keyframes pulseSize {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
   }
 }
 

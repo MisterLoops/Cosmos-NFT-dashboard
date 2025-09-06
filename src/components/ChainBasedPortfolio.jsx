@@ -6,10 +6,22 @@ import {
   CHAIN_CONFIGS
 } from "../utils/constants.js";
 
-export default function ChainBasedPortfolio({ chainBalances, showTokens, tokenBalancesClosing, nftOffers }) {
+export default function ChainBasedPortfolio({ chainBalances, showTokens, tokenBalancesClosing, nftOffers, omGendrop }) {
   const [showOffersCard, setShowOffersCard] = useState(false);
   const [showSkipWidget, setShowSkipWidget] = useState(false);
+  const [daysRemaining, setDaysRemaining] = useState(null);
 
+  useEffect(() => {
+      const today = new Date();
+      const deadline = new Date(today.getFullYear(), 8, 18); // Month 8 = September
+      const diffTime = deadline - today;
+  
+      if (diffTime > 0) {
+        setDaysRemaining(Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+      } else {
+        setDaysRemaining(0);
+      }
+    }, []);
   // Calculate total portfolio value
   const totalPortfolioValue = Object.values(chainBalances).reduce(
     (total, chainData) => total + (chainData.totalValue || 0),
@@ -38,6 +50,21 @@ export default function ChainBasedPortfolio({ chainBalances, showTokens, tokenBa
           })}
         </div>
       </div>
+      {(omGendrop.amount > 0 && daysRemaining !== null) && (
+          <div className="gendrop-alert-wrapper">
+            <a
+              href="https://mantra.zone/my-overview"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="gendrop-alert"
+              title="Claim"
+            >
+              You have <strong>{omGendrop.usdValue.toFixed(0)} OM </strong>
+              to claim from <strong>MANTRA Gendrop part 1</strong>!
+              You have <strong>{daysRemaining}</strong> days left to claim.
+            </a>
+          </div>
+        )}
 
       {/* Offers Tab Button */}
       {totalOffersValue > 0 && (
