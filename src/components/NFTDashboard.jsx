@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Filter,
   Grid,
@@ -75,7 +75,8 @@ export default function NFTDashboard({
   onManualAddressRemoved,
   showDollarBalances,
   onFetchStatusChange,
-  onInitialNFTLoadComplete
+  onInitialNFTLoadComplete,
+  sessionKey
 }) {
 
   const [nfts, setNfts] = useState([]);
@@ -114,6 +115,13 @@ export default function NFTDashboard({
 
   // Track NFTs by their source address for manual address management
   const [nftsByAddress, setNftsByAddress] = useState(new Map());
+
+  const currentSessionRef = useRef(sessionKey);
+
+  // Update ref whenever parent changes sessionKey
+  useEffect(() => {
+    currentSessionRef.current = sessionKey;
+  }, [sessionKey]);
 
   // Add event listener for mobile filter close
   useEffect(() => {
@@ -361,7 +369,7 @@ export default function NFTDashboard({
       // console.log("[DEBUG] Already fetching NFTs, skipping duplicate request");
       return;
     }
-
+    const sessionAtStart = currentSessionRef.current;
     // console.log("[DEBUG] fetchAllNFTs called with addresses:", addresses);
     // console.log(
     //   "[DEBUG] Already fetched addresses:",
@@ -537,7 +545,11 @@ export default function NFTDashboard({
     // Update NFTs only if we have new ones
     if (hasNewNFTs) {
       console.log(`[DEBUG] Total new NFTs fetched: ${allNfts.length}`);
-
+      // Before writing results into state:
+      if (currentSessionRef.current !== sessionAtStart) {
+        console.log("[DEBUG] Stale fetch ignored");
+        return;
+      }
       // Get current NFTs and combine with new ones
       setNfts((currentNfts) => {
         const combinedNfts = [...currentNfts, ...allNfts];

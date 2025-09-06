@@ -16,6 +16,7 @@ import {
   MARKETPLACES,
   DONATION_ADDRESSES
 } from "./utils/constants.js";
+import { clearCache } from "./utils/fetchFunctions";
 
 
 export default function App() {
@@ -47,9 +48,11 @@ export default function App() {
   const [initPrice, setInitPrice] = useState(0.43);
   const [binjPrice, setBinjPrice] = useState(1.0);
   const [tokenPrices, setTokenPrices] = useState({});
+  const [omGendrop, setOmGendrop] = useState({ amount: 0, usdValue: 0 });
   const [confirmingRemoval, setConfirmingRemoval] = useState(null);
   const [isFetchingNFTs, setIsFetchingNFTs] = useState(false);
   const [hasCompletedInitialLoad, setHasCompletedInitialLoad] = useState(false);
+  const [nftDashboardKey, setNftDashboardKey] = useState(0);
   const [copiedAddress, setCopiedAddress] = useState(null);
   const [scrollState, setScrollState] = useState({
     canScrollUp: false,
@@ -70,6 +73,42 @@ export default function App() {
   const binjFetchingRef = useRef(false); // Ref for bINJ price
   const allAssetsFetchedRef = useRef(false);
 
+  const resetAllStates = () => {
+    setWallet(null);
+    setAddresses({});
+    setAddressesForSkip({});
+    setSigners(null);
+    setHasAccess(false);
+    setError("");
+    setShowTokens(false);
+    setTokenBalancesClosing(false);
+    setTokenBalances({});
+    setChainBalances({});
+    setShowDollarBalances(true);
+    setNftOffers({});
+    setOffersLoading(false);
+    setHasLoadedBalances(false);
+    setHasLoadedNFTs(false);
+    setShowWalletDropdown(false);
+    setWalletDropdownClosing(false);
+    setShowManualAddressForm(false);
+    setManualAddress("");
+    setManualAddresses({});
+    setAddressLoading({});
+    setConfirmingRemoval(null);
+    setIsFetchingNFTs(false);
+    setHasCompletedInitialLoad(false);
+    setCopiedAddress(null);
+    setScrollState({ canScrollUp: false, canScrollDown: false, isScrollable: false });
+    setShowDonation(false);
+    setShowSkipWidget(false);
+    setSkipDefaultRoute(undefined);
+    setCopiedChain(null);
+    setNftDashboardKey((k) => {
+      return k + 1;
+    });
+    clearCache();
+  };
   // Fetch bOSMO price on app load
   useEffect(() => {
     if (bosmoFetchedRef.current || bosmoFetchingRef.current) return;
@@ -339,6 +378,23 @@ export default function App() {
 
     return chainBalances;
   };
+
+  useEffect(() => {
+    const handleKeystoreChange = () => {
+      console.log("Wallet account changed, clearing state...");
+
+      // Clear everything related to the old account
+      resetAllStates();
+    };
+
+    window.addEventListener("keplr_keystorechange", handleKeystoreChange);
+    window.addEventListener("leap_keystorechange", handleKeystoreChange);
+
+    return () => {
+      window.removeEventListener("keplr_keystorechange", handleKeystoreChange);
+      window.removeEventListener("leap_keystorechange", handleKeystoreChange);
+    };
+  }, []);
 
   const copyAddress = async (chain, address) => {
     try {
@@ -1132,11 +1188,34 @@ export default function App() {
     return addresses;
   };
 
+  const fetchMantraGendrop = async (mantraAddress) => {
+  try {
+    const url = `https://leaderboard.mantra.zone/api/v1/portfolio/${mantraAddress}?filter_completed_campaigns=true`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Failed to fetch Mantra portfolio");
+
+    const data = await response.json();
+    const gendrop = parseFloat(data?.gendrop?.om?.balanceInBaseDenom || 0);
+    const upgrade = parseFloat(data?.omUpgrade?.om?.balanceInBaseDenom || 0);
+
+    const total = gendrop + upgrade;
+    const decimals = 6; // OM has 18 decimals
+    const amount = total / Math.pow(10, decimals);
+
+    const price = assetPrices["OM"] || 0;
+    const usdValue = amount * price;
+    console.log(gendrop, upgrade);
+    setOmGendrop({ amount, usdValue });
+  } catch (err) {
+    console.error("Error fetching Mantra portfolio:", err);
+    setOmGendrop({ amount: 0, usdValue: 0 });
+  }
+};
 
   const fetchTokenBalances = async (addresses) => {
     try {
       setOffersLoading(true);
-
+      fetchMantraGendrop(addresses["mantra"]);
       // Fetch all chain balances
       const allChainBalances = await fetchAllChainBalances(addresses);
 
@@ -1176,7 +1255,7 @@ export default function App() {
           legacyPrices[chainName] = nativeAsset.price;
         }
       });
-
+      
       setTokenBalances(legacyBalances);
       setTokenPrices(legacyPrices);
 
@@ -1266,30 +1345,7 @@ export default function App() {
   };
 
   const handleDisconnect = () => {
-    setWallet(null);
-    setAddresses({});
-    setManualAddresses({});
-    setHasAccess(false);
-    setError("");
-    setShowTokens(false);
-    setTokenBalances({});
-    setChainBalances({});
-    setNftOffers({});
-    setAssetPrices({});
-    setTokenPrices({});
-    setShowWalletDropdown(false);
-    setShowManualAddressForm(false);
-    setManualAddress("");
-    setSelectedChain("stargaze");
-    setAddressLoading({});
-    setConfirmingRemoval(null);
-    setIsFetchingNFTs(true);
-    setCopiedAddress(null);
-    setScrollState({
-      canScrollUp: false,
-      canScrollDown: false,
-      isScrollable: false,
-    });
+    resetAllStates();
 
     // Reset any dropdown states
     setTokenBalancesClosing(false);
@@ -1562,7 +1618,7 @@ export default function App() {
           </div>
         </div>
         <div
-          className={`skip-logo ${isFetchingNFTs && !hasLoadedNFTs ? "disabled" : ""}`}
+          className={`skip-logo ${((!hasCompletedInitialLoad && isFetchingNFTs) || (!hasLoadedNFTs && isFetchingNFTs)) ? "disabled" : ""}`}
           data-tooltip={
             isFetchingNFTs
               ? "To swap with Skip, please wait for the NFTs fetch to end 😉"
@@ -1666,7 +1722,7 @@ export default function App() {
                 }
               }}
               className="wallet-btn"
-              disabled={(!hasCompletedInitialLoad && isFetchingNFTs)}
+              disabled={(!hasCompletedInitialLoad)}
             >
               {hasCompletedInitialLoad && wallet ? wallet.name : "....."}
             </button>
@@ -1885,7 +1941,7 @@ export default function App() {
       {/* Desktop Chain-Based Portfolio */}
       {Object.keys(chainBalances).length > 0 && hasCompletedInitialLoad && (
         <DesktopChainPortfolio chainBalances={chainBalances} showDollarBalances={showDollarBalances}
-          setShowDollarBalances={setShowDollarBalances} nftOffers={nftOffers} onBalanceClick={handleBalanceClick} />
+          setShowDollarBalances={setShowDollarBalances} nftOffers={nftOffers} onBalanceClick={handleBalanceClick} omGendrop={omGendrop}/>
       )}
 
 
@@ -1893,6 +1949,7 @@ export default function App() {
         <WalletConnect onConnect={handleWalletConnect} error={error} />
       ) : (
         <NFTDashboard
+          key={nftDashboardKey}
           addresses={getAllAddresses()}
           onAddressFetched={clearAddressLoading}
           bosmoPrice={bosmoPrice}

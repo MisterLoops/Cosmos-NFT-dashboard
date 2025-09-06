@@ -2103,6 +2103,51 @@ body::-webkit-scrollbar {
   justify-content: center;
   align-items: center;
 }
+.gendrop-alert-wrapper {
+  display: flex;
+  justify-content: center; /* ✅ centers horizontally */
+  margin-top: 10px;
+}
+
+.gendrop-alert {
+  display: inline-block;
+  margin: 12px auto 0; /* center horizontally with auto margins */
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #302f2d;
+  text-align: center;
+  text-decoration: none; /* remove underline */
+  cursor: pointer;
+
+  background: linear-gradient(
+    270deg,
+    #ff97d6,
+    #f9b995,
+    #ff97d6
+  );
+  background-size: 300% 300%;
+  animation: gradientMove 6s ease infinite;
+  transition: transform 0.2s ease;
+}
+
+.gendrop-alert:hover {
+  transform: scale(1.03);
+}
+
+@keyframes gradientMove {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 
 .eye-toggle {
   cursor: pointer;
@@ -4063,6 +4108,11 @@ body::-webkit-scrollbar {
 .status-badge.staked {
   background: rgba(168, 85, 247, 0.2);
   color: #a855f7;
+}
+.status-badge.OM {
+  background: linear-gradient(to right, #ff97d6, #f9b995);
+  color: #302f2d;
+  font-weight: bold;
 }
 
 .dao-link {

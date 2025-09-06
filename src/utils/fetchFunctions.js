@@ -22,6 +22,12 @@ const activeRequests = new Map();
 // Store for cached results
 const cache = new Map();
 
+export const clearCache = () => {
+  cache.clear();
+  activeRequests.clear();
+  console.log("[CACHE CLEARED]");
+};
+
 // Helper function for delays
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 

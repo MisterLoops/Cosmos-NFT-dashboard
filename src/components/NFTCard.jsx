@@ -373,6 +373,11 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
               )}
             </div>
           )}
+          {nft.contract === "stars1j5fhf04q6sycz72mz5uzrwvv2e05jy3npsdzppxyl2eww0x5hy4s0wuftp" && (
+            <div className="status-badge OM">
+              90 OM
+            </div>
+          )}
         </div>
 
         {viewMode === "grid" && nft.description && (

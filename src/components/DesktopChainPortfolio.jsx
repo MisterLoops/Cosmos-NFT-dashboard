@@ -1,16 +1,28 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   TOKEN_LOGOS,
-  SYMBOL_TO_LOGO, 
+  SYMBOL_TO_LOGO,
   CHAIN_CONFIGS
 } from "../utils/constants.js";
 
 // Desktop Chain-Based Portfolio Summary
-export default function DesktopChainPortfolio({ chainBalances, showDollarBalances, setShowDollarBalances, nftOffers, onBalanceClick }) {
+export default function DesktopChainPortfolio({ chainBalances, showDollarBalances, setShowDollarBalances, nftOffers, onBalanceClick, omGendrop }) {
   const [activeTooltip, setActiveTooltip] = useState(null);
   const [showOffersExpanded, setShowOffersExpanded] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [daysRemaining, setDaysRemaining] = useState(null);
 
+  useEffect(() => {
+    const today = new Date();
+    const deadline = new Date(today.getFullYear(), 8, 18); // Month 8 = September
+    const diffTime = deadline - today;
+
+    if (diffTime > 0) {
+      setDaysRemaining(Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+    } else {
+      setDaysRemaining(0);
+    }
+  }, []);
   // Calculate total portfolio value
   const totalPortfolioValue = Object.values(chainBalances).reduce(
     (total, chainData) => total + (chainData.totalValue || 0),
@@ -41,15 +53,15 @@ export default function DesktopChainPortfolio({ chainBalances, showDollarBalance
   };
 
   const sendDefaultRoute = (chainName) => {
-  if (typeof onBalanceClick === "function") {
-    onBalanceClick({
-      destChainId: CHAIN_CONFIGS[chainName].chainId,
-      destAssetDenom: CHAIN_CONFIGS[chainName].denom,
-    });
-  } else {
-    console.error("onBalanceClick is not a function");
-  }
-};
+    if (typeof onBalanceClick === "function") {
+      onBalanceClick({
+        destChainId: CHAIN_CONFIGS[chainName].chainId,
+        destAssetDenom: CHAIN_CONFIGS[chainName].denom,
+      });
+    } else {
+      console.error("onBalanceClick is not a function");
+    }
+  };
 
   // Filter and sort chains with assets
   const chainsWithAssets = Object.entries(chainBalances)
@@ -86,7 +98,7 @@ export default function DesktopChainPortfolio({ chainBalances, showDollarBalance
                 className="token-summary-item"
                 onMouseEnter={(e) => handleMouseEnter(chainName, e)}
                 onMouseLeave={() => setActiveTooltip(null)}
-                onClick={()=> sendDefaultRoute(chainName)}
+                onClick={() => sendDefaultRoute(chainName)}
               >
                 <div>
                   <img
@@ -151,6 +163,21 @@ export default function DesktopChainPortfolio({ chainBalances, showDollarBalance
             </div>
           )}
         </div>
+        {(omGendrop.amount < 0 && daysRemaining !== null) && (
+          <div className="gendrop-alert-wrapper">
+            <a
+              href="https://mantra.zone/my-overview"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="gendrop-alert"
+              title="Claim"
+            >
+              You have <strong>{omGendrop.usdValue.toFixed(0)} OM </strong>
+              to claim from <strong>MANTRA Gendrop part 1</strong>!
+              You have <strong>{daysRemaining}</strong> days left to claim.
+            </a>
+          </div>
+        )}
       </div>
 
       {/* Expanded Offers Section */}
