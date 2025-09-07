@@ -1199,7 +1199,7 @@ export default function App() {
     const upgrade = parseFloat(data?.omUpgrade?.om?.balanceInBaseDenom || 0);
 
     const total = gendrop + upgrade;
-    const decimals = 6; // OM has 18 decimals
+    const decimals = 6; // OM has 6 decimals
     const amount = total / Math.pow(10, decimals);
 
     const price = assetPrices["OM"] || 0;

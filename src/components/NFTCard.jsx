@@ -11,7 +11,19 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
     initia: "#4f46e5",
     neutron: "#000000",
     dungeon: "#925802ff",
-    omniflix: "#FF5B25"
+    omniflix: "#FF5B25",
+    "mantra-dukong-1": "linear-gradient(to right, #ff97d6, #f9b995)"
+  };
+  const chainFontColors = {
+    stargaze: "white",
+    osmosis: "white",
+    cosmoshub: "white",
+    injective: "white",
+    initia: "white",
+    neutron: "white",
+    dungeon: "white",
+    omniflix: "white",
+    "mantra-dukong-1": "#302f2d"
   };
 
   // Import chain display names from constants
@@ -332,7 +344,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
         <div className="nft-meta">
           <div
             className="chain-badge"
-            style={{ backgroundColor: chainColors[nft.chain] }}
+            style={{ background: chainColors[nft.chain], color: chainFontColors[nft.chain]}}
           >
             {chainDisplayNames[nft.chain] || nft.chain}
           </div>
