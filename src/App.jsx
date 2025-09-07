@@ -1703,7 +1703,7 @@ export default function App() {
                 setShowTokens(true);
               }
             }}
-            className={`tokens-btn mobile-only ${hasCompletedInitialLoad ? "highlight" : ""}`}
+            className={`tokens-btn mobile-only ${(hasCompletedInitialLoad && omGendrop.amount > 0)? "highlight" : ""}`}
             disabled={Object.keys(chainBalances).length === 0}
           >
             Portfolio

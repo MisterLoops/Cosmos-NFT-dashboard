@@ -2132,22 +2132,22 @@ body::-webkit-scrollbar {
   transition: transform 0.2s ease;
 }
 .tokens-btn {
-  display: inline-flex;           /* flex inside button */
-  align-items: center;            /* center vertically */
-  justify-content: center;        /* center horizontally */
+  display: inline-flex;           
+  align-items: center;            
+  justify-content: center;        
   
-  padding: 10px 16px;
-  border-radius: 10px;
+  /* padding: 0.5rem 1rem;
+  border-radius: 8px;
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
   border: none;
   background: #333;
   color: white;
-  transition: transform 0.1s ease;
+  transition: transform 0.1s ease; */
   text-align: center;
 
-  -webkit-tap-highlight-color: transparent; /* mobile fix */
+  -webkit-tap-highlight-color: transparent; 
   outline: none;
 }
 
