@@ -40,7 +40,7 @@ export default function ChainBasedPortfolio({ chainBalances, showTokens, tokenBa
     <div
       className={`token-balances ${showTokens && !tokenBalancesClosing ? "visible" : ""} ${tokenBalancesClosing ? "closing" : ""}`}
     >
-      <SkipWidget showSkipWidget={showSkipWidget} onClose={() => setShowSkipWidget(false)} />
+      {/* <SkipWidget showSkipWidget={showSkipWidget} onClose={() => setShowSkipWidget(false)} /> */}
       <div className="token-balances-header">
         <h3>Portfolio</h3>
         <div className="total-value">
@@ -93,7 +93,7 @@ export default function ChainBasedPortfolio({ chainBalances, showTokens, tokenBa
           </button>
         </div>
       )}
-      <div className="skip-logo-mobile" style={{ display:"flex",justifyContent:"center", alignItems:"center" }}>
+      {/* <div className="skip-logo-mobile" style={{ display:"flex",justifyContent:"center", alignItems:"center" }}>
         <img
           src="/skip.png"
           alt="skip_logo"
@@ -101,7 +101,7 @@ export default function ChainBasedPortfolio({ chainBalances, showTokens, tokenBa
           onClick={() => setShowSkipWidget(!showSkipWidget)}
           style={{ cursor: "pointer", maxWidth: "100px", marginBottom:"10px"}}
         />
-      </div>
+      </div> */}
       <div className="balances-grid">
         {/* NFT Offers Card - shown at top when active */}
         {showOffersCard && totalOffersValue > 0 && (

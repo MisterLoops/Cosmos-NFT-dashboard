@@ -1575,11 +1575,11 @@ export default function App() {
 
   return (
     <div className={`${(hasCompletedInitialLoad) ? "app" : "app-connecting"}`}>
-      <SkipWidget showSkipWidget={showSkipWidget}
+      {/* <SkipWidget showSkipWidget={showSkipWidget}
         connectedAddresses={mapAddressesForSkip(addresses)}
         getCosmosSigner={getCosmosSigner}
         defaultRoute={skipDefaultRoute}
-        onClose={() => setShowSkipWidget(false)} />
+        onClose={() => setShowSkipWidget(false)} /> */}
       <header className="app-header">
         <div className="app-title-container">
           <img src="/cosmosNFTHUBlogo.png" alt="Logo" className="app-logo" />
@@ -1618,12 +1618,14 @@ export default function App() {
           </div>
         </div>
         <div
-          className={`skip-logo ${((!hasCompletedInitialLoad && isFetchingNFTs) || (!hasLoadedNFTs && isFetchingNFTs)) ? "disabled" : ""}`}
-          data-tooltip={
-            isFetchingNFTs
-              ? "To swap with Skip, please wait for the NFTs fetch to end 😉"
-              : "Swap with Skip widget and support the NFTHUB (2% fee)"
-          }
+        // className={`skip-logo ${((!hasCompletedInitialLoad && isFetchingNFTs) || (!hasLoadedNFTs && isFetchingNFTs)) ? "disabled" : ""}`}
+          className="skip-logo disabled"
+          data-tooltip="Skip is deactivated for now"
+          // {
+          //   isFetchingNFTs
+          //     ? "To swap with Skip, please wait for the NFTs fetch to end 😉"
+          //     : "Swap with Skip widget and support the NFTHUB (2% fee)"
+          // }
         >
           <img
             src="/skip.png"

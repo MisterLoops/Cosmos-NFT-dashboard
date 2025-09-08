@@ -13,7 +13,7 @@ export const API_ENDPOINTS = {
   IPFS_DAO_DAO_ZONE: "https://ipfs.dao.daodao.zone/ipfs/",
   DAO_DAO_INDEXER: "https://indexer.daodao.zone",
   NEUTRON_INDEXER: "https://rest-kralum.neutron-1.neutron.org",
-  STARGAZE_INDEXER: "https://rest.stargaze-apis.com",
+  STARGAZE_INDEXER: "https://lcd-stargaze.keplr.app",
   OSMOSIS_LCD: "https://lcd-osmosis.keplr.app",
   COSMOS_HUB_LCD: "https://lcd-cosmoshub.keplr.app",
   INJECTIVE_LCD: "https://lcd-injective.keplr.app",
