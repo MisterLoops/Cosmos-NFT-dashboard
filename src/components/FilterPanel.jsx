@@ -46,6 +46,8 @@ export default function FilterPanel({ filters, setFilters, nfts, priceMode }) {
       filteredNfts = nfts.filter(nft => nft.staked === true || nft.daoStaked === true);
     } else if (filterType === 'address') {
       filteredNfts = nfts.filter(nft => nft.sourceAddress === filterValue);
+    } else if (filterType === 'canBeStaked') {
+      filteredNfts = nfts.filter(nft => nft.stakeable === true && nft.daoStaked === false);
     }
 
     const count = filteredNfts.length;
@@ -212,6 +214,9 @@ export default function FilterPanel({ filters, setFilters, nfts, priceMode }) {
                   if (filters.staked) {
                     filteredNfts = filteredNfts.filter(nft => nft.staked === true || nft.daoStaked === true);
                   }
+                  if (filters.canBeStaked) {
+                    filteredNfts = filteredNfts.filter(nft => nft.staked === true || nft.daoStaked === true);
+                  }
                   if (filters.addresses && filters.addresses.length > 0) {
                     filteredNfts = filteredNfts.filter(nft => filters.addresses.includes(nft.sourceAddress));
                   }
@@ -258,6 +263,23 @@ export default function FilterPanel({ filters, setFilters, nfts, priceMode }) {
               <span className="filter-stats">
                 {(() => {
                   const stats = getFilterStats('staked');
+                  return `${stats.count} NFTs • $${formatUSD(stats.totalValue)}`;
+                })()}
+              </span>
+            </div>
+          </label>
+          <label className="filter-checkbox">
+            <input
+              type="checkbox"
+              checked={filters.canBeStaked}
+              onChange={(e) => setFilters({ ...filters, canBeStaked: e.target.checked })}
+            />
+            <span className="checkmark"></span>
+            <div className="filter-label">
+              <span className="filter-name">Stakeable in DAOs</span>
+              <span className="filter-stats">
+                {(() => {
+                  const stats = getFilterStats('canBeStaked');
                   return `${stats.count} NFTs • $${formatUSD(stats.totalValue)}`;
                 })()}
               </span>

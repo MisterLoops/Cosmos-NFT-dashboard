@@ -97,6 +97,7 @@ export default function NFTDashboard({
     listed: false,
     staked: false,
     addresses: [],
+    canBeStaked: false,
   });
 
   const [chainLoadingStates, setChainLoadingStates] = useState({});
@@ -643,7 +644,8 @@ export default function NFTDashboard({
         daos: [],
         listed: false,
         staked: false,
-        addresses: []
+        addresses: [],
+        canBeStaked: false
       });
       setShowFilters(false);
       setFiltersClosing(false);
@@ -989,6 +991,12 @@ export default function NFTDashboard({
       );
     }
 
+    if (filters.canBeStaked) {
+      filtered = filtered.filter(
+        (nft) => nft.stakeable === true && nft.daoStaked === false
+      );
+    }
+
     if (filters.addresses && filters.addresses.length > 0) {
       filtered = filtered.filter((nft) => filters.addresses.includes(nft.sourceAddress));
     }
@@ -1292,6 +1300,16 @@ export default function NFTDashboard({
                 <div
                   className="filter-tag-pill"
                   onClick={() => setFilters({ ...filters, staked: false })}
+                >
+                  <span className="filter-tag-text">Staked in DAOs</span>
+                  <span className="filter-tag-icon">×</span>
+                </div>
+              )}
+
+              {filters.canBeStaked && (
+                <div
+                  className="filter-tag-pill"
+                  onClick={() => setFilters({ ...filters, canBeStaked: false })}
                 >
                   <span className="filter-tag-text">Staked in DAOs</span>
                   <span className="filter-tag-icon">×</span>

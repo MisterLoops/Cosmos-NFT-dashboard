@@ -99,6 +99,46 @@ const getCollectionNameFromContract = (contractAddress) => {
   return `Collection ${contractAddress.slice(-8)}`;
 };
 
+const fetchDAOActiveProposal = async (chain, daoContract) => {
+  try {
+    const indexer = API_ENDPOINTS[`${chain.toUpperCase()}_INDEXER`];
+    if (!indexer) throw new Error(`No indexer defined for chain ${chain}`);
+
+    // 1. Get active proposal modules
+    const activeQuery = { active_proposal_modules: {} };
+    const encodedActiveQuery = btoa(JSON.stringify(activeQuery));
+    const activeUrl = `${indexer}/cosmwasm/wasm/v1/contract/${daoContract}/smart/${encodedActiveQuery}`;
+    const activeResp = await fetch(activeUrl).then((r) => r.json());
+
+    const activeModules = activeResp?.data || [];
+    if (activeModules.length === 0) return { hasActiveProposal: false };
+
+    // 2. Check proposals for each active module
+    for (const module of activeModules) {
+      const proposalsQuery = { list_proposals: {} };
+      const encodedProposalsQuery = btoa(JSON.stringify(proposalsQuery));
+      const proposalsUrl = `${indexer}/cosmwasm/wasm/v1/contract/${module.address}/smart/${encodedProposalsQuery}`;
+
+      const proposalsResp = await fetch(proposalsUrl).then((r) => r.json());
+      const proposals = proposalsResp?.data?.proposals || [];
+
+      const openProposal = proposals.find((p) => p.proposal?.status === "open");
+      if (openProposal) {
+        return {
+          hasActiveProposal: true,
+          proposalName: `${module.prefix}${openProposal.id}`,
+        };
+      }
+    }
+
+    return { hasActiveProposal: false };
+  } catch (err) {
+    console.error(`[ERROR] Failed to fetch proposals for DAO ${daoContract}:`, err);
+    return { hasActiveProposal: false };
+  }
+};
+
+
 // Fetch metadata for listed NFTs from BackboneLabs API (Original function)
 const _fetchListedNFTMetadata = async (collectionAddress, tokenId, chain) => {
   try {
@@ -1775,8 +1815,28 @@ const _fetchNeutronNFTs = async (addresses) => {
                     stakedNFTs.push(res.value);
                   }
                 });
-
                 console.log(`[DEBUG] Successfully fetched ${stakedNFTs.filter(nft => nft.daoName === daoName).length} staked NFTs for DAO ${daoName}`);
+
+                // ===== STAKED DAO PROPOSAL ENRICHMENT =====
+                const daoProposalCache = {};
+                for (const nft of stakedNFTs) {
+                  if (nft.daoAddress && !daoProposalCache[nft.daoAddress]) {
+                    try {
+                      daoProposalCache[nft.daoAddress] = await fetchDAOActiveProposal(
+                        nft.chain,
+                        nft.daoAddress
+                      );
+                    } catch (err) {
+                      console.error(`[ERROR] Failed to fetch DAO proposals for ${nft.daoAddress}:`, err);
+                      daoProposalCache[nft.daoAddress] = { hasActiveProposal: false, proposalName: null };
+                    }
+                  }
+
+                  const proposalInfo = daoProposalCache[nft.daoAddress] || {};
+                  nft.hasActiveProposal = proposalInfo.hasActiveProposal || false;
+                  nft.proposalName = proposalInfo.proposalName || null;
+                }
+
               } else {
                 console.log(`[DEBUG] No staked NFTs found for DAO ${daoName}`);
               }
@@ -1806,63 +1866,63 @@ const _fetchNeutronNFTs = async (addresses) => {
         console.log(`[DEBUG] Fetching regular NFTs for address: ${address}`);
 
         const query = `
-  query SearchNFT(
-    $where: Nft_searchWhereInput
-    $orderBy: [Nft_searchOrderByWithRelationInput!]
-    $take: Int
-    $denom: String!
-    $offersWhere2: OfferWhereInput
-  ) {
-    nft_searches(where: $where, orderBy: $orderBy, take: $take) {
-      nft {
-        nft_id
-        name
-        image
-        rank
-        collection {
-          collection_id
-          name
-          floor_price_in(denom: $denom) {
-            amount
-            amount_usd
+          query SearchNFT(
+            $where: Nft_searchWhereInput
+            $orderBy: [Nft_searchOrderByWithRelationInput!]
+            $take: Int
+            $denom: String!
+            $offersWhere2: OfferWhereInput
+          ) {
+            nft_searches(where: $where, orderBy: $orderBy, take: $take) {
+              nft {
+                nft_id
+                name
+                image
+                rank
+                collection {
+                  collection_id
+                  name
+                  floor_price_in(denom: $denom) {
+                    amount
+                    amount_usd
+                  }
+                  offers(where: $offersWhere2) {
+                    amount
+                    amount_usd
+                    nft_id
+                    denom
+                  }
+                }
+                auction: active_auction {
+                  chain_auction_id
+                  is_buy_now
+                  created
+                  price_in(denom: $denom) {
+                    amount
+                    amount_usd
+                    denom
+                  }
+                }
+                trait {
+                  trait_type
+                  value
+                  trait_stats { rarity }
+                }
+                offer(where: $offersWhere2) {
+                  amount
+                  amount_usd
+                  denom
+                  nft_id
+                }
+                ownership_histories {
+                  type
+                  amount
+                  denom
+                }
+              }
+            }
           }
-          offers(where: $offersWhere2) {
-            amount
-            amount_usd
-            nft_id
-            denom
-          }
-        }
-        auction: active_auction {
-          chain_auction_id
-          is_buy_now
-          created
-          price_in(denom: $denom) {
-            amount
-            amount_usd
-            denom
-          }
-        }
-        trait {
-          trait_type
-          value
-          trait_stats { rarity }
-        }
-        offer(where: $offersWhere2) {
-          amount
-          amount_usd
-          denom
-          nft_id
-        }
-        ownership_histories {
-          type
-          amount
-          denom
-        }
-      }
-    }
-  }
-`;
+        `;
 
         const variables = {
           where: {
@@ -2173,6 +2233,8 @@ const _fetchNeutronNFTs = async (addresses) => {
           daoStaked: true,
           daoName: nft.daoName,
           daoAddress: nft.daoAddress,
+          hasActiveProposal: nft.hasActiveProposal,
+          proposalName: nft.proposalName,
         });
         mergedCount++;
       } else {
@@ -2182,7 +2244,19 @@ const _fetchNeutronNFTs = async (addresses) => {
       }
     });
 
-    const finalNFTsArray = Array.from(uniqueNFTs.values());
+    const finalNFTsArray = Array.from(uniqueNFTs.values()).map((nft) => {
+      // Look up DAO config for this NFT's collection
+      const daoConfig = Object.values(daosConfig.DAOs["neutron-1"]).find(
+        (dao) => dao.collection === nft.contract
+      );
+
+      return {
+        ...nft,
+        stakeable: !!daoConfig && !nft.daoStaked,
+        daoAddress: nft.daoAddress || (daoConfig ? daoConfig.DAO : null),
+        daoName: nft.daoName || (daoConfig ? daoConfig.name : null), // <-- optional
+      };
+    });
 
     // Enhanced logging (matching Stargaze style)
     // console.log(`[DEBUG] === DEDUPLICATION SUMMARY ===`);
@@ -2938,6 +3012,23 @@ const _fetchStargazeNFTs = async (addresses) => {
       };
     });
 
+    // === Check for active DAO proposals (only once per DAO) ===
+    const daoProposalCache = {};
+
+    for (const nft of processedStakedNFTs) {
+      if (!daoProposalCache[nft.daoAddress]) {
+        daoProposalCache[nft.daoAddress] = await fetchDAOActiveProposal(
+          nft.chain,
+          nft.daoAddress
+        );
+      }
+
+      const proposalInfo = daoProposalCache[nft.daoAddress];
+      nft.hasActiveProposal = proposalInfo.hasActiveProposal;
+      nft.proposalName = proposalInfo.proposalName || null;
+    }
+
+
     // Deduplicate NFTs
     const uniqueNFTs = new Map();
 
@@ -2958,6 +3049,8 @@ const _fetchStargazeNFTs = async (addresses) => {
           daoStaked: true,
           daoName: nft.daoName,
           daoAddress: nft.daoAddress,
+          hasActiveProposal: nft.hasActiveProposal,
+          proposalName: nft.proposalName
         });
       } else {
         // If NFT is only staked (not in wallet), add it as staked-only
@@ -2965,7 +3058,19 @@ const _fetchStargazeNFTs = async (addresses) => {
       }
     });
 
-    const finalNFTsArray = Array.from(uniqueNFTs.values());
+    const finalNFTsArray = Array.from(uniqueNFTs.values()).map((nft) => {
+      // Look up DAO config for this NFT's collection
+      const daoConfig = Object.values(daosConfig.DAOs["stargaze-1"]).find(
+        (dao) => dao.collection === nft.contract
+      );
+
+      return {
+        ...nft,
+        stakeable: !!daoConfig && !nft.daoStaked,
+        daoAddress: nft.daoAddress || (daoConfig ? daoConfig.DAO : null),
+        daoName: nft.daoName || (daoConfig ? daoConfig.name : null), // <-- optional
+      };
+    });
     // console.log(`[DEBUG] === DEDUPLICATION SUMMARY ===`);
     console.log(
       `[DEBUG] Total unique NFTs for Stargaze after deduplication: ${uniqueNFTs.size}`,
@@ -3337,6 +3442,28 @@ const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
             )
           );
           results.forEach(r => r && stakedNFTs.push(r));
+
+          // ===== STAKED DAO PROPOSAL ENRICHMENT =====
+          const daoProposalCache = {};
+          for (const nft of stakedNFTs) {
+            if (nft.daoAddress && !daoProposalCache[nft.daoAddress]) {
+              try {
+                daoProposalCache[nft.daoAddress] = await fetchDAOActiveProposal(
+                  nft.chain,
+                  nft.daoAddress
+                );
+              } catch (err) {
+                console.error(`[ERROR] Failed to fetch DAO proposals for ${nft.daoAddress}:`, err);
+                daoProposalCache[nft.daoAddress] = { hasActiveProposal: false, proposalName: null };
+              }
+            }
+
+            const proposalInfo = daoProposalCache[nft.daoAddress] || {};
+            nft.hasActiveProposal = proposalInfo.hasActiveProposal || false;
+            nft.proposalName = proposalInfo.proposalName || null;
+          }
+
+
         }
       } catch (e) {
         console.error(`[ERROR] Failed to fetch staked NFTs for ${address}:`, e);
@@ -3564,13 +3691,27 @@ const _fetchOsmosisNFTs = async (addresses, bosmoPrice = 1.0) => {
           daoStaked: true,
           daoName: n.daoName,
           daoAddress: n.daoAddress,
+          hasActiveProposal: n.hasActiveProposal,
+          proposalName: n.proposalName,
         });
       } else {
         uniqueNFTs.set(key, n);
       }
     });
 
-    const finalNFTs = Array.from(uniqueNFTs.values());
+    const finalNFTs = Array.from(uniqueNFTs.values()).map((nft) => {
+      // Look up DAO config for this NFT's collection
+      const daoConfig = Object.values(daosConfig.DAOs["osmosis-1"]).find(
+        (dao) => dao.collection === nft.contract
+      );
+
+      return {
+        ...nft,
+        stakeable: !!daoConfig && !nft.daoStaked,
+        daoAddress: nft.daoAddress || (daoConfig ? daoConfig.DAO : null),
+        daoName: nft.daoName || (daoConfig ? daoConfig.name : null), // <-- optional
+      };
+    });
     console.log(`[DEBUG] Total unique Osmosis NFTs after deduplication: ${finalNFTs.length}`);
     return finalNFTs;
   } catch (error) {
@@ -4979,6 +5120,27 @@ const _fetchCosmosHubNFTs = async (addresses) => {
 
             const results = await Promise.allSettled(stakedNftPromises);
             results.forEach((res) => res.status === "fulfilled" && res.value && stakedNFTs.push(res.value));
+            // ===== STAKED DAO PROPOSAL ENRICHMENT =====
+            const daoProposalCache = {};
+            for (const nft of stakedNFTs) {
+              if (nft.daoAddress && !daoProposalCache[nft.daoAddress]) {
+                try {
+                  daoProposalCache[nft.daoAddress] = await fetchDAOActiveProposal(
+                    nft.chain,
+                    nft.daoAddress
+                  );
+                } catch (err) {
+                  console.error(`[ERROR] Failed to fetch DAO proposals for ${nft.daoAddress}:`, err);
+                  daoProposalCache[nft.daoAddress] = { hasActiveProposal: false, proposalName: null };
+                }
+              }
+
+              const proposalInfo = daoProposalCache[nft.daoAddress] || {};
+              nft.hasActiveProposal = proposalInfo.hasActiveProposal || false;
+              nft.proposalName = proposalInfo.proposalName || null;
+            }
+
+
           }
         } catch (err) {
           console.error(`[ERROR] Failed to fetch staked NFTs from ${daoName}:`, err);
@@ -5095,13 +5257,32 @@ const _fetchCosmosHubNFTs = async (addresses) => {
     stakedNFTs.forEach((nft) => {
       const key = `${nft.contract}-${nft.tokenId}`;
       if (uniqueNFTs.has(key)) {
-        uniqueNFTs.set(key, { ...uniqueNFTs.get(key), daoStaked: true, daoName: nft.daoName, daoAddress: nft.daoAddress });
+        uniqueNFTs.set(key, {
+          ...uniqueNFTs.get(key),
+          daoStaked: true,
+          daoName: nft.daoName,
+          daoAddress: nft.daoAddress,
+          hasActiveProposal: nft.hasActiveProposal,
+          proposalName: nft.proposalName,
+        });
       } else {
         uniqueNFTs.set(key, nft);
       }
     });
 
-    const finalNFTsArray = Array.from(uniqueNFTs.values());
+    const finalNFTsArray = Array.from(uniqueNFTs.values()).map((nft) => {
+      // Look up DAO config for this NFT's collection
+      const daoConfig = Object.values(daosConfig.DAOs["cosmoshub-4"]).find(
+        (dao) => dao.collection === nft.contract
+      );
+
+      return {
+        ...nft,
+        stakeable: !!daoConfig && !nft.daoStaked,
+        daoAddress: nft.daoAddress || (daoConfig ? daoConfig.DAO : null),
+        daoName: nft.daoName || (daoConfig ? daoConfig.name : null), // <-- optional
+      };
+    });
     console.log(`[DEBUG] Total unique Cosmos Hub NFTs after deduplication: ${finalNFTsArray.length}`);
     return finalNFTsArray;
   } catch (err) {
@@ -6032,11 +6213,11 @@ const _fetchOmniFlixNFTs = async (address) => {
             const floorPriceUflix = floorData.floorPriceUflix || 0;
             const floorPricesList = floorData.floorPricesList || [];
             const listPrice = nft.list ? {
-                    amount: nft.list.price.amount / 1000000,
-                    denom: nft.list.price.denom || "uflix",
-                    symbol: IBC_TOKEN_MAPPINGS[nft.list.price.denom]?.symbol || unknown,
-                    amountUsd: nft.list.fiat_price.usd,
-                  } : null;
+              amount: nft.list.price.amount / 1000000,
+              denom: nft.list.price.denom || "uflix",
+              symbol: IBC_TOKEN_MAPPINGS[nft.list.price.denom]?.symbol || unknown,
+              amountUsd: nft.list.fiat_price.usd,
+            } : null;
 
             // Traits
             const rawTraits =

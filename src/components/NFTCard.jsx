@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from "react";
-import { ExternalLink, Star, Plus } from "lucide-react";
+import { ExternalLink, Star, Plus, Vote } from "lucide-react";
 import { CHAIN_CONFIGS } from "../utils/constants.js";
 
 export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
@@ -344,7 +344,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
         <div className="nft-meta">
           <div
             className="chain-badge"
-            style={{ background: chainColors[nft.chain], color: chainFontColors[nft.chain]}}
+            style={{ background: chainColors[nft.chain], color: chainFontColors[nft.chain] }}
           >
             {chainDisplayNames[nft.chain] || nft.chain}
           </div>
@@ -382,6 +382,42 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
                 )
               ) : (
                 "Staked"
+              )}
+            </div>
+          )}
+          {nft.hasActiveProposal && (
+            <div className="status-badge proposal flex items-center">
+              <a
+                href={`https://daodao.zone/dao/${nft.daoAddress}/proposals/${nft.proposalName}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="dao-link-proposal"
+              >
+                <Vote size={12} /> {/* clickable icon */}
+                {viewMode === 'grid' && nft.daoStaked && (
+                  <span className="ml-1">Vote for {nft.proposalName}</span>
+                )}
+              </a>
+            </div>
+          )}
+          {(nft.stakeable) && (
+            <div className="status-badge stakeable">
+              {viewMode === 'grid' ? (
+                nft.stakeable ? (
+                  <a
+                    href={`https://daodao.zone/dao/${nft.daoAddress}/home`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="dao-link-notstaked"
+                  >
+                    Not staked in DAO
+                    <ExternalLink size={12} style={{ marginLeft: '4px' }} />
+                  </a>
+                ) : (
+                  "Stakeable"
+                )
+              ) : (
+                "Stakeable"
               )}
             </div>
           )}
@@ -465,12 +501,12 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
                     )})
                   </span>
                 )}
-              {nft.floor?.floorPricesList && Object.keys(nft.floor.floorPricesList).length > 0 &&  priceMode === 'floor' && 
+              {nft.floor?.floorPricesList && Object.keys(nft.floor.floorPricesList).length > 0 && priceMode === 'floor' &&
                 <span
                   style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", marginLeft: "0.25rem" }}
                   onMouseEnter={(e) => {
                     if (priceMode === "floor" && nft.floor?.floorPricesList && Object.keys(nft.floor.floorPricesList).length) {
-                    const rect = e.currentTarget.getBoundingClientRect();
+                      const rect = e.currentTarget.getBoundingClientRect();
                       setTooltipVisible(true);
                       setTooltipPosition({ x: e.clientX - rect.left + 72, y: e.clientY - rect.top });
                     }
@@ -483,7 +519,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
               }
             </div>
 
-            {tooltipVisible && priceMode === "floor" && nft.floor?.floorPricesList &&(
+            {tooltipVisible && priceMode === "floor" && nft.floor?.floorPricesList && (
               <div
                 style={{
                   position: 'fixed',
