@@ -12,7 +12,7 @@ export const API_ENDPOINTS = {
   OMNIFLIX_ACTIVITY_API:"https://activity-api.omniflix.studio",
   IPFS_DAO_DAO_ZONE: "https://ipfs.dao.daodao.zone/ipfs/",
   DAO_DAO_INDEXER: "https://indexer.daodao.zone",
-  NEUTRON_INDEXER: "https://rest-kralum.neutron-1.neutron.org",
+  NEUTRON_INDEXER: "https://lcd-neutron.keplr.app",
   STARGAZE_INDEXER: "https://lcd-stargaze.keplr.app",
   OSMOSIS_INDEXER: "https://lcd-osmosis.keplr.app",
   COSMOSHUB_INDEXER: "https://lcd-cosmoshub.keplr.app",

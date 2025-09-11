@@ -116,6 +116,11 @@
         "DAO": "neutron17k2fdauy0tvhqzcg3ukss3d3x03m93vfczvtp2h4neplr053jz8s5pttt0",
         "collection": "neutron1498zllcunnyzzk7mgj63ayc6c7zc9dthlc6zsvl8r0feten4r92q7pnaz3",
         "contract": "neutron1glgm83rjptztu8n3vewwtgewdd2kk5euxuau9nvwkm0vgs5g7u0s4248sf"
+      },
+      "Quarks Yield DAO": {
+        "DAO": "neutron12ey8rn5cc5hq23qmffjlv0aks5hkzycfq2sy65pr6f9elnpnjdeqfxkyst",
+        "collection": "neutron1xhjf62ezn23ugvyp4t73gusrarwhha8sk5wrc5vut4tsr4ks7fvqsyquch",
+        "contract": "neutron1zl7c08l4qsf8ch2zpd9z6usxs6zar2y3elazdg48zrs2za9lv4yq0w3e4h"
       }
     }
   }
