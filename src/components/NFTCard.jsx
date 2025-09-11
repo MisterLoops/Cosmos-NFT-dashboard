@@ -69,7 +69,22 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
   }, []);
 
   const handleImageError = useCallback((e) => {
-    console.log("Media failed to load:", e.target.src, "Element type:", e.target.tagName);
+    const el = e.target;
+  const currentRetries = parseInt(el.dataset.retryCount || "0", 10);
+
+  // stop after 4 attempts (adjust as needed)
+  if (currentRetries >= 4) {
+    console.warn("Max retry attempts reached for", el.src);
+    setImageError(true);
+    if (!el.src.includes("placeholder")) {
+      el.src = "https://via.placeholder.com/300x300/1a1a1a/666?text=NFT";
+    }
+    document.dispatchEvent(new CustomEvent("nftImageError"));
+    return;
+  }
+
+  // increment retry counter
+  el.dataset.retryCount = currentRetries + 1;
 
     // For Cloudflare IPFS URLs that failed, try ipfs.io
     if (e.target.src.includes("cloudflare-ipfs.com") && !e.target.src.includes("ipfs.io")) {
@@ -480,7 +495,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
                 }
               </span>
 
-              <span className="floor-amount">
+              <span className={priceMode === 'floor'?"floor-amount":"nft-offer-amount"}>
                 {priceMode === 'floor'
                   ? (nft.floor?.amount > 0
                     ? `${formatPrice(nft.floor.amount)} ${nft.floor.symbol}`
@@ -528,13 +543,13 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
                   transform: 'translateX(-50%)',
                   zIndex: 9999,
                   pointerEvents: 'none',
-                  background: "rgba(30, 30, 47, 0.95)",
-                  border: "1px solid rgba(255, 255, 255, 0.3)",
-                  borderRadius: "8px",
-                  padding: "0.75rem",
-                  backdropFilter: "blur(15px)",
-                  boxShadow: "0 8px 32px rgba(0, 0, 0, 0.5)",
-                  minWidth: "150px",
+                  background: "linear-gradient(135deg, rgba(20,20,40,0.95), rgba(35,20,60,0.95))",
+                  border: "1px solid rgba(120, 120, 255, 0.35)",
+                  borderRadius: "10px",
+                  padding: "0.85rem 1rem",
+                  backdropFilter: "blur(18px)",
+                  boxShadow: "0 8px 28px rgba(0,0,0,0.6), 0 0 16px rgba(120,120,255,0.3)",
+                  minWidth: "160px",
                   whiteSpace: "nowrap",
                   justifyContent: "center",
                   alignItems: "center",
@@ -543,11 +558,12 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
               >
                 <p style={{
                   fontSize: "0.95rem",
-                  color: "rgba(255, 255, 255, 0.7)",
+                  color: "rgba(200, 200, 255, 0.85)",
                   fontWeight: "600",
                   marginBottom: "10px",
                   marginTop: "0",
-                  textAlign: "center"
+                  textAlign: "center",
+                  letterSpacing: "0.3px"
                 }}
                 >Floor per DENOM</p>
                 {Object.entries(nft.floor.floorPricesList).map(([symbol, info]) => (

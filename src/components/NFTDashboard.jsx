@@ -1092,7 +1092,7 @@ export default function NFTDashboard({
         ) : (
           <div className="stats">
             <div className="stat" title={priceMode === 'offers' ? 'Highest Offers' : 'Floor Prices'}>
-              <span className="stat-value">
+              <span className={priceMode === 'offers' ? "stat-value offers-mode" : "stat-value"}>
                 {showDollarBalances ? (
                   `$${nfts
                     .reduce((total, nft) => {
@@ -1114,22 +1114,22 @@ export default function NFTDashboard({
                 )}
               </span>
               <span className="stat-label">NFTs Total Value</span>
-              <span className="stat-sublabel">{priceMode === 'offers' ? 'Highest Offers' : 'Floor Prices'}</span>
+              <span className={`stat-sublabel ${priceMode === 'offers' ? 'offers-mode' : ''}`}>{priceMode === 'offers' ? 'Highest Offers' : 'Floor Prices'}</span>
             </div>
             <div className="stat">
-              <span className="stat-value">
+              <span className={priceMode === 'offers' ? "stat-value offers-mode" : "stat-value"}>
                 {nfts.length}
               </span>
               <span className="stat-label">NFTs</span>
             </div>
             <div className="stat">
-              <span className="stat-value">
+              <span className={priceMode === 'offers' ? "stat-value offers-mode" : "stat-value"}>
                 {new Set(nfts.map((n) => n.chain)).size}
               </span>
               <span className="stat-label">Chains</span>
             </div>
             <div className="stat">
-              <span className="stat-value">
+              <span className={priceMode === 'offers' ? "stat-value offers-mode" : "stat-value"}>
                 {new Set(nfts.map((n) => n.collection)).size}
               </span>
               <span className="stat-label">Collections</span>

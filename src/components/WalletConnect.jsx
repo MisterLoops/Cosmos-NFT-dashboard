@@ -247,7 +247,7 @@ export default function WalletConnect({
 
       <div className="connect-container">
         <Wallet size={64} className="wallet-icon" />
-        {!manualMode ? <h1>Connect Your Wallet</h1> : <h1>Connect With Addresses</h1>}
+        {!manualMode ? <h1>Connect Your Wallet</h1> : <h1>Use Addresses From Input</h1>}
         <p>
           ... to admire your interchain NFT portfolio on 8 cosmos chains from one single place.
         </p>

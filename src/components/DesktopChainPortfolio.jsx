@@ -264,20 +264,23 @@ export default function DesktopChainPortfolio({ chainBalances, showDollarBalance
         <div
           className="token-summary-tooltip"
           style={{
-            position: 'fixed',
+            position: "fixed",
             left: `${tooltipPosition.x}px`,
             top: `${tooltipPosition.y}px`,
-            transform: 'translateX(-50%)',
+            transform: "translateX(-50%)",
             zIndex: 9999,
-            pointerEvents: 'none',
-            background: "rgba(30, 30, 47, 0.95)",
-            border: "1px solid rgba(255, 255, 255, 0.3)",
-            borderRadius: "8px",
+            pointerEvents: "none",
+            background: "rgba(15, 15, 30, 0.85)", // deep space glass
+            border: "1px solid rgba(120, 80, 200, 0.3)", // nebula purple border
+            borderRadius: "12px",
             padding: "1rem",
-            backdropFilter: "blur(15px)",
-            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.5)",
-            minWidth: "200px",
+            backdropFilter: "blur(14px) saturate(130%)",
+            boxShadow: "0 6px 24px rgba(0, 0, 0, 0.7), 0 0 12px rgba(120, 80, 200, 0.25)", // cosmic glow
+            minWidth: "220px",
             whiteSpace: "nowrap",
+            color: "rgba(255, 255, 255, 0.95)", // text visible on dark bg
+            fontSize: "0.9rem",
+            transition: "opacity 0.2s ease, transform 0.2s ease",
           }}
         >
           {(() => {
