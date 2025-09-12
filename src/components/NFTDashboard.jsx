@@ -13,6 +13,7 @@ import {
 import NFTCard from "./NFTCard";
 import FilterPanel from "./FilterPanel";
 import LoadingAnimation from "./LoadingAnimation";
+import WLCheckerComponent from "./WLCheckerComponent";
 import {
   fetchStargazeNFTs,
   fetchOsmosisNFTs,
@@ -1090,9 +1091,10 @@ export default function NFTDashboard({
       {!hasLoadedNFTs && (
         <LoadingAnimation fetchingStatus={fetchingStatus} isVisible={true} />
       )}
+      {hasLoadedNFTs && (<WLCheckerComponent addresses={addresses} />)}
       {showFeedbackModal && (
         <div className="feedback-modal-overlay">
-          <div className="connect-container">
+          <div className="connect-container" style={{maxWidth:"80%"}}>
             <h3 style={{ color: "white", marginBottom: "1rem" }}>Quick question</h3>
             <form
               name="feedback"
@@ -1105,11 +1107,11 @@ export default function NFTDashboard({
                 The NFTHUB hasn't received much support through donations so far...
               </p>
               <p style={{ color: "white", marginBottom: "1.5rem", fontWeight: "bold" }}>
-                Would you mint a $5 NFT to support my work on the NFTHUB, be an OG early supporter and access exclusive features?
+                Would you mint a $5 NFT to support my work on the NFTHUB, be an OG early supporter and access exclusive features (e.g WL checker)?
               </p>
 
 
-              <div style={{ display: "flex", justifyContent: "space-around" }}>
+              <div style={{ display: "flex", justifyContent: "center", gap: "3rem"  }}>
                 <button
                   type="submit"
                   name="answer"
