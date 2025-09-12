@@ -10,5 +10,9 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/index.jsx"></script>
+    <!-- Hidden static form so Netlify detects it -->
+    <form name="feedback" netlify netlify-honeypot="bot-field" hidden>
+      <input type="text" name="answer" />
+    </form>
   </body>
 </html>
