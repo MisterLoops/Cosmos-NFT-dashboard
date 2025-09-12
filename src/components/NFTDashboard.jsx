@@ -1063,7 +1063,27 @@ export default function NFTDashboard({
       return () => clearTimeout(timer);
     }
   }, [hasLoadedNFTs]);
+  const handleFormSubmit = async (answer) => {
+    try {
+      const formData = new FormData();
+      formData.append('form-name', 'feedback');
+      formData.append('answer', answer);
 
+      await fetch('/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(formData).toString()
+      });
+
+      localStorage.setItem("feedbackShown", "true");
+      setShowFeedbackModal(false);
+    } catch (error) {
+      console.error('Form submission error:', error);
+      // Still close modal even if submission fails
+      localStorage.setItem("feedbackShown", "true");
+      setShowFeedbackModal(false);
+    }
+  };
 
   return (
     <div className="nft-dashboard">
@@ -1078,6 +1098,7 @@ export default function NFTDashboard({
               name="feedback"
               method="POST"
               data-netlify="true"
+              onSubmit={(e) => e.preventDefault()}
             >
               <input type="hidden" name="form-name" value="feedback" />
               <p style={{ color: "white", marginBottom: "1.5rem" }}>
@@ -1094,10 +1115,7 @@ export default function NFTDashboard({
                   name="answer"
                   value="Yes"
                   className="feedback-btn"
-                  onClick={() => {
-                    localStorage.setItem("feedbackShown", "true");
-                    setShowFeedbackModal(false);
-                  }}
+                  onClick={() => handleFormSubmit('Yes')}
                 >
                   Yes
                 </button>
@@ -1106,10 +1124,7 @@ export default function NFTDashboard({
                   name="answer"
                   value="No"
                   className="feedback-btn"
-                  onClick={() => {
-                    localStorage.setItem("feedbackShown", "true");
-                    setShowFeedbackModal(false);
-                  }}
+                  onClick={() => handleFormSubmit('No')}
                 >
                   No
                 </button>
