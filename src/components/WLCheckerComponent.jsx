@@ -194,7 +194,7 @@ const WLCheckerComponent = ({ addresses }) => {
                   onChange={() => handleMarketplaceChange('stargaze')}
                   disabled={isLoadingWLs}
                 />
-                <span className="checkmark"></span>
+                <span className="WLcheckmark"></span>
                 Stargaze Marketplace
               </label>
             </div>
@@ -365,7 +365,7 @@ const WLCheckerComponent = ({ addresses }) => {
         display: none; /* hide native checkbox */
       }
 
-      .checkmark {
+      .WLcheckmark {
         width: 20px;
         height: 20px;
         border: 2px solid #667eea;
@@ -376,7 +376,7 @@ const WLCheckerComponent = ({ addresses }) => {
         justify-content: center; /* center ::after horizontally */
       }
 
-      .checkmark::after {
+      .WLcheckmark::after {
         content: '';
         display: none; /* hide by default */
         width: 6px;
@@ -386,7 +386,7 @@ const WLCheckerComponent = ({ addresses }) => {
         transform: rotate(45deg);
       }
 
-      .marketplace-checkbox input:checked + .checkmark::after {
+      .marketplace-checkbox input:checked + .WLcheckmark::after {
         display: block; /* show check only when checked */
       }
         .check-btn {
