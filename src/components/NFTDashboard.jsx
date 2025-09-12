@@ -1064,7 +1064,7 @@ export default function NFTDashboard({
     }
   }, [hasLoadedNFTs]);
 
-  const handleFeedbackSubmit = () => {
+  const handleFeedbackSubmit = (e) => {
     localStorage.setItem("feedbackShown", "true");
     setShowFeedbackModal(false);
   };
