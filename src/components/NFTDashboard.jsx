@@ -1064,10 +1064,6 @@ export default function NFTDashboard({
     }
   }, [hasLoadedNFTs]);
 
-  const handleFeedbackSubmit = (e) => {
-    localStorage.setItem("feedbackShown", "true");
-    setShowFeedbackModal(false);
-  };
 
   return (
     <div className="nft-dashboard">
@@ -1082,16 +1078,15 @@ export default function NFTDashboard({
               name="feedback"
               method="POST"
               data-netlify="true"
-              onSubmit={handleFeedbackSubmit}
             >
               <input type="hidden" name="form-name" value="feedback" />
               <p style={{ color: "white", marginBottom: "1.5rem" }}>
                 The NFTHUB hasn't received much support through donations so far...
               </p>
-              <p style={{ color: "white", marginBottom: "1.5rem", fontWeight:"bold" }}>
+              <p style={{ color: "white", marginBottom: "1.5rem", fontWeight: "bold" }}>
                 Would you mint a $5 NFT to support my work on the NFTHUB, be an OG early supporter and access exclusive features?
               </p>
-              
+
 
               <div style={{ display: "flex", justifyContent: "space-around" }}>
                 <button
@@ -1099,6 +1094,10 @@ export default function NFTDashboard({
                   name="answer"
                   value="Yes"
                   className="feedback-btn"
+                  onClick={() => {
+                    localStorage.setItem("feedbackShown", "true");
+                    setShowFeedbackModal(false);
+                  }}
                 >
                   Yes
                 </button>
@@ -1107,14 +1106,18 @@ export default function NFTDashboard({
                   name="answer"
                   value="No"
                   className="feedback-btn"
+                  onClick={() => {
+                    localStorage.setItem("feedbackShown", "true");
+                    setShowFeedbackModal(false);
+                  }}
                 >
                   No
                 </button>
               </div>
             </form>
-            
+
             <div className="feedback-footer">
-              <p style={{ color: "white", marginBottom: "1.5rem", fontStyle:"italic" }}>
+              <p style={{ color: "white", marginBottom: "1.5rem", fontStyle: "italic" }}>
                 In any case,  the NFTHUB will always remain freely accessible.
               </p>
               <a
