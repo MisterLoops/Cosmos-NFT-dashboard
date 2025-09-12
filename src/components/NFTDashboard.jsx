@@ -1055,7 +1055,7 @@ export default function NFTDashboard({
   const goToPreviousPage = (shouldScroll = false) => goToPage(currentPage - 1, shouldScroll);
 
   useEffect(() => {
-    localStorage.removeItem("feedbackShown", "true");
+    // localStorage.removeItem("feedbackShown", "true");
     if (hasLoadedNFTs && !localStorage.getItem("feedbackShown")) {
       const timer = setTimeout(() => {
         setShowFeedbackModal(true);
