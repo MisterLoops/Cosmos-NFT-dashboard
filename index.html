@@ -1,18 +1,23 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
-    <link href="https://fonts.googleapis.com/css2?family=Titan+One:wght@100;400;500;700;800&display=swap" rel="stylesheet">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Cosmos NFTHUB dashboard</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/index.jsx"></script>
-    <!-- Hidden static form so Netlify detects it -->
-    <form name="feedback" netlify netlify-honeypot="bot-field" hidden>
-      <input type="hidden" name="answer" value="" />
-    </form>
-  </body>
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
+  <link href="https://fonts.googleapis.com/css2?family=Titan+One:wght@100;400;500;700;800&display=swap"
+    rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cosmos NFTHUB dashboard</title>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/index.jsx"></script>
+  <!-- Hidden static form so Netlify detects it -->
+  <form name="feedback" netlify netlify-honeypot="bot-field" hidden>
+    <input type="hidden" name="form-name" value="feedback" />
+    <input type="hidden" name="answer" value="" />
+  </form>
+</body>
+
 </html>
