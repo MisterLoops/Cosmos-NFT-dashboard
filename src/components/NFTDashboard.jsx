@@ -102,6 +102,8 @@ export default function NFTDashboard({
 
   const [chainLoadingStates, setChainLoadingStates] = useState({});
   const [isManualAddressFetching, setIsManualAddressFetching] = useState(false);
+  // Feedback modal state
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
   // Check if manual address is fetching to show compact animation (not for initial fetch)
   const isAnyChainLoading = isManualAddressFetching;
@@ -1052,10 +1054,79 @@ export default function NFTDashboard({
   const goToNextPage = (shouldScroll = false) => goToPage(currentPage + 1, shouldScroll);
   const goToPreviousPage = (shouldScroll = false) => goToPage(currentPage - 1, shouldScroll);
 
+  useEffect(() => {
+    localStorage.removeItem("feedbackShown", "true");
+    if (hasLoadedNFTs && !localStorage.getItem("feedbackShown")) {
+      const timer = setTimeout(() => {
+        setShowFeedbackModal(true);
+      }, 3000); // 3s after NFTs load
+      return () => clearTimeout(timer);
+    }
+  }, [hasLoadedNFTs]);
+
+  const handleFeedbackSubmit = () => {
+    localStorage.setItem("feedbackShown", "true");
+    setShowFeedbackModal(false);
+  };
+
   return (
     <div className="nft-dashboard">
       {!hasLoadedNFTs && (
         <LoadingAnimation fetchingStatus={fetchingStatus} isVisible={true} />
+      )}
+      {showFeedbackModal && (
+        <div className="feedback-modal-overlay">
+          <div className="connect-container">
+            <h3 style={{ color: "white", marginBottom: "1rem" }}>Quick question</h3>
+            <form
+              name="feedback"
+              method="POST"
+              data-netlify="true"
+              onSubmit={handleFeedbackSubmit}
+            >
+              <input type="hidden" name="form-name" value="feedback" />
+              <p style={{ color: "white", marginBottom: "1.5rem" }}>
+                The NFTHUB hasn't received much support through donations so far...
+              </p>
+              <p style={{ color: "white", marginBottom: "1.5rem", fontWeight:"bold" }}>
+                Would you mint a $5 NFT to support my work on the NFTHUB, be an OG early supporter and access exclusive features?
+              </p>
+              
+
+              <div style={{ display: "flex", justifyContent: "space-around" }}>
+                <button
+                  type="submit"
+                  name="answer"
+                  value="Yes"
+                  className="feedback-btn"
+                >
+                  Yes
+                </button>
+                <button
+                  type="submit"
+                  name="answer"
+                  value="No"
+                  className="feedback-btn"
+                >
+                  No
+                </button>
+              </div>
+            </form>
+            
+            <div className="feedback-footer">
+              <p style={{ color: "white", marginBottom: "1.5rem", fontStyle:"italic" }}>
+                In any case,  the NFTHUB will always remain freely accessible.
+              </p>
+              <a
+                href="https://x.com/MisterLoops"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Reach out to me on X for feedback or more infos...
+              </a>
+            </div>
+          </div>
+        </div>
       )}
       <div className="dashboard-header">
         {isAnyChainLoading ? (
