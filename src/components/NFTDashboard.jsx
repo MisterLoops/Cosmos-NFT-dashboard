@@ -1112,75 +1112,105 @@ export default function NFTDashboard({
       {hasLoadedNFTs && (<WLCheckerComponent addresses={addresses} />)}
       {hasLoadedNFTs && !hasProofOfSupport && (
         <div
-          className="mint-btn-container"
-          style={{ position: "relative", width: "100%" }}
-        >
-          {/* Global styles needed for @keyframes and ::before */}
-          <style>{`
+  className="mint-btn-container"
+>
+  <style>{`
+    .mint-btn-container {
+      display: flex;
+      justify-content: center; /* default desktop: centered */
+      width: 100%;
+    }
+
+    .stargaze-animated-btn {
+      position: relative;
+      padding: 14px 36px;
+      border-radius: 50px;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-weight: 600;
+      font-size: 17px;
+      letter-spacing: 0.6px;
+      color: #1a1a2e;
+      text-shadow: 0 1px 2px rgba(255,255,255,0.4);
+      border: none;
+      cursor: pointer;
+      overflow: hidden;
+      background: transparent;
+      box-shadow: 
+        0 6px 18px rgba(0,0,0,0.15),
+        0 0 0 1px rgba(255,255,255,0.1),
+        inset 0 1px 0 rgba(255,255,255,0.15);
+      transition: all 0.25s ease;
+      z-index: 0;
+    }
+
+    .stargaze-animated-btn::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      border-radius: 50px;
+      background: linear-gradient(135deg, #fff59e 0%, #81efd9 40%, #6b9be3 100%);
+      background-size: 300% 300%;
+      animation: stargazeGradient 8s ease-in-out infinite;
+    }
+
+    .stargaze-animated-btn:hover {
+      transform: scale(1.05) translateY(-2px);
+      box-shadow: 
+        0 12px 28px rgba(0,0,0,0.2),
+        0 0 0 1px rgba(255,255,255,0.2),
+        inset 0 1px 0 rgba(255,255,255,0.25);
+    }
+
+    .stargaze-animated-btn:active {
+      transform: scale(1.02) translateY(-1px);
+    }
+
+    @keyframes stargazeGradient {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* Default: show desktop, hide mobile */
+    .btn-text-desktop { display: inline; }
+    .btn-text-mobile { display: none; }
+
+    /* 📱 Mobile overrides */
+    @media (max-width: 600px) {
+      .mint-btn-container {
+        justify-content: flex-start; /* ✅ align left */
+        padding-left: 12px; /* optional spacing from edge */
+      }
       .stargaze-animated-btn {
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
-        padding: 12px 28px;
-        border-radius: 50px;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-weight: 600;
-        font-size: 16px;
-        letter-spacing: 0.5px;
-        color: #1a1a2e;
-        text-shadow: 0 1px 2px rgba(255,255,255,0.5);
-        border: none;
-        cursor: pointer;
-        overflow: hidden;
-        background: transparent;
-        box-shadow: 
-          0 8px 25px rgba(0,0,0,0.2),
-          0 0 0 1px rgba(255,255,255,0.1),
-          inset 0 1px 0 rgba(255,255,255,0.2);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        z-index: 0;
-      }
 
-      .stargaze-animated-btn::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        z-index: -1;
-        background: linear-gradient(135deg, #fff59e 0%, #81efd9 40%, #6b9be3 100%);
-        background-size: 300% 300%;
-        animation: stargazeGradient 8s ease-in-out infinite;
-        will-change: background-position;
+        padding: 12px 20px;
+          border-radius: 50px;
+          font-weight: bold;
+          font-size: 14px;
       }
+      .btn-text-desktop { display: none; }
+      .btn-text-mobile { display: inline; }
+    }
+  `}</style>
 
-      .stargaze-animated-btn:hover {
-        transform: translate(-50%, -50%) scale(1.06) translateY(-2px);
-        box-shadow: 
-          0 12px 35px rgba(0,0,0,0.25),
-          0 0 0 1px rgba(255,255,255,0.2),
-          inset 0 1px 0 rgba(255,255,255,0.3);
-      }
+  <button
+    className="stargaze-animated-btn"
+    onClick={() =>
+      window.open(
+        "https://www.stargaze.zone/l/stars1cmgqc78wz2etqf89ggh7xe9gyl5mj3y8f2e6payyt5sv5t4plprq4jzpzu",
+        "_blank"
+      )
+    }
+    title="Show your support and unlock exclusive features"
+  >
+    <span className="btn-text-desktop">🌟 Mint your NFTHUB POS 🌟</span>
+    <span className="btn-text-mobile">🌟 Mint POS</span>
+    
+  </button>
+</div>
 
-      .stargaze-animated-btn:active {
-        transform: translate(-50%, -50%) scale(1.02) translateY(-1px);
-      }
 
-      @keyframes stargazeGradient {
-        0%   { background-position: 0% 50%; }
-        50%  { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
-      }
-    `}</style>
-
-          <button
-            className="stargaze-animated-btn"
-            onClick={() => window.open("https://www.stargaze.zone/l/stars1cmgqc78wz2etqf89ggh7xe9gyl5mj3y8f2e6payyt5sv5t4plprq4jzpzu", "_blank")}
-            title="Show your support and unlock exclusive features"
-            style={{ display: "inline-block" }}
-          >
-            Mint your NFTHUB Proof Of Support on STARGAZE
-          </button>
-        </div>
       )}
       {hasLoadedNFTs && hasProofOfSupport && (
         <div

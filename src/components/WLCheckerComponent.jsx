@@ -195,7 +195,9 @@ const WLCheckerComponent = ({ addresses }) => {
           className="wl-checker-btn"
           title="Whitelist Checker"
         >
-          WL checker
+          <span className="wl-btn-text-desktop">WL checker</span>
+          <span className="wl-btn-text-mobile">WL</span>
+
           <span className="new-badge">NEW</span>
         </button>
       </div>
@@ -282,53 +284,70 @@ const WLCheckerComponent = ({ addresses }) => {
       )}
 
       <style jsx>{`
-        .wl-checker-container {
-          position: absolute;
-          right: 20px;
-          z-index: 999;
-        }
-        .wl-checker-btn {
-          position: relative;
-          padding: 12px 20px;
-          border-radius: 50px;
-          background: linear-gradient(135deg, #1e2a47, #2d3b5c);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          cursor: pointer;
-          color: #ffffff;
-          font-weight: bold;
-          font-size: 14px;
-          box-shadow: 0 4px 15px rgba(30, 42, 71, 0.4);
-          transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
-        }
+          .wl-checker-container {
+            position: absolute;
+            right: 20px;
+            z-index: 999;
+          }
 
-        .wl-checker-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(45, 59, 92, 0.6);
-          border-color: rgba(255, 255, 255, 0.2);
-          background: linear-gradient(135deg, #2d3b5c, #3a4a6b);
-        }
+          .wl-checker-btn {
+            position: relative;
+            padding: 12px 20px;
+            border-radius: 50px;
+            background: linear-gradient(135deg, #1e2a47, #2d3b5c);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            color: #ffffff;
+            font-weight: bold;
+            font-size: 14px;
+            box-shadow: 0 4px 15px rgba(30, 42, 71, 0.4);
+            transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+          }
 
-        .wl-checker-btn:active {
-          transform: translateY(0px);
-          box-shadow: 0 2px 10px rgba(30, 42, 71, 0.3);
-        }
+          /* Desktop / default */
+          .wl-btn-text-desktop { display: inline; }
+          .wl-btn-text-mobile  { display: none; }
 
-        .new-badge {
-          position: absolute;
-          top: -6px;
-          right: -6px;
-          background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
-          color: white;
-          border-radius: 12px;
-          padding: 2px 6px;
-          font-size: 10px;
-          font-weight: bold;
-          animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.1); }
-        }
+          /* Mobile override */
+          @media (max-width: 600px) {
+            .wl-btn-text-desktop { display: none; }
+            .wl-btn-text-mobile  { display: inline; }
+
+            .wl-checker-btn {
+              padding: 10px 16px;
+              font-size: 13px;
+              border-radius: 40px;
+            }
+          }
+
+          .wl-checker-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(45, 59, 92, 0.6);
+            border-color: rgba(255, 255, 255, 0.2);
+            background: linear-gradient(135deg, #2d3b5c, #3a4a6b);
+          }
+
+          .wl-checker-btn:active {
+            transform: translateY(0px);
+            box-shadow: 0 2px 10px rgba(30, 42, 71, 0.3);
+          }
+
+          .new-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+            color: white;
+            border-radius: 12px;
+            padding: 2px 6px;
+            font-size: 10px;
+            font-weight: bold;
+            animation: pulse 2s infinite;
+          }
+          @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+          }
 
         .wl-modal-overlay {
           position: fixed;
