@@ -57,7 +57,7 @@ const WLCheckerComponent = ({ addresses }) => {
         mintStartTimeMin: minNs,
         mintStartTimeMax: maxNs,
       },
-      filterByMinterType: ["VENDING", "OPEN_EDITION", "LIMITED_EDITION", "BURN_TO_MINT"],
+      filterByMinterType: ["VENDING", "OPEN_EDITION", "LIMITED_EDITION"],
     };
     const data = await fetchGraphQL(query, variables, "Minters");
     return data.collections.collections;
@@ -84,6 +84,7 @@ const WLCheckerComponent = ({ addresses }) => {
               symbol
               exponent
             }
+            status
             addressTokenCounts {
               mintable
             }
@@ -96,45 +97,56 @@ const WLCheckerComponent = ({ addresses }) => {
     const variables = { address: contractAddress, walletAddress };
     const data = await fetchGraphQL(query, variables, "MinterData");
     const minter = data.collection?.minterV2;
-    if (!minter) return { status: "No WL" };
+    if (!minter || minter.minterType === "BURN_TO_MINT") return [];
 
-    // Find a whitelist stage
-    const wlStage = minter.mintStages.find(s => s.type !== "PUBLIC" && s.isMember);
+    // ✅ Get *all* eligible non-public stages
+    const wlStages = minter.mintStages.filter(
+      s => s.isMember && s.status !== "SOLD_OUT" && s.type !== "PUBLIC"
+    );
 
-    if (!wlStage) return null;
+    if (!wlStages.length) return [];
 
     const now = Date.now();
-    const startMs = parseInt(wlStage.startTime) / 1e6;
-    const endMs = wlStage.endTime ? parseInt(wlStage.endTime) / 1e6 : null;
 
-    let timeLabel = "";
-    if (now < startMs) {
-      const diff = startMs - now;
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      timeLabel = `Starts in ${hours}h ${minutes}m`;
-    } else if (!endMs || (now >= startMs && now <= endMs)) {
-      timeLabel = "Mint now";
-    } else {
-      return null; // 🚨 skip ended
-    }
+    const validStages = wlStages
+      .map(stage => {
+        const startMs = parseInt(stage.startTime) / 1e6;
+        const endMs = stage.endTime ? parseInt(stage.endTime) / 1e6 : null;
 
-    if (!wlStage.addressTokenCounts?.mintable || wlStage.addressTokenCounts.mintable <= 0) {
-      return null; // 🚨 skip if not WL
-    }
+        let timeLabel = "";
+        if (now < startMs) {
+          const diff = startMs - now;
+          const hours = Math.floor(diff / (1000 * 60 * 60));
+          const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+          timeLabel = `Starts in ${hours}h ${minutes}m`;
+        } else if (!endMs || (now >= startMs && now <= endMs)) {
+          timeLabel = "Mint now";
+        } else {
+          return null; // skip ended stage
+        }
 
-    return {
-      status: "WL'ed",
-      price: {
-        amount: wlStage.salePrice.amount,
-        exponent: wlStage.salePrice.exponent,
-        symbol: wlStage.salePrice.symbol,
-        amountUsd: wlStage.salePrice.amountUsd,
-      },
-      maxMint: wlStage.addressTokenCounts.mintable,
-      timeLabel,
-    };
+        if (!stage.addressTokenCounts?.mintable || stage.addressTokenCounts.mintable <= 0) {
+          return null; // skip if no allocation
+        }
+
+        return {
+          status: "WL'ed",
+          price: {
+            amount: stage.salePrice.amount,
+            exponent: stage.salePrice.exponent,
+            symbol: stage.salePrice.symbol,
+            amountUsd: stage.salePrice.amountUsd,
+          },
+          maxMint: stage.addressTokenCounts.mintable,
+          stageName: stage.name,
+          timeLabel,
+        };
+      })
+      .filter(Boolean);
+
+    return validStages;
   };
+
 
 
   const fetchWLs = async () => {
@@ -142,13 +154,21 @@ const WLCheckerComponent = ({ addresses }) => {
     setWLResultsFetched(false);
     try {
       const minters = await fetchMinters();
+
       const promises = minters.map(async ({ minterAddress, name, contractAddress }) => {
-        const wlInfo = await fetchCollectionWL(minterAddress, addresses["stargaze"]);
-        if (!wlInfo) return null; // skip invalid/ended/no-WL
-        return { name, contractAddress, wlInfo };
+        const wlInfos = await fetchCollectionWL(minterAddress, addresses["stargaze"]);
+        if (!wlInfos || wlInfos.length === 0) return null;
+
+        // Map each stage separately
+        return wlInfos.map(wlInfo => ({
+          name,
+          contractAddress,
+          wlInfo,
+        }));
       });
 
-      const results = (await Promise.all(promises)).filter(Boolean); // filter out nulls
+      const resultsNested = await Promise.all(promises);
+      const results = resultsNested.flat().filter(Boolean);
       setWLResults(results);
       console.log("WL results:", results);
     } catch (err) {
@@ -158,6 +178,7 @@ const WLCheckerComponent = ({ addresses }) => {
       setWLResultsFetched(true);
     }
   };
+
 
   const handleMarketplaceChange = (marketplace) => {
     setSelectedMarketplaces(prev => ({
@@ -215,6 +236,7 @@ const WLCheckerComponent = ({ addresses }) => {
                     <thead>
                       <tr>
                         <th>Collection</th>
+                        <th>Stage</th>
                         <th>Max Mint</th>
                         <th>Price</th>
                         <th>Time</th>
@@ -232,10 +254,11 @@ const WLCheckerComponent = ({ addresses }) => {
                               {name}
                             </a>
                           </td>
+                          <td>{wlInfo.stageName || "-"}</td>
                           <td>{wlInfo.maxMint || "-"}</td>
                           <td>
                             {wlInfo.price
-                              ? `${wlInfo.price.amount / 10 ** wlInfo.price.exponent} ${wlInfo.price.symbol}`
+                              ? `${wlInfo.price.amount / 10 ** wlInfo.price.exponent} ${wlInfo.price.symbol}`+`${wlInfo.price.amountUsd ? " ($"+ Number(wlInfo.price.amountUsd).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ")":""}`
                               : "-"}
                           </td>
                           <td>{wlInfo.timeLabel || "-"}</td>
@@ -268,18 +291,28 @@ const WLCheckerComponent = ({ addresses }) => {
           position: relative;
           padding: 12px 20px;
           border-radius: 50px;
-          background: linear-gradient(135deg, #667eea, #764ba2);
-          border: none;
+          background: linear-gradient(135deg, #1e2a47, #2d3b5c);
+          border: 1px solid rgba(255, 255, 255, 0.1);
           cursor: pointer;
-          color: #fff;
+          color: #ffffff;
           font-weight: bold;
           font-size: 14px;
-          box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-          transition: transform 0.3s;
+          box-shadow: 0 4px 15px rgba(30, 42, 71, 0.4);
+          transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
         }
+
         .wl-checker-btn:hover {
           transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(45, 59, 92, 0.6);
+          border-color: rgba(255, 255, 255, 0.2);
+          background: linear-gradient(135deg, #2d3b5c, #3a4a6b);
         }
+
+        .wl-checker-btn:active {
+          transform: translateY(0px);
+          box-shadow: 0 2px 10px rgba(30, 42, 71, 0.3);
+        }
+
         .new-badge {
           position: absolute;
           top: -6px;

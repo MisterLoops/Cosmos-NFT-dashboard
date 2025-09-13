@@ -1189,28 +1189,28 @@ export default function App() {
   };
 
   const fetchMantraGendrop = async (mantraAddress) => {
-  try {
-    const url = `https://leaderboard.mantra.zone/api/v1/portfolio/${mantraAddress}?filter_completed_campaigns=true`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("Failed to fetch Mantra portfolio");
+    try {
+      const url = `https://leaderboard.mantra.zone/api/v1/portfolio/${mantraAddress}?filter_completed_campaigns=true`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Failed to fetch Mantra portfolio");
 
-    const data = await response.json();
-    const gendrop = parseFloat(data?.gendrop?.om?.balanceInBaseDenom || 0);
-    const upgrade = parseFloat(data?.omUpgrade?.om?.balanceInBaseDenom || 0);
+      const data = await response.json();
+      const gendrop = parseFloat(data?.gendrop?.om?.balanceInBaseDenom || 0);
+      const upgrade = parseFloat(data?.omUpgrade?.om?.balanceInBaseDenom || 0);
 
-    const total = gendrop + upgrade;
-    const decimals = 6; // OM has 6 decimals
-    const amount = total / Math.pow(10, decimals);
+      const total = gendrop + upgrade;
+      const decimals = 6; // OM has 6 decimals
+      const amount = total / Math.pow(10, decimals);
 
-    const price = assetPrices["OM"] || 0;
-    const usdValue = amount * price;
-    console.log(gendrop, upgrade);
-    setOmGendrop({ amount, usdValue });
-  } catch (err) {
-    console.error("Error fetching Mantra portfolio:", err);
-    setOmGendrop({ amount: 0, usdValue: 0 });
-  }
-};
+      const price = assetPrices["OM"] || 0;
+      const usdValue = amount * price;
+      console.log(gendrop, upgrade);
+      setOmGendrop({ amount, usdValue });
+    } catch (err) {
+      console.error("Error fetching Mantra portfolio:", err);
+      setOmGendrop({ amount: 0, usdValue: 0 });
+    }
+  };
 
   const fetchTokenBalances = async (addresses) => {
     try {
@@ -1255,7 +1255,7 @@ export default function App() {
           legacyPrices[chainName] = nativeAsset.price;
         }
       });
-      
+
       setTokenBalances(legacyBalances);
       setTokenPrices(legacyPrices);
 
@@ -1618,10 +1618,10 @@ export default function App() {
           </div>
         </div>
         <div
-        className={`skip-logo ${((!hasCompletedInitialLoad && isFetchingNFTs) || (!hasLoadedNFTs && isFetchingNFTs)) ? "disabled" : ""}`}
+          className={`skip-logo ${((!hasCompletedInitialLoad && isFetchingNFTs) || (!hasLoadedNFTs && isFetchingNFTs)) ? "disabled" : ""}`}
           // className="skip-logo disabled"
           // data-tooltip="Skip is deactivated for now"
-          data-tooltip= {
+          data-tooltip={
             isFetchingNFTs
               ? "To swap with Skip, please wait for the NFTs fetch to end 😉"
               : "Swap with Skip widget and support the NFTHUB (2% fee)"
@@ -1705,7 +1705,7 @@ export default function App() {
                 setShowTokens(true);
               }
             }}
-            className={`tokens-btn mobile-only ${(hasCompletedInitialLoad && omGendrop.amount > 0)? "highlight" : ""}`}
+            className={`tokens-btn mobile-only ${(hasCompletedInitialLoad && omGendrop.amount > 0) ? "highlight" : ""}`}
             disabled={Object.keys(chainBalances).length === 0}
           >
             Portfolio
@@ -1765,11 +1765,16 @@ export default function App() {
                             copyToClipboard(address);
                           }}
                           className={`copy-address-btn ${copiedAddress === address ? "copied" : ""}`}
-                          title="Copy address"
+                          title={copiedAddress === address ? "Copied!" : "Copy address"}
+                          aria-label={copiedAddress === address ? "Copied" : "Copy address"}
                         >
-                          <Copy size={14} className="copy-icon" />
-                          <Check size={14} className="check-icon" />
+                          {copiedAddress === address ? (
+                            <Check size={14} />
+                          ) : (
+                            <Copy size={14} />
+                          )}
                         </button>
+
                       </div>
                     ))}
                   </div>
@@ -1798,11 +1803,16 @@ export default function App() {
                                   copyToClipboard(address);
                                 }}
                                 className={`copy-address-btn ${copiedAddress === address ? "copied" : ""}`}
-                                title="Copy address"
+                                title={copiedAddress === address ? "Copied!" : "Copy address"}
+                                aria-label={copiedAddress === address ? "Copied" : "Copy address"}
                               >
-                                <Copy size={14} className="copy-icon" />
-                                <Check size={14} className="check-icon" />
+                                {copiedAddress === address ? (
+                                  <Check size={14} />
+                                ) : (
+                                  <Copy size={14} />
+                                )}
                               </button>
+
 
                               {addressLoading[chain] && (
                                 <div className="address-loading">
@@ -1944,7 +1954,7 @@ export default function App() {
       {/* Desktop Chain-Based Portfolio */}
       {Object.keys(chainBalances).length > 0 && hasCompletedInitialLoad && (
         <DesktopChainPortfolio chainBalances={chainBalances} showDollarBalances={showDollarBalances}
-          setShowDollarBalances={setShowDollarBalances} nftOffers={nftOffers} onBalanceClick={handleBalanceClick} omGendrop={omGendrop}/>
+          setShowDollarBalances={setShowDollarBalances} nftOffers={nftOffers} onBalanceClick={handleBalanceClick} omGendrop={omGendrop} />
       )}
 
 

@@ -80,6 +80,7 @@ export default function NFTDashboard({
   sessionKey
 }) {
 
+  const [hasProofOfSupport, setHasProofOfSupport] = useState(false);
   const [nfts, setNfts] = useState([]);
   const [filteredNfts, setFilteredNfts] = useState([]);
   const [priceMode, setPriceMode] = useState("floor");
@@ -698,7 +699,24 @@ export default function NFTDashboard({
       }
 
       if (chain.name === "stargaze") {
-        return await fetchStargazeNFTs(validAddresses);
+        const stargazeNFTs = await fetchStargazeNFTs(validAddresses);
+
+        // ✅ Only check connected address (not manual ones)
+        if (addresses["stargaze"]) {
+          const connectedAddress = addresses["stargaze"];
+          const connectedNFTs = stargazeNFTs.filter(
+            nft => nft.sourceAddress === connectedAddress
+          );
+
+          const hasSupportNFT = connectedNFTs.some(
+            nft => nft.contract === "stars1jju3zhkc4gzlmnxtnpfyt4rdw92kl9v49029wngs0mmk8pe0vw2qrngxap"
+          );
+
+          if (hasSupportNFT) setHasProofOfSupport(true);
+          else setHasProofOfSupport(false); // reset if none found
+        }
+
+        return stargazeNFTs;
       } else if (chain.name === "osmosis") {
         // Get current bOSMO price from props or use default
         const currentBosmoPrice = bosmoPrice || 0.2;
@@ -1055,36 +1073,36 @@ export default function NFTDashboard({
   const goToNextPage = (shouldScroll = false) => goToPage(currentPage + 1, shouldScroll);
   const goToPreviousPage = (shouldScroll = false) => goToPage(currentPage - 1, shouldScroll);
 
-  useEffect(() => {
-    // localStorage.removeItem("feedbackShown", "true");
-    if (hasLoadedNFTs && !localStorage.getItem("feedbackShown")) {
-      const timer = setTimeout(() => {
-        setShowFeedbackModal(true);
-      }, 3000); // 3s after NFTs load
-      return () => clearTimeout(timer);
-    }
-  }, [hasLoadedNFTs]);
-  const handleFormSubmit = async (answer) => {
-    try {
-      const formData = new FormData();
-      formData.append('form-name', 'feedback');
-      formData.append('answer', answer);
+  // useEffect(() => {
+  //   // localStorage.removeItem("feedbackShown", "true");
+  //   if (hasLoadedNFTs && !localStorage.getItem("feedbackShown")) {
+  //     const timer = setTimeout(() => {
+  //       setShowFeedbackModal(true);
+  //     }, 3000); // 3s after NFTs load
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [hasLoadedNFTs]);
+  // const handleFormSubmit = async (answer) => {
+  //   try {
+  //     const formData = new FormData();
+  //     formData.append('form-name', 'feedback');
+  //     formData.append('answer', answer);
 
-      await fetch('/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams(formData).toString()
-      });
+  //     await fetch('/', {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  //       body: new URLSearchParams(formData).toString()
+  //     });
 
-      localStorage.setItem("feedbackShown", "true");
-      setShowFeedbackModal(false);
-    } catch (error) {
-      console.error('Form submission error:', error);
-      // Still close modal even if submission fails
-      localStorage.setItem("feedbackShown", "true");
-      setShowFeedbackModal(false);
-    }
-  };
+  //     localStorage.setItem("feedbackShown", "true");
+  //     setShowFeedbackModal(false);
+  //   } catch (error) {
+  //     console.error('Form submission error:', error);
+  //     // Still close modal even if submission fails
+  //     localStorage.setItem("feedbackShown", "true");
+  //     setShowFeedbackModal(false);
+  //   }
+  // };
 
   return (
     <div className="nft-dashboard">
@@ -1092,9 +1110,139 @@ export default function NFTDashboard({
         <LoadingAnimation fetchingStatus={fetchingStatus} isVisible={true} />
       )}
       {hasLoadedNFTs && (<WLCheckerComponent addresses={addresses} />)}
-      {showFeedbackModal && (
+      {hasLoadedNFTs && !hasProofOfSupport && (
+        <div
+          className="mint-btn-container"
+          style={{ position: "relative", width: "100%" }}
+        >
+          {/* Global styles needed for @keyframes and ::before */}
+          <style>{`
+      .stargaze-animated-btn {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        padding: 12px 28px;
+        border-radius: 50px;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-weight: 600;
+        font-size: 16px;
+        letter-spacing: 0.5px;
+        color: #1a1a2e;
+        text-shadow: 0 1px 2px rgba(255,255,255,0.5);
+        border: none;
+        cursor: pointer;
+        overflow: hidden;
+        background: transparent;
+        box-shadow: 
+          0 8px 25px rgba(0,0,0,0.2),
+          0 0 0 1px rgba(255,255,255,0.1),
+          inset 0 1px 0 rgba(255,255,255,0.2);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 0;
+      }
+
+      .stargaze-animated-btn::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background: linear-gradient(135deg, #fff59e 0%, #81efd9 40%, #6b9be3 100%);
+        background-size: 300% 300%;
+        animation: stargazeGradient 8s ease-in-out infinite;
+        will-change: background-position;
+      }
+
+      .stargaze-animated-btn:hover {
+        transform: translate(-50%, -50%) scale(1.06) translateY(-2px);
+        box-shadow: 
+          0 12px 35px rgba(0,0,0,0.25),
+          0 0 0 1px rgba(255,255,255,0.2),
+          inset 0 1px 0 rgba(255,255,255,0.3);
+      }
+
+      .stargaze-animated-btn:active {
+        transform: translate(-50%, -50%) scale(1.02) translateY(-1px);
+      }
+
+      @keyframes stargazeGradient {
+        0%   { background-position: 0% 50%; }
+        50%  { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+    `}</style>
+
+          <button
+            className="stargaze-animated-btn"
+            onClick={() => window.open("https://www.stargaze.zone/l/stars1cmgqc78wz2etqf89ggh7xe9gyl5mj3y8f2e6payyt5sv5t4plprq4jzpzu", "_blank")}
+            title="Show your support and unlock exclusive features"
+            style={{ display: "inline-block" }}
+          >
+            Mint your NFTHUB Proof Of Support on STARGAZE
+          </button>
+        </div>
+      )}
+      {hasLoadedNFTs && hasProofOfSupport && (
+        <div
+          className="supporter-badge-container"
+          title="Thanks for supporting, dashboard fully unlocked"
+          style={{
+            position: "relative",
+            display: "flex",
+            justifyContent: "center",
+            textAlign: "center",
+            paddingTop: 0,
+            marginTop: 0,
+            zIndex: 1,
+          }}
+        >
+          <div
+            className="supporter-badge"
+            style={{
+              display: "inline-flex",
+              flexDirection: "column",
+              alignItems: "center",
+              // padding: "1rem",
+              borderRadius: "1rem",
+
+            }}
+          >
+            <img
+              src="./NFTHUBPOS.GIF" // ✅ your gif
+              alt="Supporter Badge"
+              style={{
+                width: "50px",
+                height: "50px",
+                borderRadius: "50%", // round crop
+                objectFit: "cover",
+                marginBottom: "0.5rem",
+                boxShadow: "0 0 8px 8px #0b0b1a"
+              }}
+            />
+            <div
+              style={{
+                fontWeight: "bold",
+                // color: "#0d0d1f",
+                background: "linear-gradient(135deg, #FFD700 0%, #E6BE8A 30%, #DAA520 60%, #FFD700 100%)",
+                borderRadius: "12px",
+                padding: "0.2rem 0.6rem",
+                fontSize: "0.65rem",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+                color: "#8B7500",
+                textShadow: "-0.5px -0.5px 0.5px rgba(255, 255, 255, 0.7), 0.5px 0.5px 1px rgba(0, 0, 0, 0.8)"
+              }}
+            >
+              EARLY SUPPORTER
+            </div>
+          </div>
+        </div>
+
+      )}
+
+
+      {/* {showFeedbackModal && (
         <div className="feedback-modal-overlay">
-          <div className="connect-container" style={{maxWidth:"80%"}}>
+          <div className="connect-container" style={{ maxWidth: "80%" }}>
             <h3 style={{ color: "white", marginBottom: "1rem" }}>Quick question</h3>
             <form
               name="feedback"
@@ -1111,7 +1259,7 @@ export default function NFTDashboard({
               </p>
 
 
-              <div style={{ display: "flex", justifyContent: "center", gap: "3rem"  }}>
+              <div style={{ display: "flex", justifyContent: "center", gap: "3rem" }}>
                 <button
                   type="submit"
                   name="answer"
@@ -1147,7 +1295,7 @@ export default function NFTDashboard({
             </div>
           </div>
         </div>
-      )}
+      )} */}
       <div className="dashboard-header">
         {isAnyChainLoading ? (
           <div className="stats" style={{ position: 'relative' }}>
@@ -1227,6 +1375,7 @@ export default function NFTDashboard({
             </div>
           </div>
         )}
+
 
         {/* Price Mode Slider */}
         {hasLoadedNFTs && (
