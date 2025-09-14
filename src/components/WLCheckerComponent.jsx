@@ -426,7 +426,7 @@ const WLCheckerComponent = ({ addresses }) => {
                                 href={`https://www.stargaze.zone/l/${contractAddress}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                title="Mint Now"
+                                title="Go to Mint Page"
                               >
                                 {name === "NFTHUB Proof of Support" ? "🌟 " + name + " 🌟" : name}
                               </a>
@@ -435,7 +435,7 @@ const WLCheckerComponent = ({ addresses }) => {
                                 href={`https://app.superbolt.wtf/browse/${contractAddress}/mint`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                title="Mint Now"
+                                title="Go to Mint Page"
                               >
                                 {name}
                               </a>
