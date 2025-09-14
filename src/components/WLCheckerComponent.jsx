@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { API_ENDPOINTS } from "../utils/constants.js";
+import { API_ENDPOINTS, CORS_PROXIES } from "../utils/constants.js";
 import LoadingSpinner from "./LoadingSpinner";
 
 const WLCheckerComponent = ({ addresses }) => {
@@ -13,17 +13,50 @@ const WLCheckerComponent = ({ addresses }) => {
   });
 
   const fetchGraphQL = async (endpoint, query, variables, operationName) => {
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query, variables, operationName }),
-    });
-    const json = await res.json();
-    if (json.errors) {
-      console.error("GraphQL errors:", json.errors);
-      throw new Error("GraphQL query failed");
+    // Stargaze works fine → fetch directly
+    if (endpoint === API_ENDPOINTS.STARGAZE_GRAPHQL) {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, variables, operationName }),
+      });
+      const json = await res.json();
+      if (json.errors) throw new Error(JSON.stringify(json.errors));
+      return json.data;
     }
-    return json.data;
+
+    // Superbolt needs CORS proxy
+    let retries = 0;
+    const maxRetries = 3;
+
+    while (retries <= maxRetries) {
+      try {
+        const proxyUrl = CORS_PROXIES[retries % CORS_PROXIES.length];
+        let proxiedUrl;
+
+        if (proxyUrl.includes("codetabs.com") || proxyUrl.includes("thingproxy")) {
+          proxiedUrl = proxyUrl + encodeURIComponent(endpoint);
+        } else {
+          proxiedUrl = proxyUrl + endpoint;
+        }
+
+        const res = await fetch(proxiedUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query, variables, operationName }),
+        });
+
+        if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
+        const json = await res.json();
+        if (json.errors) throw new Error(JSON.stringify(json.errors));
+        return json.data;
+      } catch (err) {
+        console.warn(`[Superbolt CORS Proxy Retry ${retries}]`, err);
+        retries++;
+      }
+    }
+
+    throw new Error("All CORS proxies failed for Superbolt GraphQL query");
   };
 
   const getTimeRangeNs = () => {
