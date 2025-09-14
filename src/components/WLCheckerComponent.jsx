@@ -99,10 +99,15 @@ const WLCheckerComponent = ({ addresses }) => {
     const minter = data.collection?.minterV2;
     if (!minter || minter.minterType === "BURN_TO_MINT") return [];
 
-    // ✅ Get *all* eligible non-public stages
-    const wlStages = minter.mintStages.filter(
+    // Get *all* eligible non-public stages
+    let wlStages = minter.mintStages.filter(
       s => s.isMember && s.status !== "SOLD_OUT" && s.type !== "PUBLIC"
     );
+
+    // Special case: allow PUBLIC stage for NFTHUB POS
+    if (minter.minterAddress === "stars1cmgqc78wz2etqf89ggh7xe9gyl5mj3y8f2e6payyt5sv5t4plprq4jzpzu") {
+      wlStages = [...wlStages, ...minter.mintStages];
+    }
 
     if (!wlStages.length) return [];
 
@@ -227,7 +232,7 @@ const WLCheckerComponent = ({ addresses }) => {
                 className="check-btn"
                 disabled={isLoadingWLs || !Object.values(selectedMarketplaces).some(Boolean)}
               >
-                {isLoadingWLs ? <LoadingSpinner /> : 'Check Whitelists'}
+                {isLoadingWLs ? <LoadingSpinner message={""} /> : 'Check Whitelists'}
               </button>
             </div>
 
@@ -253,14 +258,14 @@ const WLCheckerComponent = ({ addresses }) => {
                               target="_blank"
                               rel="noopener noreferrer"
                             >
-                              {name}
+                              { name === "NFTHUB Proof of Support" ? "🌟 "+ name +" 🌟" : name }
                             </a>
                           </td>
                           <td>{wlInfo.stageName || "-"}</td>
                           <td>{wlInfo.maxMint || "-"}</td>
                           <td>
                             {wlInfo.price
-                              ? `${wlInfo.price.amount / 10 ** wlInfo.price.exponent} ${wlInfo.price.symbol}`+`${wlInfo.price.amountUsd ? " ($"+ Number(wlInfo.price.amountUsd).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ")":""}`
+                              ? `${wlInfo.price.amount / 10 ** wlInfo.price.exponent} ${wlInfo.price.symbol}` + `${wlInfo.price.amountUsd ? " ($" + Number(wlInfo.price.amountUsd).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ")" : ""}`
                               : "-"}
                           </td>
                           <td>{wlInfo.timeLabel || "-"}</td>
@@ -283,7 +288,7 @@ const WLCheckerComponent = ({ addresses }) => {
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
           .wl-checker-container {
             position: absolute;
             right: 20px;
