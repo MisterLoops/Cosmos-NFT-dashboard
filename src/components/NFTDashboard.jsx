@@ -1109,7 +1109,7 @@ export default function NFTDashboard({
       {!hasLoadedNFTs && (
         <LoadingAnimation fetchingStatus={fetchingStatus} isVisible={true} />
       )}
-      {hasLoadedNFTs && (<WLCheckerComponent addresses={addresses} />)}
+      {hasLoadedNFTs && (<WLCheckerComponent addresses={addresses} hasProofOfSupport={hasProofOfSupport} />)}
       {hasLoadedNFTs && !hasProofOfSupport && (
         <div
   className="mint-btn-container"

@@ -1,16 +1,67 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { API_ENDPOINTS, CORS_PROXIES } from "../utils/constants.js";
 import LoadingSpinner from "./LoadingSpinner";
+import Countdown from "./Countdown";
 
-const WLCheckerComponent = ({ addresses }) => {
+const WLCheckerComponent = ({ addresses, hasProofOfSupport }) => {
   const [showWLModal, setShowWLModal] = useState(false);
   const [isLoadingWLs, setIsLoadingWLs] = useState(false);
+  const [hasAlertBeenClicked, setHasAlertBeenClicked] = useState(false);
   const [wlResults, setWLResults] = useState([]);
+  const [wlAlertTime, setWLAlertTime] = useState(null);
   const [wlResultsFetched, setWLResultsFetched] = useState(false);
   const [selectedMarketplaces, setSelectedMarketplaces] = useState({
     stargaze: true,
     superbolt: true,
   });
+  const fetchedOnceRef = useRef(false);
+
+  useEffect(() => {
+    if (hasProofOfSupport && !fetchedOnceRef.current) {
+    fetchWLs();
+    fetchedOnceRef.current = true;
+  }
+  }, []);
+
+  const urgentWL = useMemo(() => {
+    const now = Date.now();
+    let isUrgent = false;
+    let nextAlert = null;
+
+    wlResults.forEach(({ wlInfo }) => {
+      // Case 1: upcoming within 30 min
+      if (wlInfo.startMs && now < wlInfo.startMs) {
+        const diff = wlInfo.startMs - now;
+        if (diff <= 30 * 60 * 1000) {
+          isUrgent = true;
+          if (!nextAlert || wlInfo.startMs < nextAlert) {
+            nextAlert = wlInfo.startMs; // soonest upcoming
+          }
+        }
+      }
+
+      // Case 2: ongoing, but only if end time exists AND ends within 1 week
+      if (wlInfo.startMs && now >= wlInfo.startMs && wlInfo.endMs) {
+        const timeLeft = wlInfo.endMs - now;
+        if (timeLeft > 0 && timeLeft <= 7 * 24 * 60 * 60 * 1000) { // ≤ 1 week
+          isUrgent = true;
+          if (!nextAlert || wlInfo.endMs < nextAlert) {
+            nextAlert = wlInfo.endMs; // soonest ending within a week
+          }
+        }
+      }
+    });
+
+    // Update state safely outside the loop
+    if (isUrgent && nextAlert) {
+      setWLAlertTime(nextAlert);
+    } else {
+      setWLAlertTime(null);
+    }
+
+    return isUrgent;
+  }, [wlResults]);
+
 
   const fetchGraphQL = async (endpoint, query, variables, operationName) => {
     // Stargaze works fine → fetch directly
@@ -176,10 +227,29 @@ const WLCheckerComponent = ({ addresses }) => {
           },
           maxMint: stage.addressTokenCounts.mintable,
           stageName: stage.name,
-          timeLabel,
+          startMs,
+          endMs,
         };
       })
       .filter(Boolean);
+    // 🚨 Add fake WL stage (starts in 15min, lasts 1h)
+    // const fakeStart = now -5 * 60 * 1000;
+    // const fakeEnd = fakeStart + 60 * 60 * 1000;
+
+    // validStages.push({
+    //   status: "WL'ed",
+    //   price: {
+    //     amount: 1000000, // 1 token (depends on exponent below)
+    //     exponent: 6,
+    //     symbol: "STARS",
+    //     amountUsd: 1, // fake $ value
+    //   },
+    //   maxMint: 2,
+    //   stageName: "🚨 Fake WL Test Stage",
+    //   startMs: fakeStart,
+    //   endMs: fakeEnd,
+    // });
+
 
     return validStages;
   };
@@ -272,7 +342,8 @@ const WLCheckerComponent = ({ addresses }) => {
           price: p.mint_fee_in,
           maxMint: p.mint_limit,
           stageName: p.candy.name,
-          timeLabel,
+          startMs,
+          endMs,
         };
       })
       .filter(Boolean);
@@ -328,13 +399,24 @@ const WLCheckerComponent = ({ addresses }) => {
     <>
       <div className="wl-checker-container">
         <button
-          onClick={() => setShowWLModal(true)}
-          className="wl-checker-btn"
+          onClick={() => { setShowWLModal(true); setHasAlertBeenClicked(true) }}
+          className={`wl-checker-btn ${urgentWL && !hasAlertBeenClicked ? "wl-alert" : ""}`}
           title="Whitelist Checker"
         >
-          <span className="wl-btn-text-desktop">WL checker</span>
-          <span className="wl-btn-text-mobile">WL</span>
-          <span className="new-badge">NEW</span>
+          {urgentWL && hasProofOfSupport ? (
+            <span>
+              WL Mint{" "}
+              {wlAlertTime && (
+                <Countdown targetTime={wlAlertTime} prefix="(" suffix=")" />
+              )}
+            </span>
+          ) : (
+            <>
+              <span className="wl-btn-text-desktop">WL checker</span>
+              <span className="wl-btn-text-mobile">WL</span>
+              <span className="new-badge">NEW</span>
+            </>
+          )}
         </button>
       </div>
 
@@ -458,7 +540,29 @@ const WLCheckerComponent = ({ addresses }) => {
                               )
                             ) : "-"}
                           </td>
-                          <td>{wlInfo.timeLabel || "-"}</td>
+                          <td>
+                            {wlInfo.startMs && Date.now() < wlInfo.startMs ? (
+                              Date.now() + 30 * 60 * 1000 > wlInfo.startMs ? (
+                                // Starts within 30min → RED
+                                <span style={{ color: "red" }}>
+                                  <Countdown targetTime={wlInfo.startMs} prefix="Starts in " />
+                                </span>
+                              ) : (
+                                <Countdown targetTime={wlInfo.startMs} prefix="Starts in " />
+                              )
+                            ) : wlInfo.endMs ? (
+                              Date.now() + 1000 * 60 * 60 * 24 * 60 < wlInfo.endMs ? ( // > 2 months
+                                "Now"
+                              ) : (
+                                // Ongoing + has end → RED
+                                <span style={{ color: "red" }}>
+                                  <Countdown targetTime={wlInfo.endMs} prefix="Now (" suffix=")" />
+                                </span>
+                              )
+                            ) : (
+                              "Now"
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -494,7 +598,18 @@ const WLCheckerComponent = ({ addresses }) => {
         box-shadow: 0 4px 15px rgba(30, 42, 71, 0.4);
         transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
       }
+        .wl-checker-btn.wl-alert {
+          background: linear-gradient(135deg, #1e2a47, #2d3b5c);
+          animation: pulse-alert 1s infinite;
+          color: white;
+          font-weight: bold;
+          font-size: 15px;
+        }
 
+        @keyframes pulse-alert {
+          0%, 100% { transform: scale(1); box-shadow: 0 0 10px #ff4b4b; }
+          50% { transform: scale(1.1); box-shadow: 0 0 25px #ff8c42; }
+        }
       /* Desktop / default */
       .wl-btn-text-desktop { display: inline; }
       .wl-btn-text-mobile  { display: none; }
