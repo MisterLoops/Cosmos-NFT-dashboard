@@ -115,7 +115,7 @@ const fetchDAOActiveProposal = async (chain, daoContract) => {
 
     // 2. Check proposals for each active module
     for (const module of activeModules) {
-      const proposalsQuery = { list_proposals: {} };
+      const proposalsQuery = { list_proposals: {limit: 40} };
       const encodedProposalsQuery = btoa(JSON.stringify(proposalsQuery));
       const proposalsUrl = `${indexer}/cosmwasm/wasm/v1/contract/${module.address}/smart/${encodedProposalsQuery}`;
 
