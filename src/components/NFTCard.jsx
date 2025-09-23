@@ -70,21 +70,21 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
 
   const handleImageError = useCallback((e) => {
     const el = e.target;
-  const currentRetries = parseInt(el.dataset.retryCount || "0", 10);
+    const currentRetries = parseInt(el.dataset.retryCount || "0", 10);
 
-  // stop after 4 attempts (adjust as needed)
-  if (currentRetries >= 4) {
-    console.warn("Max retry attempts reached for", el.src);
-    setImageError(true);
-    if (!el.src.includes("placeholder")) {
-      el.src = "https://via.placeholder.com/300x300/1a1a1a/666?text=NFT";
+    // stop after 4 attempts (adjust as needed)
+    if (currentRetries >= 4) {
+      console.warn("Max retry attempts reached for", el.src);
+      setImageError(true);
+      if (!el.src.includes("placeholder")) {
+        el.src = "https://via.placeholder.com/300x300/1a1a1a/666?text=NFT";
+      }
+      document.dispatchEvent(new CustomEvent("nftImageError"));
+      return;
     }
-    document.dispatchEvent(new CustomEvent("nftImageError"));
-    return;
-  }
 
-  // increment retry counter
-  el.dataset.retryCount = currentRetries + 1;
+    // increment retry counter
+    el.dataset.retryCount = currentRetries + 1;
 
     // For Cloudflare IPFS URLs that failed, try ipfs.io
     if (e.target.src.includes("cloudflare-ipfs.com") && !e.target.src.includes("ipfs.io")) {
@@ -313,6 +313,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
               {nft.chain === "cosmoshub" && "Ark Protocol"}
               {nft.chain === "dungeon" && "BackboneLabs"}
               {nft.chain === "omniflix" && "Omniflix"}
+              {nft.chain === "mantra-dukong-1" && "Loki NFT"}
             </div>
           </div>
           <a
@@ -441,6 +442,17 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
               90 OM
             </div>
           )}
+          {nft.diamondsRating && (
+            <div
+              className="status-badge OM"
+              style={{textShadow: "0 0 3px #302f2d"}}
+              title={`XP: ${nft.currentXp}`} // shows on hover
+            >
+              {Array.from({ length: Number(nft.diamondsRating) }, (_, i) => (
+                <span key={i}>💎</span>
+              ))}
+            </div>
+          )}
         </div>
 
         {viewMode === "grid" && nft.description && (
@@ -495,7 +507,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
                 }
               </span>
 
-              <span className={priceMode === 'floor'?"floor-amount":"nft-offer-amount"}>
+              <span className={priceMode === 'floor' ? "floor-amount" : "nft-offer-amount"}>
                 {priceMode === 'floor'
                   ? (nft.floor?.amount > 0
                     ? `${formatPrice(nft.floor.amount)} ${nft.floor.symbol}`

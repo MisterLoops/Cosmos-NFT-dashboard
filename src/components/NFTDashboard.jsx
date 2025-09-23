@@ -924,8 +924,9 @@ export default function NFTDashboard({
             }));
 
             allNFTs.push(...transformed);
+            
           }
-
+          console.log(allNFTs[0]);
           return allNFTs;
         } catch (error) {
           console.error(`[ERROR] Error fetching Loki NFTs:`, error);
@@ -1048,6 +1049,8 @@ export default function NFTDashboard({
       return `https://app.superbolt.wtf/browse/${nft.collection?.collection_id}/${nft.tokenId}`;
     if (nft.chain === "omniflix")
       return `https://omniflix.market/c/${nft.contract}/${nft.tokenId}`;
+    if (nft.chain === "mantra-dukong-1")
+      return `https://lokinft.com/myprofile`;
     return "#";
   };
 

@@ -115,7 +115,7 @@ const fetchDAOActiveProposal = async (chain, daoContract) => {
 
     // 2. Check proposals for each active module
     for (const module of activeModules) {
-      const proposalsQuery = { list_proposals: {limit: 40} };
+      const proposalsQuery = { list_proposals: { limit: 40 } };
       const encodedProposalsQuery = btoa(JSON.stringify(proposalsQuery));
       const proposalsUrl = `${indexer}/cosmwasm/wasm/v1/contract/${module.address}/smart/${encodedProposalsQuery}`;
 
@@ -6488,10 +6488,29 @@ export const _fetchLokiNFTs = async (address) => {
             functionName: 'tokenURI',
             args: [id],
           });
-
+          const diamondsRatingRaw = await client.readContract({
+            address: LOKI_NFT_ADDRESS,
+            abi: LOKI_NFT_ABI,
+            functionName: 'getDiamondRating',
+            args: [id],
+          });
+          const currentXpRaw = await client.readContract({
+            address: LOKI_NFT_ADDRESS,
+            abi: LOKI_NFT_ABI,
+            functionName: 'calculateCurrentXP',
+            args: [id],
+          });
           const normalizedUri = uri.startsWith('ipfs://')
             ? `https://ipfs.io/ipfs/${uri.slice(7)}`
             : uri;
+
+          // Normalize BigNumber-like returns to strings
+          const diamondsRating = diamondsRatingRaw?.toString
+            ? diamondsRatingRaw.toString()
+            : String(diamondsRatingRaw ?? '');
+          const currentXp = currentXpRaw?.toString
+            ? currentXpRaw.toString()
+            : String(currentXpRaw ?? '');
 
           const res = await fetch(normalizedUri);
           if (!res.ok) return null;
@@ -6518,6 +6537,8 @@ export const _fetchLokiNFTs = async (address) => {
             lastSalePrice: null,
             sortUsd: 0,
             daoStaked: false,
+            diamondsRating,
+            currentXp
           };
         })
       )

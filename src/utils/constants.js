@@ -359,7 +359,7 @@ export const MANTRA_TESTNET = {
   },
 };
 
-export const LOKI_NFT_ADDRESS = "0xd9bc86bfff4fc67aa7a4618534495f4b102eeb23"; // ✅ your Loki NFT contract
+export const LOKI_NFT_ADDRESS = "0xd9bc86bfff4fc67aa7a4618534495f4b102eeb23"; // ✅ your Loki NFT contract 0xd9bC86bfFF4fC67AA7a4618534495F4b102EEb23
 
 export const LOKI_METADATA_BASE_URL = "https://pub-29e67721f9b94aa8ab8b575fc3f58e3a.r2.dev/metadata/";
 
@@ -408,6 +408,24 @@ export const LOKI_NFT_ABI = [
     constant: true,
     inputs: [],
     name: "totalSupply",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  // calculateCurrentXP(uint256 tokenId) → uint256
+  {
+    constant: true,
+    inputs: [{ name: "tokenId", type: "uint256" }],
+    name: "calculateCurrentXP",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  // getDiamondRating(uint256 tokenId) → uint256
+  {
+    constant: true,
+    inputs: [{ name: "tokenId", type: "uint256" }],
+    name: "getDiamondRating",
     outputs: [{ name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function",
