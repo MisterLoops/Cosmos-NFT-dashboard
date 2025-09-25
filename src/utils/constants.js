@@ -9,6 +9,7 @@ export const API_ENDPOINTS = {
   BACKBONE_LABS_API: "https://warlock.backbonelabs.io/api/v1",
   SUPERBOLT_API: "https://api.superbolt.wtf/api/graphql",
   OMNIFLIX_API:"https://data-api.omniflix.studio",
+  PASSAGE_API: "https://marketplace.passage.io/api/indexer",
   OMNIFLIX_ACTIVITY_API:"https://activity-api.omniflix.studio",
   IPFS_DAO_DAO_ZONE: "https://ipfs.dao.daodao.zone/ipfs/",
   DAO_DAO_INDEXER: "https://indexer.daodao.zone",
@@ -144,6 +145,16 @@ export const CHAIN_CONFIGS = {
     symbol: "FLIX",
     decimals: 6,
   },
+  passage: {
+    chainId: "passage-2",
+    prefix: "pasg",
+    displayName: "Passage",
+    rpc: "https://rpc-passage.keplr.app",
+    rest: "https://lcd-passage.keplr.app",
+    denom: "upasg",
+    symbol: "PASG",
+    decimals: 6,
+  },
   mantra_dukong_1: {
     chainId: "mantra-dukong-1",
     prefix: null, // EVM chains don't use bech32 prefixes
@@ -177,7 +188,8 @@ export const SYMBOL_TO_LOGO = {
   "DGN": "dungeon",
   "FLIX": "omniflix",
   "SPICE": "SPICE",
-  "YGATA": "YGATA"
+  "YGATA": "YGATA",
+  "PASG": "passage"
 };
 
 // Token logos from Keplr's chain registry
@@ -200,7 +212,8 @@ export const TOKEN_LOGOS = {
   dungeon:"https://raw.githubusercontent.com/cosmos/chain-registry/master/dungeon/images/DGN.png",
   omniflix: "https://raw.githubusercontent.com/cosmos/chain-registry/master/omniflixhub/images/flix.png",
   SPICE: "https://raw.githubusercontent.com/cosmos/chain-registry/master/osmosis/images/spice.png",
-  YGATA: "https://raw.githubusercontent.com/cosmos/chain-registry/master/omniflixhub/images/ygata.png"
+  YGATA: "https://raw.githubusercontent.com/cosmos/chain-registry/master/omniflixhub/images/ygata.png",
+  passage: "https://raw.githubusercontent.com/cosmos/chain-registry/master/passage/images/pasg.png"
 };
 
 export const IBC_TOKEN_MAPPINGS = {
@@ -301,6 +314,8 @@ export const IBC_TOKEN_MAPPINGS = {
   'ibc/50F886EFA15E1FF3D9226B177083A1EFF944176181C70B6131D74FE5AFB1F2C0': { symbol: 'YGATA', decimals: 6, originChain: 'YGATA' }, // YGATA on Osmosis
   'ibc/2A56F95E2B74AB769816403D384E2199C7BC510BFD2F8352FAC6DF0294B83EBA': { symbol: 'YGATA', decimals: 6, originChain: 'YGATA' }, // YGATA on Osmosis
 
+  //PASG
+  "ibc/208B2F137CDE510B44C41947C045CFDC27F996A9D990EA64460BDD5B3DBEB2ED": { symbol: "PASG", decimals: 6, originChain: "passage" }, // PASG on Osmosis
 };
 
 // Derived configurations from CHAIN_CONFIGS
@@ -329,7 +344,8 @@ export const MARKETPLACES = {
   backbonelabs: "https://app.backbonelabs.io",
   talis: "https://talis.art",
   intergaze: "https://intergaze.xyz",
-  superbolt: "https://app.superbolt.wtf/browse/"
+  superbolt: "https://app.superbolt.wtf/browse/",
+  passage: "https://marketplace.passage.io/"
 };
 
 // Pagination configuration

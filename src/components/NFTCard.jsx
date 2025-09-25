@@ -313,6 +313,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
               {nft.chain === "cosmoshub" && "Ark Protocol"}
               {nft.chain === "dungeon" && "BackboneLabs"}
               {nft.chain === "omniflix" && "Omniflix"}
+              {nft.chain === "passage" && "Passage"}
               {nft.chain === "mantra-dukong-1" && "Loki NFT"}
             </div>
           </div>
@@ -514,7 +515,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
                     : "Not Specified")
                   : (nft.highestOffer?.amount > 0
                     ? `${formatPrice(nft.highestOffer.amount)} ${nft.highestOffer.symbol}`
-                    : "Not Specified")
+                    : "No Offer")
                 }
               </span>
 

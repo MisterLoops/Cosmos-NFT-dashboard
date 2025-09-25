@@ -6553,10 +6553,212 @@ export const _fetchLokiNFTs = async (address) => {
   }
 };
 
-
-
-
 // cached wrapper
 export const fetchLokiNFTs = async (address) => {
   return cachedRequest("fetchLokiNFTs", _fetchLokiNFTs, address);
 };
+
+/// Low-level fetch
+const _fetchPassageNFTs = async (address) => {
+  try {
+    console.log(`[DEBUG] Fetching Passage NFTs for address: ${address}`);
+
+    // Small inline helper (scoped only here)
+    const fetchWithCors = async (url, label) => {
+      let retries = 0;
+      const maxRetries = REQUEST_CONFIG.MAX_RETRIES;
+
+      while (retries <= maxRetries) {
+        try {
+          const corsProxies = CORS_PROXIES;
+
+          let proxiedUrl;
+          const proxyUrl = corsProxies[retries % corsProxies.length];
+
+          if (proxyUrl.includes("codetabs.com") || proxyUrl.includes("thingproxy.freeboard.io")) {
+            proxiedUrl = proxyUrl + encodeURIComponent(url);
+          } else {
+            proxiedUrl = proxyUrl + url;
+          }
+
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), REQUEST_CONFIG.TIMEOUT);
+
+          const response = await fetch(proxiedUrl, {
+            method: "GET",
+            headers: { Accept: "application/json" },
+            signal: controller.signal,
+          });
+
+          clearTimeout(timeoutId);
+
+          if (response.ok) {
+            return await response.json();
+          } else if (
+            response.status === 408 ||
+            response.status === 429 ||
+            response.status >= 500
+          ) {
+            retries++;
+            if (retries <= maxRetries) {
+              const retryDelay = Math.min(
+                REQUEST_CONFIG.RETRY_DELAY_BASE * Math.pow(2, retries - 1),
+                REQUEST_CONFIG.MAX_RETRY_DELAY,
+              );
+              console.log(
+                `[DEBUG] ${label} error ${response.status}, retrying in ${retryDelay}ms (attempt ${retries}/${maxRetries})`
+              );
+              await delay(retryDelay);
+              continue;
+            }
+          }
+
+          console.warn(`[WARNING] Failed to fetch from ${label}: ${response.status} ${response.statusText}`);
+          return null;
+        } catch (error) {
+          retries++;
+          if (retries <= maxRetries) {
+            const retryDelay = Math.min(
+              REQUEST_CONFIG.RETRY_DELAY_BASE * Math.pow(2, retries - 1),
+              REQUEST_CONFIG.MAX_RETRY_DELAY,
+            );
+            console.log(
+              `[DEBUG] ${label} network error, retrying in ${retryDelay}ms (attempt ${retries}/${maxRetries}):`,
+              error.name === "AbortError" ? "Request timeout" : error.message,
+            );
+            await delay(retryDelay);
+            continue;
+          }
+
+          console.error(`[ERROR] Error fetching from ${label} after ${maxRetries} retries:`, error);
+          return null;
+        }
+      }
+      return null;
+    };
+
+    // 1. NFTs
+    const nftsData = await fetchWithCors(
+      `${API_ENDPOINTS.PASSAGE_API}/accounts/${address}/nfts?skip=0&limit=50`,
+      "Passage NFTs"
+    );
+    const nfts = nftsData?.nfts || [];
+    if (nfts.length === 0) return [];
+
+    // 2. Offers
+    const offers =
+      (await fetchWithCors(
+        `${API_ENDPOINTS.PASSAGE_API}/accounts/${address}/orders?orderType=RECEIVED`,
+        "Passage offers"
+      )) || [];
+
+    const collectionOffers = {};
+    const tokenOffers = {};
+    offers.forEach((o) => {
+      if (!o.rawTokenId) {
+        if (
+          !collectionOffers[o.collection.address] ||
+          BigInt(o.price) > BigInt(collectionOffers[o.collection.address].price)
+        ) {
+          collectionOffers[o.collection.address] = o;
+        }
+      } else {
+        const key = `${o.collection.address}-${o.rawTokenId}`;
+        if (!tokenOffers[key] || BigInt(o.price) > BigInt(tokenOffers[key].price)) {
+          tokenOffers[key] = o;
+        }
+      }
+    });
+
+    // 3. Floors
+    const uniqueCollections = [...new Set(nfts.map((n) => n.collection.address))];
+    const floorCache = {};
+    await Promise.all(
+      uniqueCollections.map(async (colAddr) => {
+        const colData = await fetchWithCors(
+          `${API_ENDPOINTS.PASSAGE_API}/collections/${colAddr}`,
+          "Passage collection"
+        );
+        if (colData?.floorPrice) {
+          floorCache[colAddr] = colData.floorPrice;
+        }
+      })
+    );
+
+    // 4. Enrich NFTs
+    const results = await Promise.all(
+      nfts.map(async (nft) => {
+        let lastSale = null;
+        const nftData = await fetchWithCors(
+          `${API_ENDPOINTS.PASSAGE_API}/collections/${nft.collection.address}/nfts/${nft.tokenId}`,
+          "Passage NFT details"
+        );
+        if (nftData?.priceHistory?.length > 0) {
+          lastSale = nftData.priceHistory
+            .filter((h) => h.type === "sale")
+            .sort((a, b) => new Date(b.datetime) - new Date(a.datetime))[0];
+        }
+
+        const tokenKey = `${nft.collection.address}-${nft.tokenId}`;
+        const offer = tokenOffers[tokenKey] || collectionOffers[nft.collection.address] || null;
+
+        return {
+          name: nft.metadata?.name || `NFT #${nft.tokenId}`,
+          tokenId: String(nft.tokenId),
+          chain: "passage",
+          contract: nft.collection.address,
+          collection: nft.collection.name,
+          image: nft.metadata?.image?.replace("ipfs://", API_ENDPOINTS.IPFS_GATEWAY_PRIMARY),
+          traits: nft.metadata?.attributes || [],
+          listed: !!nft.listedPrice,
+          lastSalePriceSpecified: true,
+          listPrice: nft.listedPrice
+            ? {
+                amount: parseFloat(nft.listedPrice) / 1_000_000,
+                denom: nft.listedDenom,
+                symbol: "PASG",
+                amountUsd: nft.listedUsdPrice || null,
+              }
+            : null,
+          floor: floorCache[nft.collection.address]
+            ? {
+                amount: parseFloat(floorCache[nft.collection.address]) / 1_000_000,
+                denom: "upasg",
+                symbol: "PASG",
+                amountUsd: null,
+              }
+            : null,
+          highestOffer: offer
+            ? {
+                amount: parseFloat(offer.price) / 1_000_000,
+                denom: offer.denom,
+                symbol: "PASG",
+                amountUsd: offer.usdPrice || null,
+              }
+            : null,
+          lastSalePrice: lastSale
+            ? {
+                amount: parseFloat(lastSale.price) / 1_000_000,
+                denom: lastSale.denom,
+                symbol: "PASG",
+                amountUsd: lastSale.usdPrice || null,
+              }
+            : null,
+        };
+      })
+    );
+
+    return results;
+  } catch (err) {
+    console.error(`[ERROR] Passage NFT fetch failed for ${address}:`, err);
+    return [];
+  }
+};
+
+// Cached wrapper
+export const fetchPassageNFTs = async (address) => {
+  return cachedRequest("fetchPassageNFTs", _fetchPassageNFTs, address);
+};
+
+
+

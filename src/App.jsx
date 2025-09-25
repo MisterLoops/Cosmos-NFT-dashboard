@@ -432,7 +432,8 @@ export default function App() {
       'FLIX': 'omniflix-network',
       'SPICE': 'spice-2',
       'LAB': 'mad-scientists',
-      'YGATA': 'yield-gata'
+      'YGATA': 'yield-gata',
+      'PASG': 'passage'
     };
 
     const coingeckoIds = Object.values(symbolToCoinGeckoId)
@@ -1015,6 +1016,59 @@ export default function App() {
       }
     };
 
+    // Fetch X: Passage Offers
+    const fetchPassageOffers = async () => {
+      try {
+        // Orders API for offers made by a user (instead of LISTED we use MADE)
+        const offersUrl = `${API_ENDPOINTS.PASSAGE_API}/accounts/${addresses.passage}/orders?orderType=LISTED`;
+
+        const response = await fetchWithRetry(
+          offersUrl,
+          {
+            method: "GET",
+            headers: { Accept: "application/json" },
+          },
+          true // use proxy
+        );
+
+        const data = await response.json();
+
+        return {
+          platform: "Passage",
+          offers: (data || []).map((offer) => {
+            // amount in PASG
+            const amount = parseFloat(offer.price) / 1_000_000;
+            const symbol = "PASG";
+            const amountUsd = calculateUsdValue(offer.price, symbol, 6);
+
+            // handle image from collection (nft may be null for collection offers)
+            let image = offer.collection?.image || "";
+            if (image?.startsWith("ipfs://")) {
+              image = `https://ipfs.io/ipfs/${image.slice(7)}`;
+            }
+
+            // build link: either token or collection
+            const link = `${MARKETPLACES["passage"]}my-account/offers`;
+
+            return {
+              amount,
+              symbol,
+              amount_usd: amountUsd,
+              collection: {
+                name: offer.collection?.name || "Unknown",
+                image,
+              },
+              link,
+            };
+          }),
+        };
+      } catch (error) {
+        console.error("❌ Fetch Passage Offers error:", error);
+        return { platform: "Passage", offers: [] };
+      }
+    };
+
+
     try {
       const [
         walletResult,
@@ -1023,7 +1077,8 @@ export default function App() {
         backboneInjectiveResult,
         backboneOsmosisResult,
         intergazeResult,
-        backboneDungeonResult
+        backboneDungeonResult,
+        passageResult
       ] = await Promise.all([
         fetchWalletName(),
         fetchStargazeOffers(),
@@ -1031,11 +1086,12 @@ export default function App() {
         fetchBackboneInjectiveOffers(),
         fetchBackboneOsmosisOffers(),
         fetchIntergazeOffers(),
-        fetchBackboneDungeonOffers()
+        fetchBackboneDungeonOffers(),
+        fetchPassageOffers()
       ]);
 
 
-      const platforms = [stargazeResult, superboltResult, backboneInjectiveResult, backboneOsmosisResult, intergazeResult, backboneDungeonResult];
+      const platforms = [stargazeResult, superboltResult, backboneInjectiveResult, backboneOsmosisResult, intergazeResult, backboneDungeonResult, passageResult];
 
       const processedPlatforms = platforms
         .map(platform => {
@@ -1602,6 +1658,9 @@ export default function App() {
             </a>
             <a href="https://app.backbonelabs.io" target="_blank" rel="noopener noreferrer" data-tooltip="BackBoneLabs Marketplace on Osmosis, Injective and Dungeon">
               <img src="/BackBoneLabs.png" alt="BackBoneLabs" />
+            </a>
+            <a href="https://marketplace.passage.io/" target="_blank" rel="noopener noreferrer" data-tooltip="Passage Marketplace on Passage">
+              <img src="/pasg.png" alt="Passage" style={{ height: "52px" }} />
             </a>
             <a href="https://app.superbolt.wtf" target="_blank" rel="noopener noreferrer" data-tooltip="Superbolt Marketplace on Neutron">
               <img src="/Superbolt.png" alt="Superbolt" />

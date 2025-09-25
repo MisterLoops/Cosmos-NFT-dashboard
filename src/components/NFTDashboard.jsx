@@ -23,7 +23,9 @@ import {
   fetchCosmosHubNFTs,
   fetchDungeonNFTs,
   fetchOmniFlixNFTs,
-  fetchLokiNFTs
+  fetchLokiNFTs,
+  fetchPassageNFTs
+
 } from "../utils/fetchFunctions";
 import { CHAIN_CONFIGS, CHAINS, PAGINATION_CONFIG } from "../utils/constants.js";
 
@@ -908,6 +910,68 @@ export default function NFTDashboard({
           console.error(`[ERROR] Error fetching Omniflix NFTs:`, error);
           return [];
         }
+      } else if (chain.name === "passage") {
+        try {
+          const allNFTs = [];
+
+          for (const addr of validAddresses) {
+            if (!addr) continue;
+
+            const passageNFTs = await fetchPassageNFTs(addr);
+
+            const transformed = passageNFTs.map((nft) => {
+              const processedImage = processImageUrl(nft.image);
+
+              // --- Calculate USD amounts ---
+              let highestOfferUsd = nft.highestOffer?.amountUsd || 0;
+              let listPriceUsd = nft.listPrice?.amountUsd || 0;
+              let floorUsd = nft.floor?.amountUsd || 0;
+              let lastSaleUsd = nft.lastSalePrice?.amountUsd || 0;
+
+              if (nft.highestOffer && nft.highestOffer.amount && assetPrices["PASG"]) {
+                highestOfferUsd = (nft.highestOffer.amount * assetPrices["PASG"]).toFixed(2);
+              }
+
+              if (nft.listPrice && nft.listPrice.amount && assetPrices["PASG"]) {
+                listPriceUsd = (nft.listPrice.amount * assetPrices["PASG"]).toFixed(2);
+              }
+
+              if (nft.floor && nft.floor.amount && assetPrices["PASG"]) {
+                floorUsd = (nft.floor.amount * assetPrices["PASG"]).toFixed(2);
+              }
+
+              if (nft.lastSalePrice && nft.lastSalePrice.amount && assetPrices["PASG"]) {
+                lastSaleUsd = (nft.lastSalePrice.amount * assetPrices["PASG"]).toFixed(2);
+              }
+
+              return {
+                ...nft,
+                sourceAddress: addr,
+                image: processedImage,
+                highestOffer: nft.highestOffer
+                  ? { ...nft.highestOffer, amountUsd: highestOfferUsd }
+                  : null,
+                listPrice: nft.listPrice
+                  ? { ...nft.listPrice, amountUsd: listPriceUsd }
+                  : null,
+                floor: nft.floor
+                  ? { ...nft.floor, amountUsd: floorUsd }
+                  : null,
+                lastSalePrice: nft.lastSalePrice
+                  ? { ...nft.lastSalePrice, amountUsd: lastSaleUsd }
+                  : null,
+              };
+            });
+
+            allNFTs.push(...transformed);
+          }
+
+          // console.log(`[DEBUG] Found ${allNFTs.length} NFTs for passage`);
+          return allNFTs;
+        } catch (error) {
+          console.error(`[ERROR] Error fetching Passage NFTs:`, error);
+          return [];
+        }
       } else if (chain.name === "mantra_dukong_1") {
         try {
           const allNFTs = [];
@@ -924,7 +988,7 @@ export default function NFTDashboard({
             }));
 
             allNFTs.push(...transformed);
-            
+
           }
           console.log(allNFTs[0]);
           return allNFTs;
@@ -1049,6 +1113,8 @@ export default function NFTDashboard({
       return `https://app.superbolt.wtf/browse/${nft.collection?.collection_id}/${nft.tokenId}`;
     if (nft.chain === "omniflix")
       return `https://omniflix.market/c/${nft.contract}/${nft.tokenId}`;
+    if (nft.chain === "passage")
+      return `https://marketplace.passage.io/marketplace/${nft.contract}/tokens/${nft.tokenId}`;
     if (nft.chain === "mantra-dukong-1")
       return `https://lokinft.com/myprofile`;
     return "#";
@@ -1115,9 +1181,9 @@ export default function NFTDashboard({
       {hasLoadedNFTs && (<WLCheckerComponent addresses={addresses} hasProofOfSupport={hasProofOfSupport} />)}
       {hasLoadedNFTs && !hasProofOfSupport && (
         <div
-  className="mint-btn-container"
->
-  <style>{`
+          className="mint-btn-container"
+        >
+          <style>{`
     .mint-btn-container {
       display: flex;
       justify-content: center; /* default desktop: centered */
@@ -1197,21 +1263,21 @@ export default function NFTDashboard({
     }
   `}</style>
 
-  <button
-    className="stargaze-animated-btn"
-    onClick={() =>
-      window.open(
-        "https://www.stargaze.zone/l/stars1cmgqc78wz2etqf89ggh7xe9gyl5mj3y8f2e6payyt5sv5t4plprq4jzpzu",
-        "_blank"
-      )
-    }
-    title="Show your support and unlock exclusive features"
-  >
-    <span className="btn-text-desktop">🌟 Mint your NFTHUB POS 🌟</span>
-    <span className="btn-text-mobile">🌟 Mint POS</span>
-    
-  </button>
-</div>
+          <button
+            className="stargaze-animated-btn"
+            onClick={() =>
+              window.open(
+                "https://www.stargaze.zone/l/stars1cmgqc78wz2etqf89ggh7xe9gyl5mj3y8f2e6payyt5sv5t4plprq4jzpzu",
+                "_blank"
+              )
+            }
+            title="Show your support and unlock exclusive features"
+          >
+            <span className="btn-text-desktop">🌟 Mint your NFTHUB POS 🌟</span>
+            <span className="btn-text-mobile">🌟 Mint POS</span>
+
+          </button>
+        </div>
 
 
       )}

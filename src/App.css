@@ -80,7 +80,7 @@ body::-webkit-scrollbar {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: clamp(0.5rem, 3vw, 8rem);
+  gap: clamp(0.3rem, 2.5vw, 7rem);
 }
 
 .marketplace-logos a {

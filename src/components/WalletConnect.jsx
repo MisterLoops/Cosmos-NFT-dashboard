@@ -83,7 +83,8 @@ export default function WalletConnect({
         "neutron-1",
         "mantra-1",
         "akashnet-2",
-        "omniflixhub-1"
+        "omniflixhub-1",
+        "passage-2"
       ];
 
       await window.keplr.enable(chainIds);
@@ -143,7 +144,8 @@ export default function WalletConnect({
         "neutron-1",
         "mantra-1",
         "akashnet-2",
-        "omniflixhub-1"
+        "omniflixhub-1",
+        "passage-2"
       ];
 
       await window.leap.enable(chainIds);
