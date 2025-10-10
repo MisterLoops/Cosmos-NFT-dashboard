@@ -5,7 +5,7 @@ import { TOKEN_LOGOS } from '../utils/constants.js';
 export default function LoadingAnimation({ fetchingStatus = [], isVisible = true }) {
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
   
-  const funTexts = ["BM", "LM", "MM", "gOM", "Everything is an experiment", "OMies always show up", "If you're a whale, patience...😅"];
+  const funTexts = ["BM", "LM", "MM", "gOM", "Everything is an experiment", "OMies always show up", "Meet your Crushes", "If you're a whale, patience...😅"];
   
   const chainLogos = [
     { name: 'stargaze', logo: TOKEN_LOGOS.stargaze },

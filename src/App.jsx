@@ -294,21 +294,84 @@ export default function App() {
   const fetchAllChainBalances = async (addresses) => {
     const chainBalances = {}; // Structure: { chainName: { assets: [...], totalValue: 0 } }
 
-    const balancePromises = Object.entries(addresses).filter(([chainName]) => chainName !== "mantra_dukong_1").map(
-      async ([chainName, address]) => {
-        if (CHAIN_ENDPOINTS[chainName]) {
-          try {
-            const endpoint = CHAIN_ENDPOINTS[chainName];
-            const url = `${endpoint.rest}/cosmos/bank/v1beta1/balances/${address}`;
+    const balancePromises = Object.entries(addresses)
+      .filter(([chainName]) => chainName !== "mantra_dukong_1")
+      .map(async ([chainName, address]) => {
+        const endpoint = CHAIN_ENDPOINTS[chainName];
+        if (!endpoint) return [chainName, { assets: [], totalValue: 0 }];
 
+        // 🔹 EVM chains (e.g. HyperEVM)
+        if (endpoint?.isEvm && endpoint?.evmRpc) {
+          const rpcList = Array.isArray(endpoint.evmRpc)
+            ? endpoint.evmRpc
+            : [endpoint.evmRpc];
+
+          let success = false;
+          let wei = 0n;
+
+          for (const rpc of rpcList) {
+            try {
+              const response = await fetch(rpc, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  jsonrpc: "2.0",
+                  method: "eth_getBalance",
+                  params: [address.toString(), "latest"],
+                  id: 1,
+                }),
+              });
+
+              const data = await response.json();
+
+              if (data?.result) {
+                wei = BigInt(data.result);
+                success = true;
+                break;
+              } else {
+                console.warn(`⚠️ Invalid response from ${rpc}:`, data);
+              }
+            } catch (err) {
+              console.warn(`⚠️ RPC ${rpc} failed for ${chainName}:`, err.message || err);
+            }
+          }
+
+          if (!success) {
+            console.error(`❌ All RPCs failed for ${chainName}`);
+            return [chainName, { assets: [], totalValue: 0 }];
+          }
+
+          const decimals = endpoint.decimals ?? 18;
+          const balance = Number(wei);
+
+          return [
+            chainName,
+            {
+              assets: [
+                {
+                  symbol: endpoint.symbol || "HYPE",
+                  amount: balance,
+                  denom: "wei",
+                  decimals,
+                  isNative: true,
+                  originChain: chainName,
+                },
+              ],
+              totalValue: 0,
+            },
+          ];
+        }
+
+        // 🔹 Cosmos SDK chains (normal case)
+        if (endpoint?.rest) {
+          try {
+            const url = `${endpoint.rest}/cosmos/bank/v1beta1/balances/${address}`;
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 15000);
 
             const response = await fetch(url, {
               method: "GET",
-              headers: {
-                Accept: "application/json",
-              },
+              headers: { Accept: "application/json" },
               signal: controller.signal,
             });
 
@@ -316,20 +379,14 @@ export default function App() {
 
             if (response.ok) {
               const data = await response.json();
-              // console.log(`All balances for ${chainName}:`, data);
-
               const assets = [];
 
               if (data.balances && Array.isArray(data.balances)) {
-                // Process all token balances
-                data.balances.forEach(balance => {
+                data.balances.forEach((balance) => {
                   const denom = balance.denom;
                   const amount = balance.amount;
+                  if (!amount || amount === "0") return;
 
-                  // Skip zero balances
-                  if (!amount || amount === '0') return;
-
-                  // Check native token
                   if (denom === endpoint.denom) {
                     assets.push({
                       symbol: endpoint.symbol,
@@ -340,7 +397,6 @@ export default function App() {
                       originChain: chainName,
                     });
                   } else {
-                    // Check IBC tokens
                     const tokenInfo = IBC_TOKEN_MAPPINGS[denom];
                     if (tokenInfo) {
                       assets.push({
@@ -359,25 +415,24 @@ export default function App() {
               return [chainName, { assets, totalValue: 0 }];
             } else {
               console.warn(`Failed to fetch balances for ${chainName}: ${response.status}`);
-              return [chainName, { assets: [], totalValue: 0 }];
             }
           } catch (error) {
             console.error(`Error fetching balances for ${chainName}:`, error);
-            return [chainName, { assets: [], totalValue: 0 }];
           }
         }
+
+        // 🔹 Fallback if nothing worked
         return [chainName, { assets: [], totalValue: 0 }];
-      },
-    );
+      });
 
     const results = await Promise.all(balancePromises);
-
     results.forEach(([chainName, chainData]) => {
       chainBalances[chainName] = chainData;
     });
 
     return chainBalances;
   };
+
 
   useEffect(() => {
     const handleKeystoreChange = () => {
@@ -433,7 +488,8 @@ export default function App() {
       'SPICE': 'spice-2',
       'LAB': 'mad-scientists',
       'YGATA': 'yield-gata',
-      'PASG': 'passage'
+      'PASG': 'passage',
+      'HYPE': 'hyperliquid'
     };
 
     const coingeckoIds = Object.values(symbolToCoinGeckoId)
@@ -1068,6 +1124,74 @@ export default function App() {
       }
     };
 
+    const fetchDripOffers = async (address) => {
+      try {
+        const offersUrl = `${API_ENDPOINTS.DRIP_API}/portfolio/${addresses.hyperevm}/bids`;
+
+        // ✅ Use first proxy (like BackboneDungeon)
+        const proxyUrl = CORS_PROXIES[0];
+        const proxiedUrl = buildProxiedUrl(proxyUrl, offersUrl);
+
+        const response = await fetch(proxiedUrl, {
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+        });
+
+        if (!response.ok) {
+          console.warn(`⚠️ Drip API returned ${response.status}: ${response.statusText}`);
+          return { platform: 'Drip', offers: [] };
+        }
+
+        const data = await response.json();
+        const bids = data?.bids || [];
+
+
+
+        return {
+          platform: 'Drip Trade',
+          offers: bids.map((bid) => {
+            // ✅ Clean up bigint-like strings safely
+            const cleanBigInt = (val) =>
+              typeof val === 'string' ? val.replace('$bigint', '') : '0';
+
+            const priceRaw = cleanBigInt(bid.price);
+            const floorRaw = cleanBigInt(bid.collectionFloorPrice);
+
+            const price = Number(priceRaw) / 1e18;
+            const floor = Number(floorRaw) / 1e18;
+
+            // ✅ Compute USD value using your loaded assetPrices
+            const hypePriceUsd = assetPrices?.HYPE ?? 0;
+            const amountUsd = price * hypePriceUsd;
+
+            // ✅ Handle image normalization
+            const getImageUrl = (imageUrl) => {
+              if (!imageUrl) return '';
+              return imageUrl.startsWith('ipfs://')
+                ? `https://ipfs.io/ipfs/${imageUrl.slice(7)}`
+                : imageUrl;
+            };
+
+            return {
+              amount: price,
+              symbol: 'HYPE',
+              amount_usd: amountUsd,
+              collection: {
+                name: bid.collection?.name || 'Unknown',
+                image: getImageUrl(bid.collection?.imageUrl),
+              },
+              link: `${MARKETPLACES['drip']}/collections/${bid.collection.slug}`,
+            };
+          }),
+        };
+      } catch (error) {
+        console.error('❌ Fetch Drip error:', error);
+        return { platform: 'Drip Trade', offers: [] };
+      }
+    };
+
+
+
 
     try {
       const [
@@ -1078,7 +1202,8 @@ export default function App() {
         backboneOsmosisResult,
         intergazeResult,
         backboneDungeonResult,
-        passageResult
+        passageResult,
+        dripResult
       ] = await Promise.all([
         fetchWalletName(),
         fetchStargazeOffers(),
@@ -1087,11 +1212,12 @@ export default function App() {
         fetchBackboneOsmosisOffers(),
         fetchIntergazeOffers(),
         fetchBackboneDungeonOffers(),
-        fetchPassageOffers()
+        fetchPassageOffers(),
+        fetchDripOffers()
       ]);
 
 
-      const platforms = [stargazeResult, superboltResult, backboneInjectiveResult, backboneOsmosisResult, intergazeResult, backboneDungeonResult, passageResult];
+      const platforms = [stargazeResult, superboltResult, backboneInjectiveResult, backboneOsmosisResult, intergazeResult, backboneDungeonResult, passageResult, dripResult];
 
       const processedPlatforms = platforms
         .map(platform => {
@@ -1171,7 +1297,7 @@ export default function App() {
         // 1️⃣ Derive all Cosmos SDK addresses from Stargaze
         const { data: cosmosBytes } = fromBech32(walletInfo.stargazeAddress.toLowerCase());
         for (const [chainName, config] of Object.entries(CHAIN_CONFIGS)) {
-          if (chainName !== "injective" && chainName !== "initia" && chainName !== "mantra_dukong_1") {
+          if (chainName !== "injective" && chainName !== "initia" && chainName !== "mantra_dukong_1" && chainName !== "hyperevm") {
             addresses[chainName] = toBech32(config.prefix, cosmosBytes);
           }
         }
@@ -1180,24 +1306,12 @@ export default function App() {
         addresses.injective = walletInfo.injectiveAddress;
         addresses.initia = walletInfo.initiaAddress;
 
-        if (walletInfo.lokiEvmAddress) {
-          addresses["mantra_dukong_1"] = walletInfo.lokiEvmAddress;
+        if (walletInfo.evmAddress) {
+          addresses["mantra_dukong_1"] = walletInfo.evmAddress;
+          addresses["hyperevm"] = walletInfo.evmAddress;
         }
-
         return addresses;
       }
-      // Otherwise, KEPLR or LEAP normal flow
-      const chainIds = [
-        "stargaze-1",
-        "osmosis-1",
-        "cosmoshub-4",
-        "injective-1",
-        "interwoven-1",
-        "neutron-1",
-        "mantra-1",
-        "akashnet-2",
-        "omniflixhub-1"
-      ];
 
       const walletInstance = walletInfo.type === "leap" ? window.leap : window.keplr;
 
@@ -1207,11 +1321,11 @@ export default function App() {
         );
       }
 
-      await walletInstance.enable(chainIds);
+      // await walletInstance.enable(chainIds);
 
       for (const [chainName, config] of Object.entries(CHAIN_CONFIGS)) {
         // Skip dungeon for leap, derive later
-        if (config.chainId === "dungeon-1" || config.chainId === "mantra-dukong-1") {
+        if (config.chainId === "dungeon-1" || config.chainId === "mantra-dukong-1" || config.chainId === "hyperevm") {
           continue;
         }
 
@@ -1229,10 +1343,8 @@ export default function App() {
         );
         addresses["dungeon"] = dungeonAddr;
       }
-      // NEW: Add Loki EVM address if provided
-      if (walletInfo.lokiEvmAddress) {
-        addresses["mantra_dukong_1"] = walletInfo.lokiEvmAddress;
-      }
+
+
     } catch (error) {
       console.error("Failed to connect to chains:", error);
       throw new Error(
@@ -1240,7 +1352,11 @@ export default function App() {
         } wallet.`
       );
     }
-
+    // NEW: Add EVM address if provided
+    if (walletInfo.evmAddress) {
+      addresses["mantra_dukong_1"] = walletInfo.evmAddress;
+      addresses["hyperevm"] = walletInfo.evmAddress;
+    }
     return addresses;
   };
 
@@ -1410,7 +1526,7 @@ export default function App() {
   const isAddressValid = (addr, prefix, chainName) => {
     try {
       // Special case: mantra_dukong_1 uses EVM addresses
-      if (chainName === "mantra_dukong_1") {
+      if (chainName === "mantra_dukong_1" || chainName === "hyperevm") {
         return /^0x[a-fA-F0-9]{40}$/.test(addr); // ✅ EVM regex
       }
 
@@ -1450,7 +1566,7 @@ export default function App() {
     const prefix = CHAIN_CONFIGS[selectedChain]?.prefix;
     const trimmedAddress = manualAddress.trim();
 
-    if (!prefix && selectedChain !== "mantra_dukong_1") {
+    if (!prefix && selectedChain !== "mantra_dukong_1" && selectedChain !== "hyperevm") {
       setError(`Chain configuration not found for ${selectedChain}.`);
       return;
     }

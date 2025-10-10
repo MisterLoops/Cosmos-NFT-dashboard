@@ -1,6 +1,6 @@
 // Utility functions for fetching NFT data from various sources
 import daosConfig from "../daos.json";
-import { createPublicClient, http, parseAbi } from 'viem';
+import { createPublicClient, http, parseAbi, getAddress } from 'viem';
 
 import {
   API_ENDPOINTS,
@@ -6714,35 +6714,35 @@ const _fetchPassageNFTs = async (address) => {
           lastSalePriceSpecified: true,
           listPrice: nft.listedPrice
             ? {
-                amount: parseFloat(nft.listedPrice) / 1_000_000,
-                denom: nft.listedDenom,
-                symbol: "PASG",
-                amountUsd: nft.listedUsdPrice || null,
-              }
+              amount: parseFloat(nft.listedPrice) / 1_000_000,
+              denom: nft.listedDenom,
+              symbol: "PASG",
+              amountUsd: nft.listedUsdPrice || null,
+            }
             : null,
           floor: floorCache[nft.collection.address]
             ? {
-                amount: parseFloat(floorCache[nft.collection.address]) / 1_000_000,
-                denom: "upasg",
-                symbol: "PASG",
-                amountUsd: null,
-              }
+              amount: parseFloat(floorCache[nft.collection.address]) / 1_000_000,
+              denom: "upasg",
+              symbol: "PASG",
+              amountUsd: null,
+            }
             : null,
           highestOffer: offer
             ? {
-                amount: parseFloat(offer.price) / 1_000_000,
-                denom: offer.denom,
-                symbol: "PASG",
-                amountUsd: offer.usdPrice || null,
-              }
+              amount: parseFloat(offer.price) / 1_000_000,
+              denom: offer.denom,
+              symbol: "PASG",
+              amountUsd: offer.usdPrice || null,
+            }
             : null,
           lastSalePrice: lastSale
             ? {
-                amount: parseFloat(lastSale.price) / 1_000_000,
-                denom: lastSale.denom,
-                symbol: "PASG",
-                amountUsd: lastSale.usdPrice || null,
-              }
+              amount: parseFloat(lastSale.price) / 1_000_000,
+              denom: lastSale.denom,
+              symbol: "PASG",
+              amountUsd: lastSale.usdPrice || null,
+            }
             : null,
         };
       })
@@ -6758,6 +6758,159 @@ const _fetchPassageNFTs = async (address) => {
 // Cached wrapper
 export const fetchPassageNFTs = async (address) => {
   return cachedRequest("fetchPassageNFTs", _fetchPassageNFTs, address);
+};
+
+
+const _fetchHyperliquidNFTs = async (address) => {
+  if (!address) return [];
+
+  try {
+    const checksumAddress = getAddress(address);
+
+    const filters = {
+      inventoryStatus: "show-all",
+      eventOption: "All Events",
+      sort: "Price ↑",
+    };
+
+    let filterStr = JSON.stringify(filters).replace(/"/g, '%22').replace(/ /g, '%20');
+    const inventoryUrl = `${API_ENDPOINTS.DRIP_API}/portfolio/${checksumAddress}/inventory?page=1&filters={${filterStr.slice(1, -1)}}`;
+
+    // --- CORS fetch helper ---
+    const fetchWithCors = async (url, label) => {
+      let retries = 0;
+      const maxRetries = REQUEST_CONFIG.MAX_RETRIES;
+
+      while (retries <= maxRetries) {
+        try {
+          const proxyUrl = CORS_PROXIES[retries % CORS_PROXIES.length];
+          const proxiedUrl = proxyUrl.includes("codetabs.com") || proxyUrl.includes("thingproxy.freeboard.io")
+            ? proxyUrl + encodeURIComponent(url)
+            : proxyUrl + url;
+
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), REQUEST_CONFIG.TIMEOUT);
+
+          const response = await fetch(proxiedUrl, { method: "GET", headers: { Accept: "application/json" }, signal: controller.signal });
+          clearTimeout(timeoutId);
+
+          if (response.ok) return await response.json();
+          if ([408,403, 429].includes(response.status) || response.status >= 500) {
+            retries++;
+            if (retries <= maxRetries) {
+              const retryDelay = Math.min(REQUEST_CONFIG.RETRY_DELAY_BASE * Math.pow(2, retries - 1), REQUEST_CONFIG.MAX_RETRY_DELAY);
+              await new Promise((r) => setTimeout(r, retryDelay));
+              continue;
+            }
+          }
+          console.warn(`[WARNING] Failed to fetch ${label}: ${response.status} ${response.statusText}`);
+          return null;
+        } catch (err) {
+          retries++;
+          if (retries <= maxRetries) {
+            const retryDelay = Math.min(REQUEST_CONFIG.RETRY_DELAY_BASE * Math.pow(2, retries - 1), REQUEST_CONFIG.MAX_RETRY_DELAY);
+            await new Promise((r) => setTimeout(r, retryDelay));
+            continue;
+          }
+          console.error(`[ERROR] ${label} fetch failed:`, err);
+          return null;
+        }
+      }
+      return null;
+    };
+
+    // --- Fetch NFTs ---
+    const inventoryData = await fetchWithCors(inventoryUrl, "Hyperliquid Inventory");
+    const tokens = inventoryData?.tokens || [];
+    if (tokens.length === 0) return [];
+
+    // --- Fetch floor prices ---
+    const uniqueCollections = [...new Set(tokens.map((t) => t.collectionAddress))];
+    const floorPrices = {};
+
+    await Promise.all(
+      uniqueCollections.map(async (collectionAddr) => {
+        const floorData = await fetchWithCors(
+          `${API_ENDPOINTS.DRIP_API}/collections/${collectionAddr}/floor?after=${Date.now() - 10 * 60 * 1000}`,
+          `Floor price ${collectionAddr}`
+        );
+        const floors = floorData?.floor_prices || [];
+        if (floors.length > 0) {
+          const latest = floors.sort((a, b) => new Date(b.recordedAt) - new Date(a.recordedAt))[0];
+          floorPrices[collectionAddr] = {
+            amount: latest.floorPriceHype ? Number(latest.floorPriceHype.replace("$bigint", "")) / 1e18 : null,
+            amountUsd: latest.floorPriceUsd || null,
+            denom: latest.denom || null,
+            symbol: "HYPE",
+          };
+        }
+      })
+    );
+
+    // --- Map tokens to standardized format ---
+    return tokens.map((token) => {
+      const highestOfferRaw = token.topBids?.[0]?.price?.replace("$bigint", "");
+      const highestOfferAmount = highestOfferRaw ? Number(highestOfferRaw) / 1e18 : null;
+
+      const floor = floorPrices[token.collectionAddress] || {
+        amount: null,
+        amountUsd: null,
+        denom: null,
+        symbol: null,
+      };
+
+      const lastSaleHype = token.lastSalePrice?.priceHype ? Number(token.lastSalePrice.priceHype) / 1e18 : null;
+      const listPriceAmount = token.listing ? Number(token.listing.price.replace("$bigint", "")) / 1e18 : null;
+      const supply = token.collection?.supply;
+      return {
+        name: token.name || "Unnamed NFT",
+        tokenId: token.tokenId?.replace("$bigint", "") || "unknown",
+        chain: "HyperEVM",
+        contract: token.collectionAddress || "unknown-contract",
+        collection: token.collection?.name || "Unknown Collection",
+        collectionSlug: token.collection?.slug || "Unknown slug",
+        image: token.imageUrl || null,
+        listed: token.listing?.price ? true : false,
+        listPrice: listPriceAmount
+          ? { amount: listPriceAmount, amountUsd: token.listPrice?.amountUsd || null, symbol: "HYPE" }
+          : null,
+        rarity: token.rarityRank ? parseInt(token.rarityRank, 10) : null,
+        traits: token.traits?.map((trait) => ({
+          name: trait.type,
+          value: trait.value,
+          rarity: (trait.count/supply * 100).toFixed(2),
+        })) || [],
+        floor: floor,
+        hasOffer: !!highestOfferAmount,
+        highestOffer: {
+          highestOfferType: token.topBids?.[0]?.type || null,
+          amount: highestOfferAmount,
+          amountUsd: token.topBids?.[0]?.priceUsd || null,
+          denom: token.topBids?.[0]?.offerPrice?.denom || null,
+          symbol: "HYPE",
+        },
+        lastSalePriceSpecified: true,
+        lastSalePrice: {
+          amount: lastSaleHype,
+          amountUsd: token.lastSalePrice?.priceUsd || null,
+        },
+        sortUsd: listPriceAmount ? token.listPrice?.amountUsd : floor.amountUsd,
+        daoStaked: !!token.daoName,
+        daoName: token.daoName || null,
+        daoAddress: token.daoAddress || null,
+        sourceAddress: address,
+      };
+    });
+  } catch (error) {
+    console.error("❌ Error fetching Hyperliquid NFTs:", error);
+    return [];
+  }
+};
+
+
+// Cached wrapper
+export const fetchHyperliquidNFTs = async (address) => {
+  return cachedRequest("fetchHyperliquidNFTs", _fetchHyperliquidNFTs, address);
 };
 
 

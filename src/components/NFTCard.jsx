@@ -12,7 +12,9 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
     neutron: "#000000",
     dungeon: "#925802ff",
     omniflix: "#FF5B25",
-    "mantra-dukong-1": "linear-gradient(to right, #ff97d6, #f9b995)"
+    "mantra-dukong-1": "linear-gradient(to right, #ff97d6, #f9b995)",
+    passage: "#340157ff",
+    HyperEVM: "#828f77ff",
   };
   const chainFontColors = {
     stargaze: "white",
@@ -315,6 +317,7 @@ export default function NFTCard({ nft, marketplaceLink, viewMode, priceMode }) {
               {nft.chain === "omniflix" && "Omniflix"}
               {nft.chain === "passage" && "Passage"}
               {nft.chain === "mantra-dukong-1" && "Loki NFT"}
+              {nft.chain === "hyperevm" && "Drip Trade"}
             </div>
           </div>
           <a

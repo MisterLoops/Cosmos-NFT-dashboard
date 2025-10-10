@@ -24,7 +24,8 @@ import {
   fetchDungeonNFTs,
   fetchOmniFlixNFTs,
   fetchLokiNFTs,
-  fetchPassageNFTs
+  fetchPassageNFTs,
+  fetchHyperliquidNFTs
 
 } from "../utils/fetchFunctions";
 import { CHAIN_CONFIGS, CHAINS, PAGINATION_CONFIG } from "../utils/constants.js";
@@ -990,10 +991,51 @@ export default function NFTDashboard({
             allNFTs.push(...transformed);
 
           }
-          console.log(allNFTs[0]);
           return allNFTs;
         } catch (error) {
           console.error(`[ERROR] Error fetching Loki NFTs:`, error);
+          return [];
+        }
+      } else if (chain.name === "hyperevm") {
+        try {
+          const allNFTs = [];
+
+          for (const addr of validAddresses) {
+            if (!addr) continue;
+
+            const NFTs = await fetchHyperliquidNFTs(addr);
+
+            const transformed = NFTs.map((nft) => {
+              const highestOfferAmount = nft.highestOffer?.amount || null;
+              const listPriceAmount = nft.listPrice?.amount || null;
+              const listingPriceUsd = nft.listed && assetPrices?.["HYPE"] ? listPriceAmount * assetPrices?.["HYPE"] : null;
+
+              const highestOfferAmountUsd =
+                highestOfferAmount && assetPrices?.["HYPE"]
+                  ? highestOfferAmount * assetPrices["HYPE"]
+                  : null;
+
+              return {
+                ...nft,
+                sourceAddress: addr,
+                image: nft.image,
+                highestOffer: nft.highestOffer
+                  ? {
+                    ...nft.highestOffer,
+                    amountUsd: highestOfferAmountUsd,
+                  }
+                  : null,
+                listPrice: nft.listPrice ?
+                {...nft.listPrice, amountUsd: listingPriceUsd} : null
+              };
+            });
+
+            allNFTs.push(...transformed);
+          }
+          
+          return allNFTs;
+        } catch (error) {
+          console.error(`[ERROR] Error fetching HyperEVM NFTs:`, error);
           return [];
         }
       }
@@ -1117,6 +1159,8 @@ export default function NFTDashboard({
       return `https://marketplace.passage.io/marketplace/${nft.contract}/tokens/${nft.tokenId}`;
     if (nft.chain === "mantra-dukong-1")
       return `https://lokinft.com/myprofile`;
+    if (nft.chain === "HyperEVM")
+      return `https://drip.trade/collections/${nft.collectionSlug}/tokens/${nft.contract}:${nft.tokenId}`;
     return "#";
   };
 
