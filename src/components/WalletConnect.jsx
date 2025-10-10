@@ -397,7 +397,7 @@ export default function WalletConnect({
               }}
             />
 
-            <span>Include HyperEVM (Crushes) + Mantra EVM testnet?</span>
+            <span> HyperEVM (Crushes) + Mantra EVM testnet (Lokis) ?</span>
 
           </label>
 
