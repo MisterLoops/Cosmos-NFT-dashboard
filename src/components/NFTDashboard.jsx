@@ -1238,12 +1238,16 @@ export default function NFTDashboard({
       position: relative;
       padding: 14px 36px;
       border-radius: 50px;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      font-weight: 600;
-      font-size: 17px;
+      display:flex;
+      flex-direction:column;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Titan One', sans-serif;
+      font-weight: 400;
+      font-size: 20px;
       letter-spacing: 0.6px;
-      color: #1a1a2e;
-      text-shadow: 0 1px 2px rgba(255,255,255,0.4);
+      color: #10b981;
+      text-shadow: 1px 1px 2px #085a3fff;
       border: none;
       cursor: pointer;
       overflow: hidden;
@@ -1311,14 +1315,26 @@ export default function NFTDashboard({
             className="stargaze-animated-btn"
             onClick={() =>
               window.open(
-                "https://www.stargaze.zone/l/stars1cmgqc78wz2etqf89ggh7xe9gyl5mj3y8f2e6payyt5sv5t4plprq4jzpzu",
+                "https://www.stargaze.zone/l/nfthubpos",
                 "_blank"
               )
             }
-            title="Show your support and unlock exclusive features"
+            title="Mint your NFTHUB POS to support and unlock..."
           >
-            <span className="btn-text-desktop">🌟 Mint your NFTHUB POS 🌟</span>
-            <span className="btn-text-mobile">🌟 Mint POS</span>
+            <img
+              src="./NFTHUBPOS.GIF" // ✅ your gif
+              alt="Supporter Badge"
+              style={{
+                width: "100px",
+                height: "100px",
+                borderRadius: "50%", // round crop
+                objectFit: "cover",
+                // marginBottom: "0.5rem",
+                // boxShadow: "0 0 8px 8px #0b0b1a"
+              }}
+            />
+            <span className="btn-text-desktop">MINT YOUR POS</span>
+            {/* <span className="btn-text-mobile">🌟 Mint POS</span>  */}
 
           </button>
         </div>
@@ -1354,8 +1370,8 @@ export default function NFTDashboard({
               src="./NFTHUBPOS.GIF" // ✅ your gif
               alt="Supporter Badge"
               style={{
-                width: "50px",
-                height: "50px",
+                width: "100px",
+                height: "100px",
                 borderRadius: "50%", // round crop
                 objectFit: "cover",
                 marginBottom: "0.5rem",
