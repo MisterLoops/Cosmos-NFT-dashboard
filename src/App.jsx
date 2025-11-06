@@ -22,6 +22,7 @@ import { clearCache } from "./utils/fetchFunctions";
 export default function App() {
   const [wallet, setWallet] = useState(null);
   const [addresses, setAddresses] = useState({});
+  const [NFTaddresses, setNFTAddresses] = useState({});
   const [addressesForSkip, setAddressesForSkip] = useState({});
   const [signers, setSigners] = useState(null);
   const [hasAccess, setHasAccess] = useState(false);
@@ -86,6 +87,7 @@ export default function App() {
     setChainBalances({});
     setShowDollarBalances(true);
     setNftOffers({});
+    setNFTAddresses({});
     setOffersLoading(false);
     setHasLoadedBalances(false);
     setHasLoadedNFTs(false);
@@ -665,6 +667,9 @@ export default function App() {
 
     // Fetch 2: Stargaze Offers
     const fetchStargazeOffers = async () => {
+      if (!addresses.stargaze) {
+        return;
+      }
       try {
         const response = await fetchWithRetry(API_ENDPOINTS.STARGAZE_GRAPHQL, {
           method: 'POST',
@@ -745,6 +750,9 @@ export default function App() {
 
     // Fetch 3: Superbolt Offers (with retry logic like Neutron)
     const fetchSuperboltOffers = async () => {
+      if (!addresses.neutron) {
+        return;
+      }
       try {
         const response = await fetchWithRetry(API_ENDPOINTS.SUPERBOLT_API, {
           method: 'POST',
@@ -809,6 +817,9 @@ export default function App() {
 
     // Fetch 4: BackboneLabs Injective Offers (with proxy iteration like Injective)
     const fetchBackboneInjectiveOffers = async () => {
+      if (!addresses.injective) {
+        return;
+      }
       try {
         const offersUrl = `${API_ENDPOINTS.BACKBONE_LABS_API}/dapps/necropolis/offers/made?addresses=${addresses.injective}`;
         const response = await fetchWithRetry(
@@ -880,6 +891,9 @@ export default function App() {
 
     // Fetch 5: BackboneLabs Osmosis Offers (with single proxy like Osmosis)
     const fetchBackboneOsmosisOffers = async () => {
+      if (!addresses.osmosis) {
+        return;
+      }
       try {
         const offersUrl = `${API_ENDPOINTS.BACKBONE_LABS_API}/dapps/necropolis/offers/made?addresses=${addresses.osmosis}`;
 
@@ -951,6 +965,9 @@ export default function App() {
 
     // Fetch 6: Intergaze Offers
     const fetchIntergazeOffers = async () => {
+      if (!addresses.initia) {
+        return;
+      }
       try {
         const response = await fetchWithRetry(
           `${API_ENDPOINTS.INTERGAZE_API}/profiles/${addresses.initia}/offers/made?offset=0&limit=100`,
@@ -1004,6 +1021,9 @@ export default function App() {
 
     // Fetch 7: BackboneLabs Osmosis Offers (with single proxy like Osmosis)
     const fetchBackboneDungeonOffers = async () => {
+      if (!addresses.dungeon) {
+        return;
+      }
       try {
         const offersUrl = `${API_ENDPOINTS.BACKBONE_LABS_API}/dapps/necropolis/offers/made?addresses=${addresses.dungeon}`;
 
@@ -1074,6 +1094,9 @@ export default function App() {
 
     // Fetch X: Passage Offers
     const fetchPassageOffers = async () => {
+      if (!addresses.passage) {
+        return;
+      }
       try {
         // Orders API for offers made by a user (instead of LISTED we use MADE)
         const offersUrl = `${API_ENDPOINTS.PASSAGE_API}/accounts/${addresses.passage}/orders?orderType=LISTED`;
@@ -1125,6 +1148,9 @@ export default function App() {
     };
 
     const fetchDripOffers = async (address) => {
+      if (!addresses.hyperevm) {
+        return;
+      }
       try {
         const offersUrl = `${API_ENDPOINTS.DRIP_API}/portfolio/${addresses.hyperevm}/bids`;
 
@@ -1496,6 +1522,20 @@ export default function App() {
       }
       // No longer gating, so set hasAccess to true directly
       setHasAccess(true);
+
+      // ✅ Filter NFT addresses by selected chains
+      let nftAddresses = allAddresses;
+      if (walletInfo.selectedChains && walletInfo.selectedChains.length > 0) {
+        nftAddresses = Object.fromEntries(
+          Object.entries(allAddresses).filter(([chain]) =>
+            walletInfo.selectedChains.includes(CHAIN_CONFIGS[chain]?.chainId)
+          )
+        );
+      }
+
+      // ✅ Save both sets
+      setAddresses(allAddresses);   // for tokens
+      setNFTAddresses(nftAddresses);
 
       // Fetch token balances
       fetchTokenBalances(allAddresses);
@@ -2138,7 +2178,7 @@ export default function App() {
       ) : (
         <NFTDashboard
           key={nftDashboardKey}
-          addresses={getAllAddresses()}
+          addresses={NFTaddresses}
           onAddressFetched={clearAddressLoading}
           bosmoPrice={bosmoPrice}
           initPrice={initPrice}

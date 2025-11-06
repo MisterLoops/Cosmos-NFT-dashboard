@@ -17,6 +17,9 @@ It simply runs in your browser, no data is stored, no database is required at th
 * Neutron 
 * Dungeon 
 * Omniflix
+* Mantra-Dukong testnet
+* Passage
+* HyperEVM
  
 **The dashboard:**
 * Offline connection to keplr/leap
@@ -29,6 +32,7 @@ It simply runs in your browser, no data is stored, no database is required at th
 * Lets you filter NFTs by wallet address, chain, collection, listed status or staked status
 * Lets you switch between Floor price and Highest Offers mode (used to sort NFTs and calculate value)
 * Each of your active offers or NFTs has a link to where it is
+* WL Checker: Checks you WL eligibility for mints on Stargaze and Neutron
 
 ## APIs
 Data is collected using Stargaze, Intergaze, BackBoneLabs and Superbolt APIs.

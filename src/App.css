@@ -5529,3 +5529,200 @@ body::-webkit-scrollbar {
     transform: translateY(0) scale(1);
   }
 }
+
+/* Wallet connect layout */
+/* .connect-container {
+  text-align: center;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 16px;
+  padding: 32px 20px;
+  margin: 40px auto;
+  max-width: 520px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+} */
+
+/* .wallet-icon {
+  color: #fff;
+  opacity: 0.9;
+  margin-bottom: 10px;
+} */
+
+.chain-selector {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 10px 18px;
+  margin: 18px 0;
+  cursor: pointer;
+  color: #fff;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+.chain-selector:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Wallet buttons */
+.wallet-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.wallet-connection-btn{
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 12px 20px;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+.wallet-connection-btn:hover {
+  background: #2c2c2c;
+}
+.wallet-connection-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+/* .wallet-logo img {
+  height: 60px;
+  width: 40px;
+} */
+
+/* Modal styling */
+/* Dark modal background */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease-out forwards;
+  z-index: 9999;
+}
+
+/* Dark modal container */
+.modal-dark {
+  background: radial-gradient(circle at 20% 20%, #0b0b1a, #1a1a3d 40%, #0d0d1f 70%, #000000 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 24px;
+  width: 90%;
+  max-width: 480px;
+  color: #fff;
+  animation: scaleIn 0.25s ease-out forwards;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.modal-dark h2 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.modal-controls {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.modal-controls button {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  transition: background 0.2s ease;
+}
+.modal-controls button:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+.modal-controls .danger {
+  background: rgba(255, 0, 0, 0.12);
+}
+.modal-controls .danger:hover {
+  background: rgba(255, 0, 0, 0.18);
+}
+
+.chain-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  max-height: 250px;
+  overflow-y: auto;
+  margin-bottom: 18px;
+}
+
+.chain-option {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 6px 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.chain-option:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+.chain-option input {
+  margin-right: 8px;
+}
+.evm-tag {
+  color: #aaa;
+  font-size: 0.8em;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.modal-actions button {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-weight: 500;
+}
+.modal-actions .cancel {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.modal-actions .cancel:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.modal-actions .apply {
+  background: #3b82f6;
+  color: #fff;
+}
+.modal-actions .apply:hover {
+  background: #2e6ce3;
+}
+
+/* Smooth animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
