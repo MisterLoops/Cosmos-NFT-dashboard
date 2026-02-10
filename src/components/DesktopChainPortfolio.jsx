@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   TOKEN_LOGOS,
-  SYMBOL_TO_LOGO
+  SYMBOL_TO_LOGO, 
+  CHAIN_CONFIGS
 } from "../utils/constants.js";
 
 // Desktop Chain-Based Portfolio Summary
-export default function DesktopChainPortfolio({ chainBalances, showDollarBalances, setShowDollarBalances, nftOffers }) {
+export default function DesktopChainPortfolio({ chainBalances, showDollarBalances, setShowDollarBalances, nftOffers, onBalanceClick }) {
   const [activeTooltip, setActiveTooltip] = useState(null);
   const [showOffersExpanded, setShowOffersExpanded] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
@@ -38,6 +39,17 @@ export default function DesktopChainPortfolio({ chainBalances, showDollarBalance
     });
     setActiveTooltip(chainName);
   };
+
+  const sendDefaultRoute = (chainName) => {
+  if (typeof onBalanceClick === "function") {
+    onBalanceClick({
+      destChainId: CHAIN_CONFIGS[chainName].chainId,
+      destAssetDenom: CHAIN_CONFIGS[chainName].denom,
+    });
+  } else {
+    console.error("onBalanceClick is not a function");
+  }
+};
 
   // Filter and sort chains with assets
   const chainsWithAssets = Object.entries(chainBalances)
@@ -74,6 +86,7 @@ export default function DesktopChainPortfolio({ chainBalances, showDollarBalance
                 className="token-summary-item"
                 onMouseEnter={(e) => handleMouseEnter(chainName, e)}
                 onMouseLeave={() => setActiveTooltip(null)}
+                onClick={()=> sendDefaultRoute(chainName)}
               >
                 <div>
                   <img
